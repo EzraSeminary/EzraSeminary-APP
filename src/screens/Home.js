@@ -752,7 +752,7 @@ const Home = () => {
                   <Text style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
                     All SSLs
                   </Text>
-                  <Calendar size={14} color="#FFFFFF" weight="bold" />
+                  {/* <Calendar size={14} color="#FFFFFF" weight="bold" /> */}
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -834,7 +834,7 @@ const Home = () => {
                   <Text style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
                     All Devotionals
                   </Text>
-                  <Book size={14} color="#FFFFFF" weight="bold" />
+                  {/* <Book size={14} color="#FFFFFF" weight="bold" /> */}
                 </TouchableOpacity>
               </View>
             </Animated.View>
