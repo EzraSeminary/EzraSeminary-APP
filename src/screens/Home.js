@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect, useRef} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -7,6 +7,9 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
+  Animated,
+  Dimensions,
+  ImageBackground,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import {useSelector, useDispatch} from 'react-redux';
@@ -25,6 +28,14 @@ import {setDevotions} from '../redux/devotionsSlice';
 import {setCourses} from '../redux/courseSlice';
 import {scheduleVerseOfTheDayNotification} from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  BookOpen,
+  Calendar,
+  Users,
+  Cross,
+  Sparkle,
+  Book,
+} from 'phosphor-react-native';
 
 const ethiopianMonths = [
   '', // There is no month 0
@@ -43,6 +54,8 @@ const ethiopianMonths = [
   'ጳጉሜ', // 13th month
 ];
 
+const {width} = Dimensions.get('window');
+
 const Home = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,6 +66,12 @@ const Home = () => {
     courses: [],
     lastCacheTime: null,
   });
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const sparkleAnim = useRef(new Animated.Value(0)).current;
 
   const navigation = useNavigation();
   const dispatch = useDispatch();
@@ -259,6 +278,47 @@ const Home = () => {
     saveCachedData,
   ]);
 
+  // Animation effects
+  useEffect(() => {
+    if (!isLoading) {
+      // Start animations when data is loaded
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Sparkle animation loop
+      const sparkleAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(sparkleAnim, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(sparkleAnim, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      sparkleAnimation.start();
+    }
+  }, [isLoading, fadeAnim, slideAnim, scaleAnim, sparkleAnim]);
+
   // Load cached data on app start
   useEffect(() => {
     const initializeApp = async () => {
@@ -335,10 +395,88 @@ const Home = () => {
     return (
       <SafeAreaView
         style={darkMode ? tw`bg-secondary-9 h-screen flex-1` : tw`flex-1`}>
-        <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
-        <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
-          {isOffline ? 'Loading cached data...' : 'Loading...'}
-        </Text>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          {/* Animated Loading Container */}
+          <Animated.View
+            style={[
+              tw`items-center`,
+              {
+                transform: [
+                  {
+                    scale: scaleAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1.1],
+                    }),
+                  },
+                ],
+              },
+            ]}>
+            {/* Glowing Circle Background */}
+            <View
+              style={[
+                tw`w-32 h-32 rounded-full items-center justify-center mb-6`,
+                {
+                  backgroundColor: darkMode ? '#1F2937' : '#F3F4F6',
+                  shadowColor: '#EA9215',
+                  shadowOffset: {width: 0, height: 0},
+                  shadowOpacity: 0.3,
+                  shadowRadius: 20,
+                  elevation: 10,
+                },
+              ]}>
+              <BookOpen size={48} color="#EA9215" weight="bold" />
+              <ActivityIndicator
+                size="large"
+                color="#EA9215"
+                style={tw`absolute`}
+              />
+            </View>
+
+            {/* Loading Text with Gradient Effect */}
+            <Text
+              style={[
+                tw`font-nokia-bold text-xl text-center mb-2`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              {isOffline ? 'Loading cached data...' : 'Preparing Your Journey'}
+            </Text>
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm text-center opacity-70`,
+                darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+              ]}>
+              {isOffline
+                ? 'Working offline with saved content'
+                : 'Loading devotionals and courses...'}
+            </Text>
+
+            {/* Animated Dots */}
+            <View style={tw`flex-row mt-4 gap-2`}>
+              {[0, 1, 2].map(index => (
+                <Animated.View
+                  key={index}
+                  style={[
+                    tw`w-2 h-2 bg-accent-6 rounded-full`,
+                    {
+                      opacity: sparkleAnim.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [0.3, 1, 0.3],
+                      }),
+                      transform: [
+                        {
+                          scale: sparkleAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [0.8, 1.2, 0.8],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        </View>
       </SafeAreaView>
     );
   }
@@ -395,94 +533,324 @@ const Home = () => {
               tintColor={'#EA9215'}
             />
           }>
-          <Header darkMode={darkMode} navigation={navigation} />
-          {user && (
-            <Text
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{translateY: slideAnim}],
+            }}>
+            <Header darkMode={darkMode} navigation={navigation} />
+
+            {/* Enhanced Welcome Section */}
+            {user && (
+              <Animated.View
+                style={[
+                  tw`mb-6 p-4 rounded-2xl`,
+                  {
+                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                    transform: [{scale: scaleAnim}],
+                  },
+                ]}>
+                <View style={tw`flex-row items-center justify-between`}>
+                  <View style={tw`flex-1`}>
+                    <Text
+                      style={[
+                        tw`font-nokia-bold text-2xl mb-1`,
+                        darkMode ? tw`text-accent-6` : tw`text-secondary-8`,
+                      ]}>
+                      Welcome back, {user.firstName}!
+                    </Text>
+                    <Text
+                      style={[
+                        tw`font-nokia-bold text-sm opacity-70`,
+                        darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+                      ]}>
+                      Continue your spiritual journey today
+                    </Text>
+                  </View>
+                  <View>
+                    <Cross size={32} color="#EA9215" weight="fill" />
+                  </View>
+                </View>
+              </Animated.View>
+            )}
+
+            {/* Today's Devotion with Enhanced Card */}
+            {devotionToDisplay && (
+              <Animated.View
+                style={{
+                  transform: [{scale: scaleAnim}],
+                }}>
+                <View style={tw`mb-4`}>
+                  <View style={tw`flex-row items-center mb-3`}>
+                    <Calendar size={24} color="#EA9215" weight="bold" />
+                    <Text
+                      style={[
+                        tw`font-nokia-bold text-lg ml-2`,
+                        darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                      ]}>
+                      Today's Devotion
+                    </Text>
+                  </View>
+                </View>
+                <DevotionCard
+                  devotion={devotionToDisplay}
+                  darkMode={darkMode}
+                  navigation={navigation}
+                />
+              </Animated.View>
+            )}
+            {/* Enhanced Section Divider with Cross */}
+            <View style={tw`flex-row items-center my-6`}>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
+              <Animated.View
+                style={[
+                  tw`p-2 rounded-full`,
+                  {
+                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                    opacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.7, 1, 0.7],
+                    }),
+                    transform: [
+                      {
+                        scale: sparkleAnim.interpolate({
+                          inputRange: [0, 0.5, 1],
+                          outputRange: [1, 1.2, 1],
+                        }),
+                      },
+                      {
+                        rotate: sparkleAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '15deg'],
+                        }),
+                      },
+                    ],
+                    shadowColor: '#EA9215',
+                    shadowOffset: {width: 0, height: 2},
+                    shadowOpacity: 0.3,
+                    shadowRadius: 4,
+                    elevation: 5,
+                  },
+                ]}>
+                <Cross size={20} color="#EA9215" weight="bold" />
+              </Animated.View>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
+            </View>
+
+            {/* Enhanced Continue Learning Section */}
+            <Animated.View
               style={[
-                tw`font-nokia-bold text-2xl text-secondary-6`,
-                darkMode ? tw`text-accent-6` : null,
+                tw`p-4 rounded-2xl mb-4`,
+                {
+                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                  transform: [{scale: scaleAnim}],
+                },
               ]}>
-              Welcome, {user.firstName}!
-            </Text>
-          )}
-          {devotionToDisplay && (
-            <DevotionCard
-              devotion={devotionToDisplay}
-              darkMode={darkMode}
-              navigation={navigation}
-            />
-          )}
-          <View style={tw`border-b border-primary-7 mt-4 mb-2`} />
-          <View style={tw`flex flex-row justify-between items-center`}>
-            <Text
+              <View style={tw`flex flex-row justify-between items-center`}>
+                <View style={tw`flex-row items-center flex-1`}>
+                  <BookOpen size={24} color="#EA9215" weight="bold" />
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-lg ml-3`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                    ]}>
+                    ማጥናት ይቀጥሉ
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    tw`px-4 py-2 rounded-full flex-row items-center`,
+                    {backgroundColor: '#EA9215'},
+                  ]}
+                  onPress={() =>
+                    navigation.navigate('Course', {screen: 'CourseHome'})
+                  }>
+                  <Text style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
+                    ሁሉም ኮርሶች
+                  </Text>
+                  <BookOpen size={14} color="#FFFFFF" weight="bold" />
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+            {lastCourse && (
+              <Animated.View
+                style={{
+                  transform: [{scale: scaleAnim}],
+                }}>
+                <CourseCard
+                  course={lastCourse}
+                  darkMode={darkMode}
+                  handleButtonPress={handleButtonPress}
+                />
+              </Animated.View>
+            )}
+
+            {/* Enhanced Section Divider with Bible */}
+            <View style={tw`flex-row items-center my-6`}>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
+              <Animated.View
+                style={[
+                  tw`p-2 rounded-full`,
+                  {
+                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                    opacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.7, 1, 0.7],
+                    }),
+                    transform: [
+                      {
+                        scale: sparkleAnim.interpolate({
+                          inputRange: [0, 0.5, 1],
+                          outputRange: [1, 1.3, 1],
+                        }),
+                      },
+                      {
+                        rotateY: sparkleAnim.interpolate({
+                          inputRange: [0, 0.5, 1],
+                          outputRange: ['0deg', '180deg', '360deg'],
+                        }),
+                      },
+                    ],
+                    shadowColor: '#EA9215',
+                    shadowOffset: {width: 0, height: 2},
+                    shadowOpacity: 0.4,
+                    shadowRadius: 6,
+                    elevation: 8,
+                  },
+                ]}>
+                <Book size={20} color="#EA9215" weight="bold" />
+              </Animated.View>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
+            </View>
+
+            {/* Enhanced Sabbath School Section */}
+            <Animated.View
               style={[
-                tw`font-nokia-bold text-secondary-5 text-lg`,
-                darkMode ? tw`text-primary-7` : null,
+                tw`p-4 rounded-2xl mb-4`,
+                {
+                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                  transform: [{scale: scaleAnim}],
+                },
               ]}>
-              ማጥናት ይቀጥሉ
-            </Text>
-            <TouchableOpacity
-              style={tw`border border-accent-6 px-4 py-1 rounded-4`}
-              onPress={() =>
-                navigation.navigate('Course', {screen: 'CourseHome'})
-              }>
-              <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                ሁሉም ኮርሶች
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {lastCourse && (
-            <CourseCard
-              course={lastCourse}
-              darkMode={darkMode}
-              handleButtonPress={handleButtonPress}
-            />
-          )}
-          <View style={tw`border-b border-primary-7 mt-4 mb-2`} />
-          <View style={tw`flex flex-row justify-between items-center`}>
-            <Text
+              <View style={tw`flex flex-row justify-between items-center`}>
+                <View style={tw`flex-row items-center flex-1`}>
+                  <Calendar size={24} color="#EA9215" weight="bold" />
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-lg ml-3`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                    ]}>
+                    የዚህ ሳምንት ሰንበት ትምህርት
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    tw`px-4 py-2 rounded-full flex-row items-center`,
+                    {backgroundColor: '#EA9215'},
+                  ]}
+                  onPress={() => navigation.navigate('SSLHome')}>
+                  <Text style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
+                    All SSLs
+                  </Text>
+                  <Calendar size={14} color="#FFFFFF" weight="bold" />
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+            <Animated.View
+              style={{
+                transform: [{scale: scaleAnim}],
+              }}>
+              <HomeCurrentSSL />
+            </Animated.View>
+
+            {/* Enhanced Section Divider with Cross & Light */}
+            <View style={tw`flex-row items-center my-6`}>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
+              <Animated.View
+                style={[
+                  tw`p-3 rounded-full`,
+                  {
+                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                    opacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.6, 1, 0.6],
+                    }),
+                    transform: [
+                      {
+                        scale: sparkleAnim.interpolate({
+                          inputRange: [0, 0.25, 0.5, 0.75, 1],
+                          outputRange: [1, 1.1, 1.2, 1.1, 1],
+                        }),
+                      },
+                    ],
+                    shadowColor: '#EA9215',
+                    shadowOffset: {width: 0, height: 0},
+                    shadowOpacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.2, 0.6, 0.2],
+                    }),
+                    shadowRadius: sparkleAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [4, 12, 4],
+                    }),
+                    elevation: 10,
+                  },
+                ]}>
+                <Cross size={18} color="#EA9215" weight="bold" />
+              </Animated.View>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
+            </View>
+
+            {/* Enhanced Discover Devotionals Section */}
+            <Animated.View
               style={[
-                tw`font-nokia-bold text-secondary-4 text-lg`,
-                darkMode ? tw`text-primary-3` : null,
+                tw`p-4 rounded-2xl mb-4`,
+                {
+                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                  transform: [{scale: scaleAnim}],
+                },
               ]}>
-              የዚህ ሳምንት ሰንበት ትምህርት
-            </Text>
-            <TouchableOpacity
-              style={tw`border border-accent-6 px-4 py-1 rounded-4`}
-              onPress={() => navigation.navigate('SSLHome')}>
-              <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                All SSLs
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <HomeCurrentSSL />
-          <View style={tw`border-b border-primary-7 mt-4 mb-2`} />
-          <View style={tw`flex flex-row justify-between items-center`}>
-            <Text
-              style={[
-                tw`font-nokia-bold text-secondary-4 text-lg`,
-                darkMode ? tw`text-primary-3` : null,
-              ]}>
-              Discover Devotionals
-            </Text>
-            <TouchableOpacity
-              style={tw`border border-accent-6 px-4 py-1 rounded-4`}
-              onPress={() =>
-                navigation.navigate('Devotional', {
-                  screen: 'AllDevotionals',
-                })
-              }>
-              <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                All Devotionals
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {devotionsToDisplay.length > 0 && (
-            <PreviousDevotions
-              devotions={devotionsToDisplay}
-              darkMode={darkMode}
-            />
-          )}
+              <View style={tw`flex flex-row justify-between items-center`}>
+                <View style={tw`flex-row items-center flex-1`}>
+                  <Book size={24} color="#EA9215" weight="bold" />
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-lg ml-3`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                    ]}>
+                    Discover Devotionals
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    tw`px-4 py-2 rounded-full flex-row items-center`,
+                    {backgroundColor: '#EA9215'},
+                  ]}
+                  onPress={() =>
+                    navigation.navigate('Devotional', {
+                      screen: 'AllDevotionals',
+                    })
+                  }>
+                  <Text style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
+                    All Devotionals
+                  </Text>
+                  <Book size={14} color="#FFFFFF" weight="bold" />
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+
+            {devotionsToDisplay.length > 0 && (
+              <Animated.View
+                style={{
+                  transform: [{scale: scaleAnim}],
+                }}>
+                <PreviousDevotions
+                  devotions={devotionsToDisplay}
+                  darkMode={darkMode}
+                />
+              </Animated.View>
+            )}
+          </Animated.View>
         </ScrollView>
       </SafeAreaView>
     </View>

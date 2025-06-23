@@ -102,7 +102,7 @@ const AppInfo = ({navigation}) => {
               tw`font-nokia-bold text-accent-5 text-xs text-center`,
               darkMode && tw`text-primary-3`,
             ]}>
-            Version 1.0.0
+            Version 1.1
           </Text>
           <TouchableOpacity
             style={tw`border border-accent-6 rounded-full mt-4 px-4 py-1`}
