@@ -367,29 +367,158 @@ const Setting = ({navigation}) => {
           setModalVisible(!modalVisible);
         }}>
         <View
-          style={tw`flex-1 justify-center items-center bg-black bg-opacity-50`}>
-          <View style={tw`bg-primary-1 w-80 p-4 rounded-lg`}>
-            <Text style={tw`font-nokia-bold text-lg text-center mb-4`}>
-              Select Language
-            </Text>
-            <TouchableOpacity
-              style={tw`py-2`}
-              onPress={() => handleLanguageChange('am')}>
-              <Text style={tw`font-nokia-bold text-accent-6 text-center`}>
-                Amharic
+          style={tw`flex-1 justify-center items-center bg-black bg-opacity-50 px-6`}>
+          <View
+            style={[
+              tw`bg-white rounded-6 p-6 w-full max-w-sm shadow-xl border border-accent-6`,
+              darkMode ? tw`bg-secondary-8 border-secondary-6` : null,
+            ]}>
+            {/* Header */}
+            <View style={tw`items-center mb-6`}>
+              <View
+                style={tw`w-12 h-12 bg-accent-6 rounded-full items-center justify-center mb-3`}>
+                <Globe size={24} weight="bold" color="#FFFFFF" />
+              </View>
+              <Text
+                style={[
+                  tw`text-xl font-nokia-bold text-secondary-6 text-center`,
+                  darkMode ? tw`text-primary-1` : null,
+                ]}>
+                Select Language
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={tw`py-2`}
-              onPress={() => handleLanguageChange('en')}>
-              <Text style={tw`font-nokia-bold text-accent-6 text-center`}>
-                English
+              <Text
+                style={[
+                  tw`text-sm font-nokia-bold text-secondary-4 text-center mt-1`,
+                  darkMode ? tw`text-primary-3` : null,
+                ]}>
+                Choose your preferred SSL language
               </Text>
-            </TouchableOpacity>
+            </View>
+
+            {/* Language Options */}
+            <View style={tw`gap-3 mb-6`}>
+              {/* Amharic Option */}
+              <TouchableOpacity
+                style={[
+                  tw`flex-row items-center p-4 rounded-4 border-2`,
+                  language === 'am'
+                    ? tw`bg-accent-6 border-accent-6`
+                    : tw`bg-primary-1 border-accent-6`,
+                  darkMode && language !== 'am' ? tw`bg-secondary-7` : null,
+                ]}
+                onPress={() => handleLanguageChange('am')}
+                activeOpacity={0.8}>
+                <View
+                  style={[
+                    tw`w-10 h-10 rounded-3 items-center justify-center mr-4`,
+                    language === 'am'
+                      ? tw`bg-white bg-opacity-20`
+                      : tw`bg-accent-6`,
+                  ]}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-lg`,
+                      language === 'am' ? tw`text-white` : tw`text-white`,
+                    ]}>
+                    አ
+                  </Text>
+                </View>
+                <View style={tw`flex-1`}>
+                  <Text
+                    style={[
+                      tw`text-lg font-nokia-bold`,
+                      language === 'am' ? tw`text-white` : tw`text-secondary-6`,
+                      darkMode && language !== 'am' ? tw`text-primary-1` : null,
+                    ]}>
+                    Amharic
+                  </Text>
+                  <Text
+                    style={[
+                      tw`text-sm font-nokia-bold`,
+                      language === 'am'
+                        ? tw`text-primary-1 opacity-90`
+                        : tw`text-secondary-4`,
+                      darkMode && language !== 'am' ? tw`text-primary-3` : null,
+                    ]}>
+                    አማርኛ
+                  </Text>
+                </View>
+                {language === 'am' && (
+                  <View
+                    style={tw`w-6 h-6 bg-white rounded-full items-center justify-center`}>
+                    <View style={tw`w-3 h-3 bg-accent-6 rounded-full`} />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* English Option */}
+              <TouchableOpacity
+                style={[
+                  tw`flex-row items-center p-4 rounded-4 border-2`,
+                  language === 'en'
+                    ? tw`bg-accent-6 border-accent-6`
+                    : tw`bg-primary-1 border-accent-6`,
+                  darkMode && language !== 'en' ? tw`bg-secondary-7` : null,
+                ]}
+                onPress={() => handleLanguageChange('en')}
+                activeOpacity={0.8}>
+                <View
+                  style={[
+                    tw`w-10 h-10 rounded-3 items-center justify-center mr-4`,
+                    language === 'en'
+                      ? tw`bg-white bg-opacity-20`
+                      : tw`bg-accent-6`,
+                  ]}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-lg`,
+                      language === 'en' ? tw`text-white` : tw`text-white`,
+                    ]}>
+                    A
+                  </Text>
+                </View>
+                <View style={tw`flex-1`}>
+                  <Text
+                    style={[
+                      tw`text-lg font-nokia-bold`,
+                      language === 'en' ? tw`text-white` : tw`text-secondary-6`,
+                      darkMode && language !== 'en' ? tw`text-primary-1` : null,
+                    ]}>
+                    English
+                  </Text>
+                  <Text
+                    style={[
+                      tw`text-sm font-nokia-bold`,
+                      language === 'en'
+                        ? tw`text-primary-1 opacity-90`
+                        : tw`text-secondary-4`,
+                      darkMode && language !== 'en' ? tw`text-primary-3` : null,
+                    ]}>
+                    International
+                  </Text>
+                </View>
+                {language === 'en' && (
+                  <View
+                    style={tw`w-6 h-6 bg-white rounded-full items-center justify-center`}>
+                    <View style={tw`w-3 h-3 bg-accent-6 rounded-full`} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Cancel Button */}
             <TouchableOpacity
-              style={tw`py-2`}
-              onPress={() => setModalVisible(false)}>
-              <Text style={tw`font-nokia-bold text-red-500 text-center`}>
+              style={[
+                tw`py-3 px-6 border border-accent-6 rounded-4 self-center`,
+                darkMode ? tw`border-secondary-6` : null,
+              ]}
+              onPress={() => setModalVisible(false)}
+              activeOpacity={0.7}>
+              <Text
+                style={[
+                  tw`text-sm font-nokia-bold text-accent-6`,
+                  darkMode ? tw`text-primary-2` : null,
+                ]}>
                 Cancel
               </Text>
             </TouchableOpacity>

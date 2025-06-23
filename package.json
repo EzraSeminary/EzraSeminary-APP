@@ -15,6 +15,7 @@
     "@notifee/react-native": "^9.1.8",
     "@react-native-async-storage/async-storage": "^1.23.1",
     "@react-native-camera-roll/camera-roll": "^7.4.3",
+    "@react-native-clipboard/clipboard": "^1.16.2",
     "@react-native-community/datetimepicker": "^8.3.0",
     "@react-native-community/netinfo": "^11.3.2",
     "@react-native-community/push-notification-ios": "^1.11.0",

@@ -226,41 +226,53 @@ const SSLHome = () => {
             {filteredData.map((item, index) => (
               <View
                 key={item.id}
-                style={tw`flex flex-row gap-2 my-2 border border-accent-6 p-1.5 rounded-2 h-64`}>
-                <Image
-                  source={{uri: item.cover}}
-                  style={({aspectRatio: 1}, tw`flex-1 w-42% rounded-2`)}
-                />
-                <View style={tw`flex-1 gap-2 justify-between`}>
-                  <View>
-                    <Text style={tw`font-nokia-bold text-sm text-accent-6`}>
+                style={tw`flex flex-row gap-3 my-3 border border-accent-6 p-3 rounded-2`}>
+                {/* Image Container */}
+                <View style={tw`w-32 h-40`}>
+                  <Image
+                    source={{uri: item.cover}}
+                    style={tw`w-full h-full rounded-2`}
+                    resizeMode="cover"
+                  />
+                </View>
+
+                {/* Content Container */}
+                <View style={tw`flex-1 justify-between`}>
+                  {/* Text Content */}
+                  <View style={tw`flex-1`}>
+                    <Text
+                      style={tw`font-nokia-bold text-sm text-accent-6 mb-1`}>
                       {item.human_date}
                     </Text>
                     <Text
                       style={[
-                        tw`font-nokia-bold text-xl text-secondary-6 leading-tight`,
+                        tw`font-nokia-bold text-lg text-secondary-6 leading-tight mb-2`,
                         darkMode ? tw`text-primary-1` : null,
-                      ]}>
+                      ]}
+                      numberOfLines={2}>
                       {item.title}
                     </Text>
-                    <View style={tw`border-b border-accent-6 my-1`} />
+                    <View style={tw`border-b border-accent-6 mb-2`} />
                     <Text
-                      numberOfLines={4}
+                      numberOfLines={3}
                       style={[
-                        tw`font-nokia-bold text-sm text-secondary-6 text-justify mt-2`,
+                        tw`font-nokia-bold text-sm text-secondary-6 text-justify flex-1`,
                         darkMode ? tw`text-primary-1` : null,
                       ]}>
-                      {'  '}
                       {item.description}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    style={tw`px-4 py-1 rounded-4 bg-accent-6 self-start`}
-                    onPress={() => handleSSLOpen(item.id)}>
-                    <Text style={tw`font-nokia-bold text-sm text-primary-1`}>
-                      ትምህርቱን ክፈት
-                    </Text>
-                  </TouchableOpacity>
+
+                  {/* Button Container */}
+                  <View style={tw`mt-3 pt-2`}>
+                    <TouchableOpacity
+                      style={tw`px-4 py-2 rounded-4 bg-accent-6 self-start`}
+                      onPress={() => handleSSLOpen(item.id)}>
+                      <Text style={tw`font-nokia-bold text-sm text-primary-1`}>
+                        ትምህርቱን ክፈት
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}
@@ -421,41 +433,53 @@ const SSLHome = () => {
             {filteredData.map((item, index) => (
               <View
                 key={item.id}
-                style={tw`flex flex-row gap-2 my-2 border border-accent-6 p-1.5 rounded-2 h-64`}>
-                <Image
-                  source={{uri: item.cover}}
-                  style={({aspectRatio: 1}, tw`flex-1 w-42% rounded-2`)}
-                />
-                <View style={tw`flex-1 gap-2 justify-between`}>
-                  <View>
-                    <Text style={tw`font-nokia-bold text-sm text-accent-6`}>
+                style={tw`flex flex-row gap-3 my-3 border border-accent-6 p-3 rounded-2`}>
+                {/* Image Container */}
+                <View style={tw`w-32 h-48`}>
+                  <Image
+                    source={{uri: item.cover}}
+                    style={tw`w-full h-full rounded-2`}
+                    resizeMode="cover"
+                  />
+                </View>
+
+                {/* Content Container */}
+                <View style={tw`flex-1 justify-between`}>
+                  {/* Text Content */}
+                  <View style={tw`flex-1`}>
+                    <Text
+                      style={tw`font-nokia-bold text-sm text-accent-6 mb-1`}>
                       {item.human_date}
                     </Text>
                     <Text
                       style={[
-                        tw`font-nokia-bold text-xl text-secondary-6 leading-tight`,
+                        tw`font-nokia-bold text-lg text-secondary-6 leading-tight mb-2`,
                         darkMode ? tw`text-primary-1` : null,
-                      ]}>
+                      ]}
+                      numberOfLines={2}>
                       {item.title}
                     </Text>
-                    <View style={tw`border-b border-accent-6 my-1`} />
+                    <View style={tw`border-b border-accent-6 mb-2`} />
                     <Text
-                      numberOfLines={4}
+                      numberOfLines={3}
                       style={[
-                        tw`font-nokia-bold text-sm text-secondary-6 text-justify mt-2`,
+                        tw`font-nokia-bold text-sm text-secondary-6 text-justify flex-1`,
                         darkMode ? tw`text-primary-1` : null,
                       ]}>
-                      {'  '}
                       {item.description}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    style={tw`px-4 py-1 rounded-4 bg-accent-6 self-start`}
-                    onPress={() => handleSSLOpen(item.id)}>
-                    <Text style={tw`font-nokia-bold text-sm text-primary-1`}>
-                      {language === 'en' ? 'Open Lesson' : 'ትምህርቱን ክፈት'}
-                    </Text>
-                  </TouchableOpacity>
+
+                  {/* Button Container */}
+                  <View style={tw`mt-3 pt-2`}>
+                    <TouchableOpacity
+                      style={tw`px-4 py-2 rounded-4 bg-accent-6 self-start`}
+                      onPress={() => handleSSLOpen(item.id)}>
+                      <Text style={tw`font-nokia-bold text-sm text-primary-1`}>
+                        {language === 'en' ? 'Open Lesson' : 'ትምህርቱን ክፈት'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}

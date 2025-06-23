@@ -20,6 +20,7 @@ import {
   ArrowSquareUpRight,
   DownloadSimple,
   ShareNetwork,
+  Share,
 } from 'phosphor-react-native';
 import tw from './../../tailwind';
 import {useGetDevotionsQuery} from '../redux/api-slices/apiSlice';
@@ -28,6 +29,7 @@ import HTMLView from 'react-native-htmlview';
 import ErrorScreen from '../components/ErrorScreen';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import NotificationService from '../services/NotificationService';
+import DevotionalShareModal from '../components/DevotionalShareModal';
 
 const ethiopianMonths = [
   '',
@@ -54,6 +56,7 @@ const Devotion = () => {
   const [selectedDevotion, setSelectedDevotion] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
 
   const tailwindStyles = StyleSheet.create({
     p: {
@@ -162,7 +165,7 @@ const Devotion = () => {
             />
           }
           removeClippedSubviews={true}>
-          <View style={tw`flex flex-row justify-between my-4`}>
+          <View style={tw`flex flex-row justify-between items-center my-4`}>
             <View style={tw`border-b border-accent-6`}>
               <Text
                 style={[
@@ -172,16 +175,11 @@ const Devotion = () => {
                 Devotional
               </Text>
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Setting')}>
-              <User
-                size={32}
-                weight="bold"
-                style={[
-                  tw`text-secondary-6`,
-                  darkMode ? tw`text-primary-1` : null,
-                ]}
-              />
-            </TouchableOpacity>
+            <View style={tw`flex flex-row items-center gap-3`}>
+              <TouchableOpacity onPress={() => setShareModalVisible(true)}>
+                <Share size={32} weight="regular" color="#EA9215" />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={tw`flex flex-row mt-6 justify-between`}>
             <View style={tw`w-70%`}>
@@ -250,6 +248,16 @@ const Devotion = () => {
               {devotionToDisplay.prayer}
             </Text>
           </View>
+
+          {/* Share Devotional Button */}
+          <TouchableOpacity
+            style={tw`flex flex-row items-center justify-center gap-2 p-3 bg-accent-6 rounded-4 mt-4 mb-2`}
+            onPress={() => setShareModalVisible(true)}>
+            <Share size={24} weight="bold" color="#FFFFFF" />
+            <Text style={tw`font-nokia-bold text-white text-base`}>
+              የዕለቱን መንፈሳዊ ትምህርት አጋራ
+            </Text>
+          </TouchableOpacity>
           <View
             style={tw`border border-accent-6 rounded-4 mt-4 overflow-hidden`}>
             <Image
@@ -320,6 +328,14 @@ const Devotion = () => {
           <PreviousDevotions devotions={devotions} darkMode={darkMode} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* Share Modal */}
+      <DevotionalShareModal
+        visible={shareModalVisible}
+        onClose={() => setShareModalVisible(false)}
+        devotional={devotionToDisplay}
+        darkMode={darkMode}
+      />
     </View>
   );
 };
