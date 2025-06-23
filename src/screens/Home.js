@@ -438,7 +438,7 @@ const Home = () => {
                 tw`font-nokia-bold text-xl text-center mb-2`,
                 darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
               ]}>
-              {isOffline ? 'Loading cached data...' : 'Preparing Your Journey'}
+              {isOffline ? 'Loading cached data...' : 'ትምህርቶችን በማውረድ ላይ...'}
             </Text>
             <Text
               style={[
@@ -564,7 +564,7 @@ const Home = () => {
                         tw`font-nokia-bold text-sm opacity-70`,
                         darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
                       ]}>
-                      Continue your spiritual journey today
+                      ዛሬም ከቃሉ ጋር ትንሽ ጊዜ ይውሰዱ
                     </Text>
                   </View>
                   <View>
@@ -588,7 +588,7 @@ const Home = () => {
                         tw`font-nokia-bold text-lg ml-2`,
                         darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
                       ]}>
-                      Today's Devotion
+                      የዕለቱ የጥሞና ምንባብ
                     </Text>
                   </View>
                 </View>
@@ -818,7 +818,7 @@ const Home = () => {
                       tw`font-nokia-bold text-lg ml-3`,
                       darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
                     ]}>
-                    Discover Devotionals
+                    የየዕለቱ የጥሞና ምንባብ
                   </Text>
                 </View>
                 <TouchableOpacity
