@@ -5,10 +5,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Animated,
+  Dimensions,
+  Image,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {Eye, Lock, UserCircle} from 'phosphor-react-native';
+import {Eye, Lock, UserCircle, Cross, Sparkle} from 'phosphor-react-native';
 import tw from './../../tailwind';
 import {useDispatch} from 'react-redux';
 import {
@@ -20,7 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {ActivityIndicator} from 'react-native';
 import {useSelector} from 'react-redux';
 import Toast from 'react-native-toast-message';
-import {Linking} from 'react-native'; // Import Linking module
+import {Linking} from 'react-native';
 
 const Login = ({navigation}) => {
   const [email, setEmail] = useState('');
@@ -30,6 +33,53 @@ const Login = ({navigation}) => {
   const [updateUserStatus] = useUpdateUserStatusMutation();
   const dispatch = useDispatch();
   const darkMode = useSelector(state => state.ui.darkMode);
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const sparkleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Start animations when component mounts
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Sparkle animation loop
+    const sparkleAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparkleAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkleAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    sparkleAnimation.start();
+
+    return () => sparkleAnimation.stop();
+  }, [fadeAnim, slideAnim, scaleAnim, sparkleAnim]);
 
   const handleForgotPassword = () => {
     const url = 'https://ezraseminary.org/forgot-password';
@@ -130,23 +180,63 @@ const Login = ({navigation}) => {
       <ScrollView
         contentContainerStyle={tw`flex-1 justify-center items-center`}
         showsVerticalScrollIndicator={false}>
-        <View style={tw`w-[92%] h-[60%]`}>
-          <View style={tw`my-8`}>
+        <Animated.View
+          style={[
+            tw`w-[92%]`,
+            {
+              opacity: fadeAnim,
+              transform: [{translateY: slideAnim}],
+            },
+          ]}>
+          {/* Enhanced Welcome Section */}
+          <Animated.View
+            style={[
+              tw`my-8 p-6 rounded-2xl items-center`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                transform: [{scale: scaleAnim}],
+                shadowColor: '#EA9215',
+                shadowOffset: {width: 0, height: 4},
+                shadowOpacity: 0.1,
+                shadowRadius: 12,
+                elevation: 8,
+              },
+            ]}>
+            <Animated.View
+              style={[
+                tw`mb-4`,
+                {
+                  transform: [
+                    {
+                      scale: sparkleAnim.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [1, 1.1, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}>
+              <Image
+                source={require('./../assets/ezra_logo.png')}
+                style={tw`w-16 h-16`}
+                resizeMode="contain"
+              />
+            </Animated.View>
             <Text
               style={[
-                tw`font-nokia-bold text-3xl text-secondary-6 text-center`,
-                darkMode ? tw`text-primary-3` : null,
+                tw`font-nokia-bold text-3xl text-secondary-6 text-center mb-2`,
+                darkMode ? tw`text-primary-1` : null,
               ]}>
-              Welcome!
+              Welcome Back!
             </Text>
             <Text
               style={[
-                tw`font-nokia-bold text-sm text-secondary-4 text-center`,
+                tw`font-nokia-bold text-sm text-secondary-4 text-center opacity-70`,
                 darkMode ? tw`text-primary-3` : null,
               ]}>
-              Fill your credentials.
+              Sign in to continue your spiritual journey
             </Text>
-          </View>
+          </Animated.View>
           <View style={tw`flex flex-col gap-4`}>
             <View style={tw`mb-2`}>
               <View
@@ -242,7 +332,7 @@ const Login = ({navigation}) => {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );

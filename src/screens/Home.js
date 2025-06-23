@@ -604,35 +604,35 @@ const Home = () => {
               <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
               <Animated.View
                 style={[
-                  tw`p-2 rounded-full`,
+                  tw`p-3 rounded-full`,
                   {
                     backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                     opacity: sparkleAnim.interpolate({
                       inputRange: [0, 0.5, 1],
-                      outputRange: [0.7, 1, 0.7],
+                      outputRange: [0.6, 1, 0.6],
                     }),
                     transform: [
                       {
                         scale: sparkleAnim.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [1, 1.2, 1],
-                        }),
-                      },
-                      {
-                        rotate: sparkleAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0deg', '15deg'],
+                          inputRange: [0, 0.25, 0.5, 0.75, 1],
+                          outputRange: [1, 1.1, 1.2, 1.1, 1],
                         }),
                       },
                     ],
                     shadowColor: '#EA9215',
-                    shadowOffset: {width: 0, height: 2},
-                    shadowOpacity: 0.3,
-                    shadowRadius: 4,
-                    elevation: 5,
+                    shadowOffset: {width: 0, height: 0},
+                    shadowOpacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.2, 0.6, 0.2],
+                    }),
+                    shadowRadius: sparkleAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [4, 12, 4],
+                    }),
+                    elevation: 10,
                   },
                 ]}>
-                <Cross size={20} color="#EA9215" weight="bold" />
+                <Cross size={18} color="#EA9215" weight="bold" />
               </Animated.View>
               <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
             </View>

@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,16 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Animated,
+  Dimensions,
 } from 'react-native';
-import {User, CaretCircleDown} from 'phosphor-react-native';
+import {
+  User,
+  CaretCircleDown,
+  BookOpen,
+  Sparkle,
+  MagnifyingGlass,
+} from 'phosphor-react-native';
 import tw from './../../tailwind';
 import {useGetCoursesQuery} from './../services/api';
 import {useNavigation} from '@react-navigation/native';
@@ -28,6 +36,54 @@ const Course = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const navigation = useNavigation();
   const currentUser = useSelector(state => state.auth.user);
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const sparkleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!isLoading) {
+      // Start animations when data is loaded
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Sparkle animation loop
+      const sparkleAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(sparkleAnim, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(sparkleAnim, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      sparkleAnimation.start();
+
+      return () => sparkleAnimation.stop();
+    }
+  }, [isLoading, fadeAnim, slideAnim, scaleAnim, sparkleAnim]);
 
   const onRefresh = useCallback(async () => {
     const netInfo = await NetInfo.fetch();
@@ -126,116 +182,183 @@ const Course = () => {
               tintColor="#EA9215"
             />
           }>
-          <View style={tw`flex flex-row justify-between my-4`}>
-            <View style={tw`border-b border-accent-6`}>
-              <Text
-                style={[
-                  tw`font-nokia-bold text-xl text-secondary-6 text-center`,
-                  darkMode ? tw`text-primary-1` : null,
-                ]}>
-                Courses
-              </Text>
-            </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Setting')}>
-              <User
-                size={32}
-                weight="bold"
-                style={[
-                  tw`text-secondary-6`,
-                  darkMode ? tw`text-primary-1` : null,
-                ]}
-              />
-            </TouchableOpacity>
-          </View>
-          <View>
-            <TextInput
-              placeholder="ትምህርቶችን ፈልግ..."
-              value={searchTerm}
-              onChangeText={handleSearch}
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{translateY: slideAnim}],
+            }}>
+            {/* Enhanced Header */}
+            <Animated.View
               style={[
-                tw`border border-primary-7 rounded px-4 py-2 font-nokia-bold`,
-                darkMode ? tw`text-primary-1` : null,
-              ]}
-              placeholderTextColor={darkMode ? '#898989' : '#AAB0B4'}
-            />
-          </View>
-          <View style={tw`flex flex-row justify-between mt-3 items-center`}>
-            <Text style={tw`font-nokia-bold text-accent-6 text-lg`}>
-              ተወዳጅ ትምህርቶች
-            </Text>
-            <TouchableOpacity
-              style={tw`flex flex-row justify-between items-center gap-2`}
-              onPress={toggleSortOrder}>
+                tw`flex flex-row justify-between items-center my-4 p-4 rounded-2xl`,
+                {
+                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                  transform: [{scale: scaleAnim}],
+                },
+              ]}>
+              <View style={tw`flex-row items-center`}>
+                <BookOpen size={24} color="#EA9215" weight="bold" />
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xl text-secondary-6 ml-3`,
+                    darkMode ? tw`text-primary-1` : null,
+                  ]}>
+                  Courses
+                </Text>
+                <Animated.View
+                  style={[
+                    tw`ml-2`,
+                    {
+                      transform: [
+                        {
+                          rotate: sparkleAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0deg', '360deg'],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}>
+                  <Sparkle size={16} color="#EA9215" weight="fill" />
+                </Animated.View>
+              </View>
+              <TouchableOpacity onPress={() => navigation.navigate('Setting')}>
+                <User
+                  size={32}
+                  weight="bold"
+                  style={[
+                    tw`text-secondary-6`,
+                    darkMode ? tw`text-primary-1` : null,
+                  ]}
+                />
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* Enhanced Search Bar */}
+            <Animated.View
+              style={[
+                tw`mb-4 p-4 rounded-2xl`,
+                {
+                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                  transform: [{scale: scaleAnim}],
+                },
+              ]}>
+              <View style={tw`flex-row items-center`}>
+                <MagnifyingGlass size={20} color="#EA9215" weight="bold" />
+                <TextInput
+                  placeholder="ትምህርቶችን ፈልግ..."
+                  value={searchTerm}
+                  onChangeText={handleSearch}
+                  style={[
+                    tw`flex-1 ml-3 font-nokia-bold text-base`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}
+                  placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                />
+              </View>
+            </Animated.View>
+            <View style={tw`flex flex-row justify-between mt-3 items-center`}>
               <Text style={tw`font-nokia-bold text-accent-6 text-lg`}>
-                {sortByLatest ? 'የበፊት' : 'የቅርብ'}
+                ተወዳጅ ትምህርቶች
               </Text>
-              <CaretCircleDown size={24} weight="fill" color={'#EA9215'} />
-            </TouchableOpacity>
-          </View>
-          {filteredData.length > 0 ? (
-            filteredData.map((course, index) => {
-              const progressValue = getProgressValue(course._id);
-              return (
-                <View
-                  style={tw`border border-accent-6 my-2 rounded-4 p-2 w-[100%]`}
-                  key={index}>
-                  <View style={tw`h-48 relative`}>
-                    <Image
-                      source={{
-                        uri: `${course.image}`,
-                      }}
-                      style={tw`w-full h-full rounded-3`}
-                    />
-                    <View
-                      style={tw`absolute bottom-2 right-0 bg-white bg-opacity-60 p-2 rounded-l-2`}>
-                      <Text
-                        style={tw`font-nokia-bold text-secondary-8 text-xs`}>
-                        {progressValue !== undefined ? progressValue * 100 : 0}%
-                        አጠናቅቀዋል
-                      </Text>
-                    </View>
-                  </View>
-                  {progressValue !== undefined && (
-                    <ProgressBar
-                      color={'#EA9215'}
-                      animatedValue={progressValue}
-                      style={tw`mt-2 mx-2 h-2 rounded-full`}
-                    />
-                  )}
-                  <Text style={tw`font-nokia-bold text-accent-6 text-sm mt-2`}>
-                    {course.category}
-                  </Text>
-                  <Text
+              <TouchableOpacity
+                style={tw`flex flex-row justify-between items-center gap-2`}
+                onPress={toggleSortOrder}>
+                <Text style={tw`font-nokia-bold text-accent-6 text-lg`}>
+                  {sortByLatest ? 'የበፊት' : 'የቅርብ'}
+                </Text>
+                <CaretCircleDown size={24} weight="fill" color={'#EA9215'} />
+              </TouchableOpacity>
+            </View>
+            {filteredData.length > 0 ? (
+              filteredData.map((course, index) => {
+                const progressValue = getProgressValue(course._id);
+                return (
+                  <Animated.View
                     style={[
-                      tw`font-nokia-bold text-secondary-6 text-2xl`,
-                      darkMode ? tw`text-primary-3` : null,
-                    ]}>
-                    {course.title}
-                  </Text>
-                  <View style={tw`flex flex-row items-center justify-between`}>
-                    <TouchableOpacity
-                      style={tw`bg-accent-6 px-4 py-2 rounded-full w-36 mt-2`}
-                      onPress={() => handleButtonPress(course._id)}>
-                      <Text
-                        style={tw`text-primary-1 font-nokia-bold text-sm text-center`}>
-                        ኮርሱን ክፈት
-                      </Text>
-                    </TouchableOpacity>
-                    <View style={tw`flex flex-row items-center gap-1`}>
-                      <Text style={tw`font-nokia-bold text-accent-6 text-lg `}>
-                        {course.chapterCount} {''}ምዕራፎች
-                      </Text>
+                      tw`border border-accent-6 my-2 rounded-4 p-2 w-[100%]`,
+                      {
+                        opacity: fadeAnim,
+                        transform: [
+                          {
+                            translateY: slideAnim.interpolate({
+                              inputRange: [0, 30],
+                              outputRange: [0, 30],
+                            }),
+                          },
+                          {scale: scaleAnim},
+                        ],
+                        shadowColor: '#EA9215',
+                        shadowOffset: {width: 0, height: 2},
+                        shadowOpacity: 0.1,
+                        shadowRadius: 8,
+                        elevation: 4,
+                      },
+                    ]}
+                    key={index}>
+                    <View style={tw`h-48 relative`}>
+                      <Image
+                        source={{
+                          uri: `${course.image}`,
+                        }}
+                        style={tw`w-full h-full rounded-3`}
+                      />
+                      <View
+                        style={tw`absolute bottom-2 right-0 bg-white bg-opacity-60 p-2 rounded-l-2`}>
+                        <Text
+                          style={tw`font-nokia-bold text-secondary-8 text-xs`}>
+                          {progressValue !== undefined
+                            ? progressValue * 100
+                            : 0}
+                          % አጠናቅቀዋል
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                </View>
-              );
-            })
-          ) : (
-            <Text
-              style={tw`font-nokia-bold text-accent-6 text-lg text-center mt-4 h-full`}>
-              No results found
-            </Text>
-          )}
+                    {progressValue !== undefined && (
+                      <ProgressBar
+                        color={'#EA9215'}
+                        animatedValue={progressValue}
+                        style={tw`mt-2 mx-2 h-2 rounded-full`}
+                      />
+                    )}
+                    <Text
+                      style={tw`font-nokia-bold text-accent-6 text-sm mt-2`}>
+                      {course.category}
+                    </Text>
+                    <Text
+                      style={[
+                        tw`font-nokia-bold text-secondary-6 text-2xl`,
+                        darkMode ? tw`text-primary-3` : null,
+                      ]}>
+                      {course.title}
+                    </Text>
+                    <View
+                      style={tw`flex flex-row items-center justify-between`}>
+                      <TouchableOpacity
+                        style={tw`bg-accent-6 px-4 py-2 rounded-full w-36 mt-2`}
+                        onPress={() => handleButtonPress(course._id)}>
+                        <Text
+                          style={tw`text-primary-1 font-nokia-bold text-sm text-center`}>
+                          ኮርሱን ክፈት
+                        </Text>
+                      </TouchableOpacity>
+                      <View style={tw`flex flex-row items-center gap-1`}>
+                        <Text
+                          style={tw`font-nokia-bold text-accent-6 text-lg `}>
+                          {course.chapterCount} {''}ምዕራፎች
+                        </Text>
+                      </View>
+                    </View>
+                  </Animated.View>
+                );
+              })
+            ) : (
+              <Text
+                style={tw`font-nokia-bold text-accent-6 text-lg text-center mt-4 h-full`}>
+                No results found
+              </Text>
+            )}
+          </Animated.View>
         </ScrollView>
       </SafeAreaView>
     </View>
