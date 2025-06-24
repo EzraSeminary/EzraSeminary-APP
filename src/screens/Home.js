@@ -619,14 +619,14 @@ const Home = () => {
                         }),
                       },
                     ],
-                    shadowColor: '#EA9215',
+                    shadowColor: '#374151',
                     shadowOffset: {width: 0, height: 0},
                     shadowOpacity: sparkleAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.2, 0.6, 0.2],
+                      inputRange: [0, 0.25, 5],
+                      outputRange: [0.2, 0.4, 0.2],
                     }),
                     shadowRadius: sparkleAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
+                      inputRange: [0, 0.2, 1],
                       outputRange: [4, 12, 4],
                     }),
                     elevation: 10,
@@ -690,35 +690,35 @@ const Home = () => {
               <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
               <Animated.View
                 style={[
-                  tw`p-2 rounded-full`,
+                  tw`p-3 rounded-full`,
                   {
                     backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                     opacity: sparkleAnim.interpolate({
                       inputRange: [0, 0.5, 1],
-                      outputRange: [0.7, 1, 0.7],
+                      outputRange: [0.6, 1, 0.6],
                     }),
                     transform: [
                       {
                         scale: sparkleAnim.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [1, 1.3, 1],
-                        }),
-                      },
-                      {
-                        rotateY: sparkleAnim.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: ['0deg', '180deg', '360deg'],
+                          inputRange: [0, 0.25, 0.5, 0.75, 1],
+                          outputRange: [1, 1.1, 1.2, 1.1, 1],
                         }),
                       },
                     ],
-                    shadowColor: '#EA9215',
-                    shadowOffset: {width: 0, height: 2},
-                    shadowOpacity: 0.4,
-                    shadowRadius: 6,
-                    elevation: 8,
+                    shadowColor: '#374151',
+                    shadowOffset: {width: 0, height: 0},
+                    shadowOpacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.25, 5],
+                      outputRange: [0.2, 0.4, 0.2],
+                    }),
+                    shadowRadius: sparkleAnim.interpolate({
+                      inputRange: [0, 0.2, 1],
+                      outputRange: [4, 12, 4],
+                    }),
+                    elevation: 10,
                   },
                 ]}>
-                <Book size={20} color="#EA9215" weight="bold" />
+                <Cross size={18} color="#EA9215" weight="bold" />
               </Animated.View>
               <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
             </View>
@@ -783,14 +783,14 @@ const Home = () => {
                         }),
                       },
                     ],
-                    shadowColor: '#EA9215',
+                    shadowColor: '#374151',
                     shadowOffset: {width: 0, height: 0},
                     shadowOpacity: sparkleAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.2, 0.6, 0.2],
+                      inputRange: [0, 0.25, 5],
+                      outputRange: [0.2, 0.4, 0.2],
                     }),
                     shadowRadius: sparkleAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
+                      inputRange: [0, 0.2, 1],
                       outputRange: [4, 12, 4],
                     }),
                     elevation: 10,

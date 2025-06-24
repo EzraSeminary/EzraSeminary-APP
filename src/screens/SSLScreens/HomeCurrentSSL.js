@@ -117,7 +117,7 @@ const HomeCurrentSSL = () => {
     <View style={tw`rounded-2 overflow-hidden`}>
       <View
         style={tw`flex flex-row border border-accent-6 mt-4 rounded-4 p-2 gap-2`}>
-        <View style={tw`h-32 w-32`}>
+        <View style={tw`h-32 w-32 flex-shrink-0`}>
           <Image
             source={{
               uri: backgroundImage,
@@ -125,24 +125,29 @@ const HomeCurrentSSL = () => {
             style={tw`w-full h-full rounded-3`}
           />
         </View>
-        <View style={tw`w-65%`}>
-          <Text style={tw`font-nokia-bold text-accent-6 text-sm leading-tight`}>
+        <View style={tw`flex-1 pr-1`}>
+          <Text
+            style={tw`font-nokia-bold text-accent-6 text-sm leading-tight`}
+            numberOfLines={2}
+            ellipsizeMode="tail">
             {quarterDetails.quarterly.title}
           </Text>
           <Text
             style={[
-              tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
+              tw`font-nokia-bold text-secondary-6 text-lg leading-tight mt-1`,
               darkMode ? tw`text-primary-3` : null,
-            ]}>
+            ]}
+            numberOfLines={3}
+            ellipsizeMode="tail">
             {lessonDetails.lesson.title}
           </Text>
           <View style={tw`border-b border-accent-6 mt-1 w-[63%]`} />
-          <Text
-            style={[
-              tw`font-nokia-bold text-secondary-5 text-xs mt-2`,
-              darkMode ? tw`text-primary-3` : null,
-            ]}>
-            <View style={tw`flex flex-row items-center`}>
+          <View style={tw`mt-2`}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-secondary-5 text-xs`,
+                darkMode ? tw`text-primary-3` : null,
+              ]}>
               {language === 'en' ? (
                 <Text style={tw`font-nokia-bold text-accent-6`}>
                   {formatDateRange(
@@ -170,10 +175,10 @@ const HomeCurrentSSL = () => {
                   />
                 </View>
               )}
-            </View>
-          </Text>
+            </Text>
+          </View>
           <TouchableOpacity
-            style={tw`bg-accent-6 px-4 py-1 rounded-full w-36 mt-1`}
+            style={tw`bg-accent-6 px-4 py-1 rounded-full self-start mt-2`}
             onPress={handleOpenButtonPress}>
             <Text
               style={tw`text-primary-1 font-nokia-bold text-sm text-center`}>

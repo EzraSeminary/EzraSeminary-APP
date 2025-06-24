@@ -1,5 +1,13 @@
 import React, {useEffect, useRef} from 'react';
-import {View, Text, Animated, Dimensions, Image, StatusBar} from 'react-native';
+import {
+  View,
+  Text,
+  Animated,
+  Dimensions,
+  Image,
+  StatusBar,
+  Platform,
+} from 'react-native';
 import {useSelector} from 'react-redux';
 import tw from './../../tailwind';
 import {Cross} from 'phosphor-react-native';
@@ -15,8 +23,50 @@ const SplashScreen = ({onFinish}) => {
   const crossRotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Hide status bar for splash screen
+    // Set status bar style based on theme
     StatusBar.setHidden(true);
+    StatusBar.setBarStyle(darkMode ? 'light-content' : 'dark-content');
+
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor(darkMode ? '#1F2937' : '#FFFFFF', true);
+    }
+
+    // Try to set navigation bar color
+    const setNavigationBarColor = async () => {
+      if (Platform.OS === 'android') {
+        try {
+          // Try different import methods for the navigation bar package
+          let NavigationBar;
+
+          try {
+            NavigationBar = require('react-native-navigation-bar-color');
+            if (NavigationBar.setNavigationBarColor) {
+              NavigationBar.setNavigationBarColor(
+                darkMode ? '#1F2937' : '#FFFFFF',
+                !darkMode,
+              );
+            } else if (NavigationBar.changeNavigationBarColor) {
+              NavigationBar.changeNavigationBarColor(
+                darkMode ? '#1F2937' : '#FFFFFF',
+                !darkMode,
+                true,
+              );
+            } else if (typeof NavigationBar === 'function') {
+              NavigationBar(darkMode ? '#1F2937' : '#FFFFFF', !darkMode);
+            }
+          } catch (importError) {
+            console.log(
+              'Navigation bar package not available:',
+              importError.message,
+            );
+          }
+        } catch (error) {
+          console.log('Could not set navigation bar color:', error.message);
+        }
+      }
+    };
+
+    setNavigationBarColor();
 
     // Start animations
     Animated.sequence([
@@ -61,7 +111,7 @@ const SplashScreen = ({onFinish}) => {
       clearTimeout(timer);
       StatusBar.setHidden(false);
     };
-  }, [fadeAnim, scaleAnim, slideAnim, crossRotateAnim, onFinish]);
+  }, [fadeAnim, scaleAnim, slideAnim, crossRotateAnim, onFinish, darkMode]);
 
   return (
     <View
