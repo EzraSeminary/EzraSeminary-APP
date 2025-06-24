@@ -196,10 +196,6 @@ const Login = ({navigation}) => {
               {
                 backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                 transform: [{scale: scaleAnim}],
-                shadowColor: '#EA9215',
-                shadowOffset: {width: 0, height: 4},
-                shadowOpacity: 0.1,
-                shadowRadius: 12,
                 elevation: 8,
               },
             ]}>

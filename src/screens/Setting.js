@@ -180,7 +180,7 @@ const Setting = ({navigation}) => {
           {/* Enhanced Header */}
           <Animated.View
             style={[
-              tw`items-center mt-4 mb-6 p-4 rounded-2xl border border-accent-6`,
+              tw`items-center mt-4 mb-6 p-4 rounded-2xl`,
               {
                 backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                 transform: [{scale: scaleAnim}],
@@ -217,7 +217,7 @@ const Setting = ({navigation}) => {
           {user && (
             <Animated.View
               style={[
-                tw`flex-col w-full justify-center items-center mb-6 p-6 rounded-2xl border border-accent-6`,
+                tw`flex-col w-full justify-center items-center mb-6 p-6 rounded-2xl`,
                 {
                   backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                   transform: [{scale: scaleAnim}],
@@ -426,7 +426,7 @@ const Setting = ({navigation}) => {
           <TouchableOpacity
             onPress={handleLogout}
             style={[
-              tw`w-36 flex justify-center self-center border border-red-500 rounded-full my-8`,
+              tw`w-36 flex justify-center self-center border border-red-500 rounded-full mb-8`,
               user.user ? null : tw`border-accent-6 bg-accent-6`,
             ]}>
             <Text
