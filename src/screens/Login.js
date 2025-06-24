@@ -178,11 +178,12 @@ const Login = ({navigation}) => {
     <SafeAreaView
       style={[tw`flex-1 bg-primary-1`, darkMode ? tw`bg-secondary-9` : null]}>
       <ScrollView
-        contentContainerStyle={tw`flex-1 justify-center items-center`}
-        showsVerticalScrollIndicator={false}>
+        contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-6`}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
         <Animated.View
           style={[
-            tw`w-[92%]`,
+            tw`w-full max-w-sm`,
             {
               opacity: fadeAnim,
               transform: [{translateY: slideAnim}],

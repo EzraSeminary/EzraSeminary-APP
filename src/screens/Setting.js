@@ -167,11 +167,11 @@ const Setting = ({navigation}) => {
         darkMode && tw`bg-secondary-9`,
       ]}>
       <ScrollView
-        contentContainerStyle={tw`items-center`}
+        contentContainerStyle={tw`items-center px-4`}
         showsVerticalScrollIndicator={false}>
         <Animated.View
           style={[
-            tw`w-92%`,
+            tw`w-full`,
             {
               opacity: fadeAnim,
               transform: [{translateY: slideAnim}],
@@ -180,7 +180,7 @@ const Setting = ({navigation}) => {
           {/* Enhanced Header */}
           <Animated.View
             style={[
-              tw`items-center mt-4 mb-6 p-4 rounded-2xl`,
+              tw`items-center mt-4 mb-6 p-4 rounded-2xl border border-accent-6`,
               {
                 backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                 transform: [{scale: scaleAnim}],
@@ -217,15 +217,10 @@ const Setting = ({navigation}) => {
           {user && (
             <Animated.View
               style={[
-                tw`flex-col w-full justify-center items-center mb-6 p-6 rounded-2xl`,
+                tw`flex-col w-full justify-center items-center mb-6 p-6 rounded-2xl border border-accent-6`,
                 {
                   backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                   transform: [{scale: scaleAnim}],
-                  shadowColor: '#EA9215',
-                  shadowOffset: {width: 0, height: 4},
-                  shadowOpacity: 0.1,
-                  shadowRadius: 12,
-                  elevation: 8,
                 },
               ]}>
               <Animated.View
@@ -283,15 +278,10 @@ const Setting = ({navigation}) => {
           {user.user && (
             <Animated.View
               style={[
-                tw`mb-6 p-4 rounded-2xl`,
+                tw`mb-6 p-4 rounded-2xl border border-accent-6`,
                 {
                   backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                   transform: [{scale: scaleAnim}],
-                  shadowColor: '#EA9215',
-                  shadowOffset: {width: 0, height: 2},
-                  shadowOpacity: 0.1,
-                  shadowRadius: 8,
-                  elevation: 4,
                 },
               ]}>
               <Text
@@ -319,15 +309,10 @@ const Setting = ({navigation}) => {
           {/* App Settings Section */}
           <Animated.View
             style={[
-              tw`mb-6 p-4 rounded-2xl`,
+              tw`mb-6 p-4 rounded-2xl border border-accent-6`,
               {
                 backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                 transform: [{scale: scaleAnim}],
-                shadowColor: '#EA9215',
-                shadowOffset: {width: 0, height: 2},
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                elevation: 4,
               },
             ]}>
             <Text
@@ -371,15 +356,10 @@ const Setting = ({navigation}) => {
           {/* App Information Section */}
           <Animated.View
             style={[
-              tw`mb-6 p-4 rounded-2xl`,
+              tw`mb-6 p-4 rounded-2xl border border-accent-6`,
               {
                 backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                 transform: [{scale: scaleAnim}],
-                shadowColor: '#EA9215',
-                shadowOffset: {width: 0, height: 2},
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                elevation: 4,
               },
             ]}>
             <Text
@@ -414,15 +394,10 @@ const Setting = ({navigation}) => {
           {/* Support Section */}
           <Animated.View
             style={[
-              tw`mb-6 p-4 rounded-2xl`,
+              tw`mb-6 p-4 rounded-2xl border border-accent-6`,
               {
                 backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                 transform: [{scale: scaleAnim}],
-                shadowColor: '#EA9215',
-                shadowOffset: {width: 0, height: 2},
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                elevation: 4,
               },
             ]}>
             <Text
