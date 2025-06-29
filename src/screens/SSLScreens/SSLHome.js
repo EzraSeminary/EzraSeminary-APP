@@ -24,16 +24,27 @@ import {
 import {useGetVideoLinkQuery} from '../../services/videoLinksApi';
 import useCalculateLessonIndex from './hooks/useCalculateLessonIndex';
 import LinearGradient from 'react-native-linear-gradient';
-import {YoutubeLogo} from 'phosphor-react-native';
+import {
+  YoutubeLogo,
+  CloudSlash,
+  Warning,
+  Database,
+  ArrowClockwise,
+} from 'phosphor-react-native';
 import ErrorScreen from '../../components/ErrorScreen';
 import {format} from 'date-fns';
 import DateConverter from './DateConverter';
-import {CloudSlash, ArrowClockwise} from 'phosphor-react-native';
+import networkManager from '../../utils/networkManager';
 
-const SSLHome = () => {
+const SSLHome = ({onReload}) => {
   const currentDate = new Date().toISOString().slice(0, 10);
   const [quarter, week, year] = useCalculateLessonIndex(currentDate);
   const [backgroundImage, setBackgroundImage] = useState('');
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [reloadingLesson, setReloadingLesson] = useState(false);
   const {data: ssl, error, isLoading, refetch} = useGetSSLsQuery();
 
   const {
@@ -71,18 +82,120 @@ const SSLHome = () => {
   const onRefresh = useCallback(async () => {
     try {
       setIsRefreshing(true);
+      setLoadingTimeout(false);
+      setNetworkError(false);
+
+      // Check network connectivity first
+      if (!networkManager.isOnline) {
+        setNetworkError(true);
+        return;
+      }
+
       await lessonRefetch();
       await quarterRefetch();
       await refetch();
+    } catch (err) {
+      console.error('SSL refresh error:', err);
     } finally {
       setIsRefreshing(false);
     }
   }, [lessonRefetch, quarterRefetch, refetch]);
 
+  // Add loading timeout effect
+  useEffect(() => {
+    let timeoutId;
+    if (
+      (isLoading || lessonIsLoading || quarterIsLoading) &&
+      !error &&
+      !lessonError &&
+      !quarterError
+    ) {
+      timeoutId = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 15000); // 15 second timeout
+    } else {
+      setLoadingTimeout(false);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [
+    isLoading,
+    lessonIsLoading,
+    quarterIsLoading,
+    error,
+    lessonError,
+    quarterError,
+  ]);
+
+  // Check network connectivity on mount and set up listener
+  useEffect(() => {
+    // Initial check
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+    }
+
+    // Set up network state listener
+    const unsubscribe = networkManager.addListener(networkState => {
+      if (!networkState.isOnline) {
+        setNetworkError(true);
+      } else {
+        setNetworkError(false);
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const handleRetry = async () => {
+    setLoadingTimeout(false);
+    setNetworkError(false);
+
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+      return;
+    }
+
+    try {
+      if (onReload) {
+        await onReload();
+      } else {
+        await refetch();
+        await lessonRefetch();
+        await quarterRefetch();
+      }
+    } catch (err) {
+      console.error('SSL retry error:', err);
+    }
+  };
+
+  const handleLessonReload = async () => {
+    setReloadingLesson(true);
+
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+      setReloadingLesson(false);
+      return;
+    }
+
+    try {
+      await lessonRefetch();
+      await quarterRefetch();
+    } catch (err) {
+      console.error('Lesson reload error:', err);
+    } finally {
+      setReloadingLesson(false);
+    }
+  };
+
   const navigation = useNavigation();
   const darkMode = useSelector(state => state.ui.darkMode);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
   const handleSearch = text => {
     setSearchTerm(text);
@@ -116,7 +229,67 @@ const SSLHome = () => {
     }
   };
 
-  if (isLoading) {
+  // Handle different error states
+  if (networkError && (!ssl || ssl.length === 0)) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+            ]}>
+            No Internet Connection
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+            ]}>
+            Please check your internet connection and try again.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
+            onPress={handleRetry}>
+            <Text style={tw`font-nokia-bold text-white text-base`}>
+              Try Again
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loadingTimeout && (!ssl || ssl.length === 0)) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <ActivityIndicator size="large" color="#EA9215" style={tw`mb-4`} />
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+            ]}>
+            Still loading...
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+            ]}>
+            This is taking longer than expected. Please check your connection.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
+            onPress={handleRetry}>
+            <Text style={tw`font-nokia-bold text-white text-base`}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isLoading && (!ssl || ssl.length === 0)) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         {/* Compact Loading */}
@@ -158,7 +331,7 @@ const SSLHome = () => {
     }
   };
 
-  if (error) {
+  if (error && (!ssl || ssl.length === 0)) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
 
@@ -246,72 +419,67 @@ const SSLHome = () => {
           {/* Compact Error Card */}
           <View
             style={[
-              tw`mx-4 my-4 p-4 rounded-3 border`,
-              {
-                backgroundColor: darkMode ? '#374151' : '#FEF7F0',
-                borderColor: '#EA9215',
-              },
+              tw`border-2 border-orange-400 rounded-3 p-4 mb-4 shadow-lg`,
+              darkMode ? tw`bg-secondary-8` : tw`bg-orange-50`,
             ]}>
-            <View style={tw`flex-row items-center justify-between`}>
-              <View style={tw`flex-row items-center flex-1`}>
-                <CloudSlash
-                  size={20}
-                  color="#EA9215"
-                  weight="bold"
-                  style={tw`mr-3`}
-                />
-                <View style={tw`flex-1`}>
+            <View style={tw`flex-row items-start`}>
+              <View style={tw`flex-1 pr-3`}>
+                <View style={tw`flex-row items-center mb-2`}>
+                  <CloudSlash size={24} color="#EA9215" weight="fill" />
                   <Text
                     style={[
-                      tw`font-nokia-bold text-base mb-1`,
-                      darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                      tw`font-nokia-bold text-lg ml-2`,
+                      darkMode ? tw`text-primary-1` : tw`text-orange-700`,
                     ]}>
-                    Quarterly Update Pending
-                  </Text>
-                  <Text
-                    style={[
-                      tw`font-nokia-bold text-xs opacity-70`,
-                      darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
-                    ]}>
-                    New lessons coming soon
+                    {language === 'en'
+                      ? 'Quarterly Update Pending'
+                      : 'የሩብ አመት ዝመና በመጠባበቅ ላይ'}
                   </Text>
                 </View>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-sm leading-relaxed`,
+                    darkMode ? tw`text-primary-3` : tw`text-orange-600`,
+                  ]}>
+                  {language === 'en'
+                    ? 'New Sabbath School lessons are being prepared. Please check back soon or browse previous quarterly lessons below.'
+                    : 'አዲስ የሰንበት ትምህርት እየተዘጋጁ ነው። እባክዎ ብዙም ሳይርፍ ይመለሱ ወይም ከታች ያሉትን የቀድሞ የሩብ-አመት ትምህርቶች ያስሱ።'}
+                </Text>
               </View>
               <TouchableOpacity
-                style={[
-                  tw`p-2 rounded-full`,
-                  {backgroundColor: '#EA9215'},
-                  isRefreshing && tw`opacity-70`,
-                ]}
-                onPress={onRefresh}
-                disabled={isRefreshing}>
-                {isRefreshing ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                style={tw`w-10 h-10 bg-orange-500 rounded-full items-center justify-center ml-2`}
+                onPress={handleLessonReload}>
+                {reloadingLesson ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <ArrowClockwise size={16} color="#FFFFFF" weight="bold" />
+                  <ArrowClockwise size={20} color="#FFFFFF" weight="bold" />
                 )}
               </TouchableOpacity>
             </View>
           </View>
           <TextInput
-            placeholder="Search SSLs..."
+            placeholder={
+              language === 'en' ? 'Search SSLs...' : 'የቀድሞ ትምህርቶችን ፈልግ...'
+            }
             value={searchTerm}
             onChangeText={handleSearch}
             style={[
-              tw`border border-primary-7 rounded px-4 py-2 font-nokia-bold`,
+              tw`border border-primary-7 rounded-full px-4 py-2 font-nokia-bold mb-4`,
               darkMode ? tw`text-primary-1` : null,
             ]}
             placeholderTextColor={darkMode ? '#898989' : '#AAB0B4'}
           />
           <Text style={tw`font-nokia-bold text-accent-6 text-sm mt-2`}>
-            የሩብ አመት ትምህርቶች
+            {language === 'en' ? 'Quarterly Lessons' : 'የሩብ አመት ትምህርቶች'}
           </Text>
           <Text
             style={[
               tw`font-nokia-bold text-secondary-6 text-xl`,
               darkMode ? tw`text-primary-1` : null,
             ]}>
-            ያለፉ የሩብ አመት ትምህርቶች
+            {language === 'en'
+              ? 'Past Quarterly Lessons'
+              : 'ያለፉ የሩብ አመት ትምህርቶች'}
           </Text>
           <View style={tw`border-b border-accent-6 my-1`} />
           <View style={tw`flex flex-col`}>
@@ -361,7 +529,7 @@ const SSLHome = () => {
                       style={tw`px-4 py-2 rounded-4 bg-accent-6 self-start`}
                       onPress={() => handleSSLOpen(item.id)}>
                       <Text style={tw`font-nokia-bold text-sm text-primary-1`}>
-                        ትምህርቱን ክፈት
+                        {language === 'en' ? 'Open Lesson' : 'ትምህርቱን ክፈት'}
                       </Text>
                     </TouchableOpacity>
                   </View>

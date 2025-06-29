@@ -24,12 +24,19 @@ import {
 import {useGetVideoLinkQuery} from '../../services/videoLinksApi';
 import useCalculateLessonIndex from './hooks/useCalculateLessonIndex';
 import LinearGradient from 'react-native-linear-gradient';
-import {YoutubeLogo} from 'phosphor-react-native';
+import {
+  YoutubeLogo,
+  CloudSlash,
+  Warning,
+  Database,
+  ArrowClockwise,
+} from 'phosphor-react-native';
 import ErrorScreen from '../../components/ErrorScreen';
 import {format} from 'date-fns';
 import DateConverter from './DateConverter';
+import networkManager from '../../utils/networkManager';
 
-const InVerseHome = () => {
+const InVerseHome = ({onReload}) => {
   const currentDate = new Date().toISOString().slice(0, 10);
   const [quarter, week, year] = useCalculateLessonIndex(currentDate);
   const [backgroundImage, setBackgroundImage] = useState('');
@@ -62,6 +69,12 @@ const InVerseHome = () => {
     refetch: quarterRefetch,
   } = useGetInVerseOfQuarterQuery(quarter);
 
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [reloadingLesson, setReloadingLesson] = useState(false);
+
   const lastDigitQuarter = parseInt(quarter?.slice(-1), 10);
   useEffect(() => {
     if (lessonDetails) {
@@ -72,13 +85,76 @@ const InVerseHome = () => {
   const onRefresh = useCallback(async () => {
     try {
       setIsRefreshing(true);
+      setLoadingTimeout(false);
+      setNetworkError(false);
+
+      // Check network connectivity first
+      if (!networkManager.isOnline) {
+        setNetworkError(true);
+        return;
+      }
+
       await lessonRefetch();
       await quarterRefetch();
       await refetch();
+    } catch (err) {
+      console.error('InVerse refresh error:', err);
     } finally {
       setIsRefreshing(false);
     }
   }, [lessonRefetch, quarterRefetch, refetch]);
+
+  // Add loading timeout effect
+  useEffect(() => {
+    let timeoutId;
+    if (
+      (isLoading || lessonIsLoading || quarterIsLoading) &&
+      !error &&
+      !lessonError &&
+      !quarterError
+    ) {
+      timeoutId = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 15000); // 15 second timeout
+    } else {
+      setLoadingTimeout(false);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [
+    isLoading,
+    lessonIsLoading,
+    quarterIsLoading,
+    error,
+    lessonError,
+    quarterError,
+  ]);
+
+  // Check network connectivity on mount and set up listener
+  useEffect(() => {
+    // Initial check
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+    }
+
+    // Set up network state listener
+    const unsubscribe = networkManager.addListener(networkState => {
+      if (!networkState.isOnline) {
+        setNetworkError(true);
+      } else {
+        setNetworkError(false);
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const language = useSelector(state => state.language.language);
   const prefetchWeeklyLessons = usePrefetch('getInVerseOfDayLesson');
@@ -90,8 +166,6 @@ const InVerseHome = () => {
 
   const navigation = useNavigation();
   const darkMode = useSelector(state => state.ui.darkMode);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const {
     data: videoLink,
     error: videoError,
@@ -101,6 +175,47 @@ const InVerseHome = () => {
     quarter: lastDigitQuarter,
     lesson: week,
   });
+
+  const handleRetry = async () => {
+    setLoadingTimeout(false);
+    setNetworkError(false);
+
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+      return;
+    }
+
+    try {
+      if (onReload) {
+        await onReload();
+      } else {
+        await refetch();
+        await lessonRefetch();
+        await quarterRefetch();
+      }
+    } catch (err) {
+      console.error('InVerse retry error:', err);
+    }
+  };
+
+  const handleLessonReload = async () => {
+    setReloadingLesson(true);
+
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+      setReloadingLesson(false);
+      return;
+    }
+
+    try {
+      await lessonRefetch();
+      await quarterRefetch();
+    } catch (err) {
+      console.error('Lesson reload error:', err);
+    } finally {
+      setReloadingLesson(false);
+    }
+  };
 
   if (quarterError) {
     console.error(
@@ -137,7 +252,67 @@ const InVerseHome = () => {
     }
   };
 
-  if (isLoading) {
+  // Handle different error states
+  if (networkError && (!InVerse || InVerse.length === 0)) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+            ]}>
+            No Internet Connection
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+            ]}>
+            Please check your internet connection and try again.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
+            onPress={handleRetry}>
+            <Text style={tw`font-nokia-bold text-white text-base`}>
+              Try Again
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loadingTimeout && (!InVerse || InVerse.length === 0)) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <ActivityIndicator size="large" color="#EA9215" style={tw`mb-4`} />
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+            ]}>
+            Still loading...
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+            ]}>
+            This is taking longer than expected. Please check your connection.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
+            onPress={handleRetry}>
+            <Text style={tw`font-nokia-bold text-white text-base`}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isLoading && (!InVerse || InVerse.length === 0)) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
@@ -156,7 +331,7 @@ const InVerseHome = () => {
     }
   };
 
-  if (error) {
+  if (error && (!InVerse || InVerse.length === 0)) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
 
@@ -220,71 +395,124 @@ const InVerseHome = () => {
             />
           }
           contentContainerStyle={tw`flex-1`}>
-          <View style={tw`border border-accent-6 rounded mb-4`}>
-            <Text style={tw`font-nokia-bold text-accent-6 text-center py-4`}>
-              Wait for quarterly update!
-            </Text>
+          {/* Enhanced Quarterly Update Card */}
+          <View
+            style={[
+              tw`border-2 border-accent-6 rounded-3 p-4 mb-4 shadow-lg`,
+              darkMode ? tw`bg-secondary-8` : tw`bg-orange-50`,
+            ]}>
+            <View style={tw`flex-row items-start`}>
+              <View style={tw`flex-1 pr-3`}>
+                <View style={tw`flex-row items-center mb-2`}>
+                  <CloudSlash size={24} color="#EA9215" weight="fill" />
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-lg ml-2`,
+                      darkMode ? tw`text-primary-1` : tw`text-orange-700`,
+                    ]}>
+                    {language === 'en'
+                      ? 'Quarterly Update Pending'
+                      : 'የሩብ አመት ዝመና በመጠባበቅ ላይ'}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-sm leading-relaxed`,
+                    darkMode ? tw`text-primary-3` : tw`text-orange-600`,
+                  ]}>
+                  {language === 'en'
+                    ? 'New InVerse lessons are being prepared. Please check back soon or browse previous quarterly lessons below.'
+                    : 'አዲስ የጠሊቅ ትምህርቶች እየተዘጋጁ ነው። እባክዎ ከጥቂት ጊዜ በኋላ ይመለሱ ወይም ከታች ያሉትን የቀድሞ የሩብ-አመት ትምህርቶች ያስሱ።'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={tw`w-10 h-10 bg-orange-500 rounded-full items-center justify-center ml-2`}
+                onPress={handleLessonReload}>
+                {reloadingLesson ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <ArrowClockwise size={20} color="#FFFFFF" weight="bold" />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
+
           <TextInput
-            placeholder="Search InVerses..."
+            placeholder={
+              language === 'en' ? 'Search InVerses...' : 'የቀድሞ ትምህርቶችን ፈልግ...'
+            }
             value={searchTerm}
             onChangeText={handleSearch}
             style={[
-              tw`border border-primary-7 rounded px-4 py-2 font-nokia-bold`,
+              tw`border border-primary-7 rounded-full px-4 py-2 font-nokia-bold mb-4`,
               darkMode ? tw`text-primary-1` : null,
             ]}
             placeholderTextColor={darkMode ? '#898989' : '#AAB0B4'}
           />
           <Text style={tw`font-nokia-bold text-accent-6 text-sm mt-2`}>
-            የሩብ አመት ትምህርቶች
+            {language === 'en' ? 'Quarterly Lessons' : 'የሩብ አመት ትምህርቶች'}
           </Text>
           <Text
             style={[
               tw`font-nokia-bold text-secondary-6 text-xl`,
               darkMode ? tw`text-primary-1` : null,
             ]}>
-            ያለፉ የሩብ አመት ትምህርቶች
+            {language === 'en'
+              ? 'Past Quarterly Lessons'
+              : 'ያለፉ የሩብ አመት ትምህርቶች'}
           </Text>
           <View style={tw`border-b border-accent-6 my-1`} />
           <View style={tw`flex flex-col`}>
-            {filteredData.map((item, index) => (
+            {filteredData?.map((item, index) => (
               <View
-                key={item.id}
-                style={tw`flex flex-row gap-2 my-2 border border-accent-6 p-1.5 rounded-2 h-64`}>
-                <Image
-                  source={{uri: item.cover}}
-                  style={({aspectRatio: 1}, tw`flex-1 w-42% rounded-2`)}
-                />
-                <View style={tw`flex-1 gap-2 justify-between`}>
-                  <View>
-                    <Text style={tw`font-nokia-bold text-sm text-accent-6`}>
+                key={item.id || item.index}
+                style={tw`flex flex-row gap-3 my-3 border border-accent-6 p-3 rounded-2`}>
+                {/* Image Container */}
+                <View style={tw`w-32 h-48`}>
+                  <Image
+                    source={{uri: item.cover}}
+                    style={tw`w-full h-full rounded-2`}
+                    resizeMode="cover"
+                  />
+                </View>
+
+                {/* Content Container */}
+                <View style={tw`flex-1 justify-between`}>
+                  {/* Text Content */}
+                  <View style={tw`flex-1`}>
+                    <Text
+                      style={tw`font-nokia-bold text-sm text-accent-6 mb-1`}>
                       {item.human_date}
                     </Text>
                     <Text
                       style={[
-                        tw`font-nokia-bold text-xl text-secondary-6 leading-tight`,
+                        tw`font-nokia-bold text-lg text-secondary-6 leading-tight mb-2`,
                         darkMode ? tw`text-primary-1` : null,
-                      ]}>
+                      ]}
+                      numberOfLines={2}>
                       {item.title}
                     </Text>
-                    <View style={tw`border-b border-accent-6 my-1`} />
+                    <View style={tw`border-b border-accent-6 mb-2`} />
                     <Text
-                      numberOfLines={4}
+                      numberOfLines={3}
                       style={[
-                        tw`font-nokia-bold text-sm text-secondary-6 text-justify mt-2`,
+                        tw`font-nokia-bold text-sm text-secondary-6 text-justify flex-1`,
                         darkMode ? tw`text-primary-1` : null,
                       ]}>
-                      {'  '}
                       {item.description}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    style={tw`px-4 py-1 rounded-4 bg-accent-6 self-start`}
-                    onPress={() => handleInVerseOpen(item.id)}>
-                    <Text style={tw`font-nokia-bold text-sm text-primary-1`}>
-                      ትምህርቱን ክፈት
-                    </Text>
-                  </TouchableOpacity>
+
+                  {/* Button Container */}
+                  <View style={tw`mt-3 pt-2`}>
+                    <TouchableOpacity
+                      style={tw`px-4 py-2 rounded-4 bg-accent-6 self-start`}
+                      onPress={() => handleInVerseOpen(item.id || item.index)}>
+                      <Text style={tw`font-nokia-bold text-sm text-primary-1`}>
+                        {language === 'en' ? 'Open Lesson' : 'ትምህርቱን ክፈት'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}
@@ -442,7 +670,7 @@ const InVerseHome = () => {
           </Text>
           <View style={tw`border-b border-accent-6 my-1`} />
           <View style={tw`flex flex-col`}>
-            {filteredData.map((item, index) => (
+            {filteredData?.map((item, index) => (
               <View
                 key={item.id || item.index}
                 style={tw`flex flex-row gap-3 my-3 border border-accent-6 p-3 rounded-2`}>
