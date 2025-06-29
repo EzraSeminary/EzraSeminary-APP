@@ -740,7 +740,7 @@ const Home = () => {
                       tw`font-nokia-bold text-lg ml-3`,
                       darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
                     ]}>
-                    የዚህ ሳምንት ሰንበት ትምህርት
+                    ሰንበት ትምህርት
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -818,7 +818,7 @@ const Home = () => {
                       tw`font-nokia-bold text-lg ml-3`,
                       darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
                     ]}>
-                    የየዕለቱ የጥሞና ምንባብ
+                    የጥሞና ምንባብ
                   </Text>
                 </View>
                 <TouchableOpacity

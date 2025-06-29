@@ -81,9 +81,22 @@ android {
         applicationId "com.ezraapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 24
+        versionCode 25
         versionName "1.1"
     }
+    
+    // Add configuration to handle large assets and prevent timeouts
+    aaptOptions {
+        additionalParameters "--no-version-vectors"
+        cruncherEnabled false
+    }
+    
+    // Configure packaging options
+    packagingOptions {
+        pickFirst "**/libc++_shared.so"
+        pickFirst "**/libjsc.so"
+    }
+    
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
