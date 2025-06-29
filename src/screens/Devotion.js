@@ -30,6 +30,7 @@ import ErrorScreen from '../components/ErrorScreen';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import NotificationService from '../services/NotificationService';
 import DevotionalShareModal from '../components/DevotionalShareModal';
+import networkManager from '../utils/networkManager';
 
 const ethiopianMonths = [
   '',
@@ -51,12 +52,19 @@ const ethiopianMonths = [
 const Devotion = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const navigation = useNavigation();
-  const {data: devotions = [], isFetching, refetch} = useGetDevotionsQuery();
+  const {
+    data: devotions = [],
+    isFetching,
+    error,
+    refetch,
+  } = useGetDevotionsQuery();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDevotion, setSelectedDevotion] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
 
   const tailwindStyles = StyleSheet.create({
     p: {
@@ -79,9 +87,64 @@ const Devotion = () => {
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
+    setLoadingTimeout(false);
+    setNetworkError(false);
+
+    // Check network connectivity first
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+      setIsRefreshing(false);
+      return;
+    }
+
+    try {
+      await refetch();
+    } catch (err) {
+      console.error('Refresh error:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
   }, [refetch]);
+
+  // Add loading timeout effect
+  useEffect(() => {
+    let timeoutId;
+    if (isFetching && !error) {
+      timeoutId = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 15000); // 15 second timeout
+    } else {
+      setLoadingTimeout(false);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isFetching, error]);
+
+  // Check network connectivity on mount and set up listener
+  useEffect(() => {
+    // Initial check
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+    }
+
+    // Set up network state listener
+    const unsubscribe = networkManager.addListener(networkState => {
+      if (!networkState.isOnline) {
+        setNetworkError(true);
+      } else {
+        setNetworkError(false);
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (devotions.length > 0) {
@@ -135,7 +198,71 @@ const Devotion = () => {
       .slice(0, 4);
   }, [devotions]);
 
-  if (isFetching) {
+  // Handle different error states
+  if (networkError && !devotions.length) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+            ]}>
+            No Internet Connection
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+            ]}>
+            Please check your internet connection and try again.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
+            onPress={onRefresh}>
+            <Text style={tw`font-nokia-bold text-white text-base`}>
+              Try Again
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error && !devotions.length) {
+    return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
+  }
+
+  if (loadingTimeout && !devotions.length) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <ActivityIndicator size="large" color="#EA9215" style={tw`mb-4`} />
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+            ]}>
+            Still loading...
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+            ]}>
+            This is taking longer than expected. Please check your connection.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
+            onPress={onRefresh}>
+            <Text style={tw`font-nokia-bold text-white text-base`}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isFetching && !devotions.length) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
@@ -145,8 +272,9 @@ const Devotion = () => {
       </SafeAreaView>
     );
   }
+
   if (!devotions || devotions.length === 0) {
-    return <ErrorScreen />;
+    return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
   const devotionToDisplay = selectedDevotion || devotions[0];
   const url = `${devotionToDisplay.image}`;
