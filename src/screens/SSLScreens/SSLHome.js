@@ -28,6 +28,7 @@ import {YoutubeLogo} from 'phosphor-react-native';
 import ErrorScreen from '../../components/ErrorScreen';
 import {format} from 'date-fns';
 import DateConverter from './DateConverter';
+import {CloudSlash, ArrowClockwise} from 'phosphor-react-native';
 
 const SSLHome = () => {
   const currentDate = new Date().toISOString().slice(0, 10);
@@ -118,10 +119,33 @@ const SSLHome = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
-        <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
-        <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
-          Loading
-        </Text>
+        {/* Compact Loading */}
+        <View
+          style={[
+            tw`mx-4 mt-4 p-4 rounded-3 border flex-row items-center`,
+            {
+              backgroundColor: darkMode ? '#374151' : '#F8FAFC',
+              borderColor: '#E2E8F0',
+            },
+          ]}>
+          <ActivityIndicator size="large" color="#EA9215" style={tw`mr-3`} />
+          <View style={tw`flex-1`}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-base mb-1`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              Loading Lessons...
+            </Text>
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm opacity-70`,
+                darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+              ]}>
+              Fetching Sabbath School content
+            </Text>
+          </View>
+        </View>
       </SafeAreaView>
     );
   }
@@ -175,10 +199,33 @@ const SSLHome = () => {
   if (lessonIsLoading || quarterIsLoading || videoLoading) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
-        <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
-        <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
-          Loading
-        </Text>
+        {/* Compact Loading */}
+        <View
+          style={[
+            tw`mx-4 mt-4 p-4 rounded-3 border flex-row items-center`,
+            {
+              backgroundColor: darkMode ? '#374151' : '#F8FAFC',
+              borderColor: '#E2E8F0',
+            },
+          ]}>
+          <ActivityIndicator size="large" color="#EA9215" style={tw`mr-3`} />
+          <View style={tw`flex-1`}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-base mb-1`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              Loading Current Lesson...
+            </Text>
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm opacity-70`,
+                darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+              ]}>
+              Preparing your study materials
+            </Text>
+          </View>
+        </View>
       </SafeAreaView>
     );
   }
@@ -196,10 +243,55 @@ const SSLHome = () => {
               tintColor="#EA9215"
             />
           }>
-          <View style={tw`border border-accent-6 rounded mb-4`}>
-            <Text style={tw`font-nokia-bold text-accent-6 text-center py-4`}>
-              Wait for quarterly update!
-            </Text>
+          {/* Compact Error Card */}
+          <View
+            style={[
+              tw`mx-4 my-4 p-4 rounded-3 border`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#FEF7F0',
+                borderColor: '#EA9215',
+              },
+            ]}>
+            <View style={tw`flex-row items-center justify-between`}>
+              <View style={tw`flex-row items-center flex-1`}>
+                <CloudSlash
+                  size={20}
+                  color="#EA9215"
+                  weight="bold"
+                  style={tw`mr-3`}
+                />
+                <View style={tw`flex-1`}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-base mb-1`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                    ]}>
+                    Quarterly Update Pending
+                  </Text>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-xs opacity-70`,
+                      darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+                    ]}>
+                    New lessons coming soon
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[
+                  tw`p-2 rounded-full`,
+                  {backgroundColor: '#EA9215'},
+                  isRefreshing && tw`opacity-70`,
+                ]}
+                onPress={onRefresh}
+                disabled={isRefreshing}>
+                {isRefreshing ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <ArrowClockwise size={16} color="#FFFFFF" weight="bold" />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
           <TextInput
             placeholder="Search SSLs..."
@@ -228,7 +320,7 @@ const SSLHome = () => {
                 key={item.id}
                 style={tw`flex flex-row gap-3 my-3 border border-accent-6 p-3 rounded-2`}>
                 {/* Image Container */}
-                <View style={tw`w-32 h-40`}>
+                <View style={tw`w-32 h-50`}>
                   <Image
                     source={{uri: item.cover}}
                     style={tw`w-full h-full rounded-2`}

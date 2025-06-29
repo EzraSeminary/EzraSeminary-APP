@@ -58,10 +58,32 @@ const CurrentSSL = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
-        <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
-        <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
-          Loading
-        </Text>
+        <View
+          style={[
+            tw`mx-4 mt-4 p-4 rounded-3 border flex-row items-center`,
+            {
+              backgroundColor: darkMode ? '#374151' : '#F8FAFC',
+              borderColor: '#E2E8F0',
+            },
+          ]}>
+          <ActivityIndicator size="large" color="#EA9215" style={tw`mr-3`} />
+          <View style={tw`flex-1`}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-base mb-1`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              Loading Quarterlies...
+            </Text>
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm opacity-70`,
+                darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+              ]}>
+              Fetching available study materials
+            </Text>
+          </View>
+        </View>
       </SafeAreaView>
     );
   }
@@ -75,7 +97,26 @@ const CurrentSSL = () => {
   };
 
   if (quarterError) {
-    return <Text> Error: {quarterError}</Text>;
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
+        <View
+          style={[
+            tw`mx-4 mt-4 p-3 rounded-3 border flex-row items-center`,
+            {
+              backgroundColor: darkMode ? '#374151' : '#FEF2F2',
+              borderColor: '#EF4444',
+            },
+          ]}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            ⚠️ Quarter Error: {quarterError}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (

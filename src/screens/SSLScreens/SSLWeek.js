@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Linking,
   TextInput,
   Dimensions,
+  Alert,
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import DateConverter from './DateConverter';
@@ -27,6 +28,8 @@ import {
   YoutubeLogo,
   CaretUp,
   CaretDown,
+  CloudSlash,
+  Warning,
 } from 'phosphor-react-native';
 import HTMLView from 'react-native-htmlview';
 import tw from './../../../tailwind';
@@ -252,10 +255,24 @@ const SSLWeek = ({route}) => {
   if (isQuarterLoading || isWeekLoading) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
-        <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
-        <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
-          {language === 'en' ? 'Loading lesson...' : 'ትምህርቱን በመጫን ላይ...'}
-        </Text>
+        {/* Compact Loading */}
+        <View
+          style={[
+            tw`mx-4 mt-4 p-3 rounded-3 border flex-row items-center`,
+            {
+              backgroundColor: darkMode ? '#374151' : '#F8FAFC',
+              borderColor: '#E2E8F0',
+            },
+          ]}>
+          <ActivityIndicator size="small" color="#EA9215" style={tw`mr-3`} />
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            {language === 'en' ? 'Loading lesson...' : 'ትምህርቱን በመጫን ላይ...'}
+          </Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -274,8 +291,21 @@ const SSLWeek = ({route}) => {
               tintColor="#EA9215"
             />
           }>
-          <View style={tw`border border-accent-6 rounded mb-4 mx-4 mt-4`}>
-            <Text style={tw`font-nokia-bold text-accent-6 text-center py-4`}>
+          {/* Compact Error Card */}
+          <View
+            style={[
+              tw`mx-4 mt-4 p-3 rounded-3 border flex-row items-center`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#FEF2F2',
+                borderColor: '#EF4444',
+              },
+            ]}>
+            <Warning size={18} color="#EF4444" weight="bold" style={tw`mr-3`} />
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm flex-1`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
               {language === 'en'
                 ? 'Unable to load lesson. Pull to retry.'
                 : 'ትምህርቱን መጫን አልተቻለም። ለመሞከር ይጎትቱ።'}
@@ -300,8 +330,26 @@ const SSLWeek = ({route}) => {
               tintColor="#EA9215"
             />
           }>
-          <View style={tw`border border-accent-6 rounded mb-4 mx-4 mt-4`}>
-            <Text style={tw`font-nokia-bold text-accent-6 text-center py-4`}>
+          {/* Compact Missing Data Card */}
+          <View
+            style={[
+              tw`mx-4 mt-4 p-3 rounded-3 border flex-row items-center`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#FEF7F0',
+                borderColor: '#EA9215',
+              },
+            ]}>
+            <CloudSlash
+              size={18}
+              color="#EA9215"
+              weight="bold"
+              style={tw`mr-3`}
+            />
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm flex-1`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
               {language === 'en'
                 ? 'Lesson data not available. Pull to retry.'
                 : 'የትምህርቱ ውሂብ አይገኝም። ለመሞከር ይጎትቱ።'}
