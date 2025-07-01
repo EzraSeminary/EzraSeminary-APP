@@ -433,7 +433,7 @@ const SSLHome = ({onReload}) => {
                     ]}>
                     {language === 'en'
                       ? 'Quarterly Update Pending'
-                      : 'የሩብ አመት ዝመና በመጠባበቅ ላይ'}
+                      : 'የሩብ አመት ትምህርት በመጠባበቅ ላይ'}
                   </Text>
                 </View>
                 <Text
@@ -443,7 +443,7 @@ const SSLHome = ({onReload}) => {
                   ]}>
                   {language === 'en'
                     ? 'New Sabbath School lessons are being prepared. Please check back soon or browse previous quarterly lessons below.'
-                    : 'አዲስ የሰንበት ትምህርት እየተዘጋጁ ነው። እባክዎ ብዙም ሳይርፍ ይመለሱ ወይም ከታች ያሉትን የቀድሞ የሩብ-አመት ትምህርቶች ያስሱ።'}
+                    : 'አዲስ የሰንበት ትምህርት እየተዘጋጁ ነው። እባክዎ ትንሽ ቆይተው ይመለሱ ወይም ከታች ያሉትን የቀድሞ የሩብ-አመት ትምህርቶች ይመልከቱ።'}
                 </Text>
               </View>
               <TouchableOpacity

@@ -412,7 +412,7 @@ const InVerseHome = ({onReload}) => {
                     ]}>
                     {language === 'en'
                       ? 'Quarterly Update Pending'
-                      : 'የሩብ አመት ዝመና በመጠባበቅ ላይ'}
+                      : 'የሩብ አመት ትምህርት በመጠባበቅ ላይ'}
                   </Text>
                 </View>
                 <Text
@@ -422,7 +422,7 @@ const InVerseHome = ({onReload}) => {
                   ]}>
                   {language === 'en'
                     ? 'New InVerse lessons are being prepared. Please check back soon or browse previous quarterly lessons below.'
-                    : 'አዲስ የጠሊቅ ትምህርቶች እየተዘጋጁ ነው። እባክዎ ከጥቂት ጊዜ በኋላ ይመለሱ ወይም ከታች ያሉትን የቀድሞ የሩብ-አመት ትምህርቶች ያስሱ።'}
+                    : 'አዲስ የጠሊቅ ትምህርቶች እየተዘጋጁ ነው። እባክዎ ከጥቂት ጊዜ በኋላ ይመለሱ ወይም ከታች ያሉትን የቀድሞ የሩብ-አመት ትምህርቶች ይመልከቱ።'}
                 </Text>
               </View>
               <TouchableOpacity
