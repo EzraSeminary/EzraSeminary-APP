@@ -19,13 +19,15 @@ import {
   DownloadSimple,
   ShareNetwork,
   ArrowSquareLeft,
-  ArrowSquareUpRight,
+  Share,
 } from 'phosphor-react-native';
 import ErrorScreen from '../../components/ErrorScreen';
 import PreviousDevotions from './PreviousDevotions';
 import HTMLView from 'react-native-htmlview';
 import tw from './../../../tailwind';
 import {useGetDevotionsQuery} from '../../redux/api-slices/apiSlice';
+import DevotionalShareModal from '../../components/DevotionalShareModal';
+import networkManager from '../../utils/networkManager';
 
 const SelectedDevotional = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -39,6 +41,9 @@ const SelectedDevotional = ({route}) => {
   } = useGetDevotionsQuery();
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
   const scrollViewRef = useRef();
   const devotional = devotionals.find(item => item._id === devotionalId) || {};
 
@@ -87,10 +92,142 @@ const SelectedDevotional = ({route}) => {
     scrollViewRef.current?.scrollTo({x: 0, y: 0, animated: false});
   }, [devotionalId]);
 
+  // Add loading timeout effect
+  useEffect(() => {
+    let timeoutId;
+    if (isFetching && !error && !devotionals.length) {
+      timeoutId = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 15000); // 15 second timeout
+    } else {
+      setLoadingTimeout(false);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isFetching, error, devotionals.length]);
+
+  // Check network connectivity on mount and set up listener
+  useEffect(() => {
+    // Initial check
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+    }
+
+    // Set up network state listener
+    const unsubscribe = networkManager.addListener(networkState => {
+      if (!networkState.isOnline) {
+        setNetworkError(true);
+      } else {
+        setNetworkError(false);
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const handleRetry = async () => {
+    setLoadingTimeout(false);
+    setNetworkError(false);
+
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+      return;
+    }
+
+    try {
+      await refetch();
+    } catch (err) {
+      console.error('Retry error:', err);
+    }
+  };
+
   const imageURI = `${devotional.image}`;
-  if (isFetching) {
+
+  // Handle different error states
+  if (networkError && !devotionals.length) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <TouchableOpacity
+            style={tw`absolute top-12 left-6`}
+            onPress={() => navigation.goBack()}>
+            <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
+          </TouchableOpacity>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+            ]}>
+            No Internet Connection
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+            ]}>
+            Please check your internet connection and try again.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
+            onPress={handleRetry}>
+            <Text style={tw`font-nokia-bold text-white text-base`}>
+              Try Again
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loadingTimeout && !devotionals.length) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <TouchableOpacity
+            style={tw`absolute top-12 left-6`}
+            onPress={() => navigation.goBack()}>
+            <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
+          </TouchableOpacity>
+          <ActivityIndicator size="large" color="#EA9215" style={tw`mb-4`} />
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+            ]}>
+            Still loading...
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+            ]}>
+            This is taking longer than expected. Please check your connection.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
+            onPress={handleRetry}>
+            <Text style={tw`font-nokia-bold text-white text-base`}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isFetching && !devotionals.length) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
+        <TouchableOpacity
+          style={tw`absolute top-12 left-6 z-10`}
+          onPress={() => navigation.goBack()}>
+          <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
+        </TouchableOpacity>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
         <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
           Loading
@@ -99,15 +236,52 @@ const SelectedDevotional = ({route}) => {
     );
   }
 
-  if (error) {
+  if (error && !devotionals.length) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
+  }
+
+  // If we have devotionals but couldn't find the specific one, show a not found message
+  if (devotionals.length > 0 && !devotional._id) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <TouchableOpacity
+            style={tw`absolute top-12 left-6`}
+            onPress={() => navigation.goBack()}>
+            <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
+          </TouchableOpacity>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+            ]}>
+            Devotional Not Found
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+            ]}>
+            The requested devotional could not be found.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
+            onPress={() => navigation.goBack()}>
+            <Text style={tw`font-nokia-bold text-white text-base`}>
+              Go Back
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
       <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
         <ScrollView showsVerticalScrollIndicator={false} ref={scrollViewRef}>
-          <View style={tw`flex flex-row justify-between mt-4 mb-4`}>
+          <View
+            style={tw`flex flex-row justify-between items-center mt-4 mb-4`}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
             </TouchableOpacity>
@@ -118,14 +292,11 @@ const SelectedDevotional = ({route}) => {
               ]}>
               Devotional
             </Text>
-            <User
-              size={32}
-              weight="bold"
-              style={[
-                tw`text-secondary-6`,
-                darkMode ? tw`text-primary-1` : null,
-              ]}
-            />
+            <View style={tw`flex flex-row items-center gap-3`}>
+              <TouchableOpacity onPress={() => setShareModalVisible(true)}>
+                <Share size={32} weight="bold" color="#EA9215" />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={tw`flex flex-row mt-6 justify-between`}>
             <View style={tw`w-70%`}>
@@ -190,6 +361,16 @@ const SelectedDevotional = ({route}) => {
               {devotional.prayer}
             </Text>
           </View>
+
+          {/* Share Devotional Button */}
+          <TouchableOpacity
+            style={tw`flex flex-row items-center justify-center gap-2 p-3 bg-accent-6 rounded-4 mt-4 mb-2`}
+            onPress={() => setShareModalVisible(true)}>
+            <Share size={24} weight="bold" color="#FFFFFF" />
+            <Text style={tw`font-nokia-bold text-white text-base`}>
+              የዕለቱን መንፈሳዊ ትምህርት አጋራ
+            </Text>
+          </TouchableOpacity>
           <View
             style={tw`border border-accent-6 rounded-4 mt-4 overflow-hidden`}>
             <Image
@@ -272,6 +453,14 @@ const SelectedDevotional = ({route}) => {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Share Modal */}
+      <DevotionalShareModal
+        visible={shareModalVisible}
+        onClose={() => setShareModalVisible(false)}
+        devotional={devotional}
+        darkMode={darkMode}
+      />
     </View>
   );
 };

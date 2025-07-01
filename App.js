@@ -8,6 +8,7 @@ import {PersistGate} from 'redux-persist/integration/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import ToastComponent from './src/components/ToastComponent';
+import SplashScreen from './src/components/SplashScreen';
 import {store, persistor} from './src/redux/store';
 import changeNavigationBarColor from 'react-native-navigation-bar-color';
 import {
@@ -99,6 +100,7 @@ const MainTabNavigator = () => {
 
 const App = () => {
   const [isCheckingLoginStatus, setIsCheckingLoginStatus] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState('Signup');
 
   useEffect(() => {
@@ -118,6 +120,10 @@ const App = () => {
     checkLoginStatus();
   }, []);
 
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+
   useEffect(() => {
     const initializeNotifications = async () => {
       // Request permissions
@@ -127,7 +133,6 @@ const App = () => {
 
       // Handle notification events
       notifee.onForegroundEvent(({type, detail}) => {
-        console.log('Foreground event:', type, detail);
         if (type === EventType.PRESS) {
           handleNotificationPress(detail.notification);
         }
@@ -155,6 +160,17 @@ const App = () => {
 
     initializeNotifications();
   }, []);
+
+  // Show splash screen first
+  if (showSplash) {
+    return (
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <SplashScreen onFinish={handleSplashFinish} />
+        </PersistGate>
+      </Provider>
+    );
+  }
 
   if (isCheckingLoginStatus) {
     return <ActivityIndicator />;

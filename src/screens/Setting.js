@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   Alert,
   Modal,
   Button,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import tw from './../../tailwind';
 import {useSelector, useDispatch} from 'react-redux';
@@ -29,6 +31,8 @@ import {
   Info,
   Globe,
   Bell,
+  Sparkle,
+  Cross,
 } from 'phosphor-react-native';
 import {useGetSSLsQuery} from '../services/SabbathSchoolApi';
 import NotificationSettings from '../screens/Settings/NotificationSettings';
@@ -40,6 +44,52 @@ const Setting = ({navigation}) => {
   const language = useSelector(state => state.language.language);
   const [modalVisible, setModalVisible] = useState(false);
   const {refetch} = useGetSSLsQuery();
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const sparkleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Start animations when component mounts
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Sparkle animation loop
+    const sparkleAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparkleAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkleAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    sparkleAnimation.start();
+
+    return () => sparkleAnimation.stop();
+  }, [fadeAnim, slideAnim, scaleAnim, sparkleAnim]);
 
   const handleToggle = () => {
     dispatch(toggleDarkMode());
@@ -83,6 +133,33 @@ const Setting = ({navigation}) => {
     await refetch(); // Refetch data after changing the language
   };
 
+  const SettingItem = ({
+    icon,
+    title,
+    onPress,
+    hasArrow = true,
+    rightComponent,
+  }) => (
+    <TouchableOpacity
+      style={tw`flex-row w-full justify-between items-center py-3`}
+      onPress={onPress}
+      activeOpacity={0.7}>
+      <View style={tw`flex-row items-center flex-1`}>
+        <View
+          style={tw`w-8 h-8 bg-accent-6 rounded-2 items-center justify-center mr-3`}>
+          {icon}
+        </View>
+        <Text style={tw`font-nokia-bold text-accent-6 text-base flex-1`}>
+          {title}
+        </Text>
+      </View>
+      {rightComponent ||
+        (hasArrow && (
+          <ArrowCircleRight size={20} weight="fill" color={'#EA9215'} />
+        ))}
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView
       style={[
@@ -90,274 +167,277 @@ const Setting = ({navigation}) => {
         darkMode && tw`bg-secondary-9`,
       ]}>
       <ScrollView
-        contentContainerStyle={tw`items-center`}
+        contentContainerStyle={tw`items-center px-4`}
         showsVerticalScrollIndicator={false}>
-        <View style={tw`w-92%`}>
-          <Text
+        <Animated.View
+          style={[
+            tw`w-full`,
+            {
+              opacity: fadeAnim,
+              transform: [{translateY: slideAnim}],
+            },
+          ]}>
+          {/* Enhanced Header */}
+          <Animated.View
             style={[
-              tw`font-nokia-bold text-xl text-secondary-6 text-center mt-4`,
-              darkMode ? tw`text-primary-1` : null,
+              tw`items-center mt-4 mb-6 p-4 rounded-2xl`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                transform: [{scale: scaleAnim}],
+              },
             ]}>
-            {' '}
-            My Profile{' '}
-          </Text>
-          {user && (
-            <View style={tw`flex-col w-full justify-center items-center my-4`}>
-              <Image
-                style={tw`w-24 h-24 rounded-full border border-accent-6 my-2`}
-                source={
-                  user && user.user && user.user.avatar
-                    ? {
-                        uri: `${user.user.avatar}`,
-                      }
-                    : require('./../assets/default-avatar.png') // replace with the actual path to your default avatar
-                }
-              />
+            <View style={tw`flex-row items-center justify-center mb-2`}>
               <Text
                 style={[
-                  tw`font-nokia-bold text-lg text-secondary-6`,
+                  tw`font-nokia-bold text-xl text-secondary-6 text-center`,
+                  darkMode ? tw`text-primary-1` : null,
+                ]}>
+                My Profile
+              </Text>
+              <Animated.View
+                style={[
+                  tw`ml-2`,
+                  {
+                    transform: [
+                      {
+                        rotate: sparkleAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '360deg'],
+                        }),
+                      },
+                    ],
+                  },
+                ]}>
+                <Sparkle size={20} color="#EA9215" weight="fill" />
+              </Animated.View>
+            </View>
+          </Animated.View>
+
+          {/* Enhanced Profile Section */}
+          {user && (
+            <Animated.View
+              style={[
+                tw`flex-col w-full justify-center items-center mb-6 p-6 rounded-2xl`,
+                {
+                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                  transform: [{scale: scaleAnim}],
+                },
+              ]}>
+              <Animated.View
+                style={[
+                  tw`mb-4`,
+                  {
+                    transform: [
+                      {
+                        scale: sparkleAnim.interpolate({
+                          inputRange: [0, 0.5, 1],
+                          outputRange: [1, 1.05, 1],
+                        }),
+                      },
+                    ],
+                  },
+                ]}>
+                <Image
+                  style={[
+                    tw`w-24 h-24 rounded-full border-2 border-accent-6`,
+                    {
+                      shadowColor: '#EA9215',
+                      shadowOffset: {width: 0, height: 4},
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
+                      elevation: 10,
+                    },
+                  ]}
+                  source={
+                    user && user.user && user.user.avatar
+                      ? {
+                          uri: `${user.user.avatar}`,
+                        }
+                      : require('./../assets/default-avatar.png')
+                  }
+                />
+              </Animated.View>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-lg text-secondary-6 mb-1`,
                   darkMode ? tw`text-primary-1` : null,
                 ]}>
                 {user && user.user && user.user.firstName}
               </Text>
               <Text
                 style={[
-                  tw`font-nokia-light text-sm text-secondary-6`,
+                  tw`font-nokia-light text-sm text-secondary-6 opacity-70`,
                   darkMode ? tw`text-primary-1` : null,
                 ]}>
                 {user && user.user && user.user.email}
               </Text>
-            </View>
+            </Animated.View>
           )}
 
+          {/* Profile Management Section */}
           {user.user && (
-            <View style={tw` py-4 border-b border-accent-6`}>
-              <TouchableOpacity
-                style={tw`flex-row w-full justify-between items-center`}
-                onPress={() => navigation.navigate('EditProfile')}>
-                <View style={tw`flex-row items-center`}>
-                  <Pencil
-                    size={20}
-                    weight="fill"
-                    color={'#EA9215'}
-                    style={tw`mr-2`}
-                  />
-                  <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                    Edit Profile
-                  </Text>
-                </View>
-                <ArrowCircleRight
-                  size={24}
-                  weight="fill"
-                  color={'#EA9215'}
-                  style={tw`mr-2`}
-                />
-              </TouchableOpacity>
-            </View>
-          )}
-          <View style={tw`py-4 border-b border-accent-6`}>
-            <TouchableOpacity
-              style={tw`flex-row w-full justify-between items-center`}
-              onPress={() => navigation.navigate('AppInfo')}>
-              <View style={tw`flex-row items-center`}>
-                <DeviceMobile
-                  size={20}
-                  weight="fill"
-                  color={'#EA9215'}
-                  style={tw`mr-2`}
-                />
-                <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                  App Information
-                </Text>
-              </View>
-              <ArrowCircleRight
-                size={24}
-                weight="fill"
-                color={'#EA9215'}
-                style={tw`mr-2`}
-              />
-            </TouchableOpacity>
-          </View>
-          <View style={tw`py-4 border-b border-accent-6`}>
-            <TouchableOpacity
-              style={tw`flex-row w-full justify-between items-center`}
-              onPress={handleShare}>
-              <View style={tw`flex-row items-center`}>
-                <ShareNetwork
-                  size={20}
-                  weight="fill"
-                  color={'#EA9215'}
-                  style={tw`mr-2`}
-                />
-                <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                  Share Application
-                </Text>
-              </View>
-              <ArrowCircleRight
-                size={24}
-                weight="fill"
-                color={'#EA9215'}
-                style={tw`mr-2`}
-              />
-            </TouchableOpacity>
-          </View>
-          <View
-            style={tw`flex-row w-full justify-between items-center py-4 border-b border-accent-6`}>
-            <View style={tw`flex-row items-center`}>
-              <Moon
-                size={20}
-                weight="fill"
-                color={'#EA9215'}
-                style={tw`mr-2`}
-              />
-              <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                Dark Mode
+            <Animated.View
+              style={[
+                tw`mb-6 p-4 rounded-2xl border border-accent-6`,
+                {
+                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                  transform: [{scale: scaleAnim}],
+                },
+              ]}>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-lg text-secondary-6 mb-4`,
+                  darkMode ? tw`text-primary-1` : null,
+                ]}>
+                Profile Management
               </Text>
-            </View>
-            <Switch onValueChange={handleToggle} value={darkMode} />
-          </View>
-          <View style={tw`py-4 border-b border-accent-6`}>
-            <TouchableOpacity
-              style={tw`flex-row w-full justify-between items-center`}
-              onPress={() => setModalVisible(true)}>
-              <View style={tw`flex-row items-center`}>
-                <Globe
-                  size={20}
-                  weight="fill"
-                  color={'#EA9215'}
-                  style={tw`mr-2`}
-                />
-                <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                  SSL Language
-                </Text>
-              </View>
-              <View style={tw`flex-row items-center`}>
-                <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                  {' '}
-                  {language === 'am' ? 'Amharic' : 'English'}{' '}
-                </Text>
-                <ArrowCircleRight
-                  size={24}
-                  weight="fill"
-                  color={'#EA9215'}
-                  style={tw`mr-2`}
-                />
-              </View>
-            </TouchableOpacity>
-          </View>
-          <View style={tw`py-4 border-b border-accent-6`}>
-            <TouchableOpacity
-              style={tw`flex-row w-full justify-between items-center`}
-              onPress={() =>
-                handleLinkPress('https://ezraseminary.org/contactUs')
-              }>
-              <View style={tw`flex-row items-center`}>
-                <Envelope
-                  size={20}
-                  weight="fill"
-                  color={'#EA9215'}
-                  style={tw`mr-2`}
-                />
-                <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                  Contact Us
-                </Text>
-              </View>
-              <ArrowCircleRight
-                size={24}
-                weight="fill"
-                color={'#EA9215'}
-                style={tw`mr-2`}
+
+              <SettingItem
+                icon={<Pencil size={16} weight="fill" color={'#FFFFFF'} />}
+                title="Edit Profile"
+                onPress={() => navigation.navigate('EditProfile')}
               />
-            </TouchableOpacity>
-          </View>
-          <View style={tw`py-4 border-b border-accent-6`}>
-            <TouchableOpacity
-              style={tw`flex-row w-full justify-between items-center`}
+
+              <SettingItem
+                icon={<UserCircle size={16} weight="fill" color={'#FFFFFF'} />}
+                title="Account Settings"
+                onPress={() => navigation.navigate('AccountSettings')}
+              />
+            </Animated.View>
+          )}
+
+          {/* App Settings Section */}
+          <Animated.View
+            style={[
+              tw`mb-6 p-4 rounded-2xl border border-accent-6`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                transform: [{scale: scaleAnim}],
+              },
+            ]}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-lg text-secondary-6 mb-4`,
+                darkMode ? tw`text-primary-1` : null,
+              ]}>
+              App Settings
+            </Text>
+
+            <SettingItem
+              icon={<Moon size={16} weight="fill" color={'#FFFFFF'} />}
+              title="Dark Mode"
+              hasArrow={false}
+              rightComponent={
+                <Switch onValueChange={handleToggle} value={darkMode} />
+              }
+            />
+
+            <SettingItem
+              icon={<Globe size={16} weight="fill" color={'#FFFFFF'} />}
+              title="SSL Language"
+              onPress={() => setModalVisible(true)}
+              rightComponent={
+                <View style={tw`flex-row items-center`}>
+                  <Text style={tw`font-nokia-bold text-accent-6 text-sm mr-2`}>
+                    {language === 'am' ? 'Amharic' : 'English'}
+                  </Text>
+                  <ArrowCircleRight size={20} weight="fill" color={'#EA9215'} />
+                </View>
+              }
+            />
+
+            <SettingItem
+              icon={<Bell size={16} weight="fill" color={'#FFFFFF'} />}
+              title="Notification Settings"
+              onPress={() => navigation.navigate('NotificationSettings')}
+            />
+          </Animated.View>
+
+          {/* App Information Section */}
+          <Animated.View
+            style={[
+              tw`mb-6 p-4 rounded-2xl border border-accent-6`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                transform: [{scale: scaleAnim}],
+              },
+            ]}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-lg text-secondary-6 mb-4`,
+                darkMode ? tw`text-primary-1` : null,
+              ]}>
+              App Information
+            </Text>
+
+            <SettingItem
+              icon={<DeviceMobile size={16} weight="fill" color={'#FFFFFF'} />}
+              title="App Information"
+              onPress={() => navigation.navigate('AppInfo')}
+            />
+
+            <SettingItem
+              icon={<ShareNetwork size={16} weight="fill" color={'#FFFFFF'} />}
+              title="Share Application"
+              onPress={handleShare}
+            />
+
+            <SettingItem
+              icon={<Info size={16} weight="fill" color={'#FFFFFF'} />}
+              title="About Us"
               onPress={() =>
                 handleLinkPress('https://ezraseminary.org/aboutUs')
-              }>
-              <View style={tw`flex-row items-center`}>
-                <Info
-                  size={20}
-                  weight="fill"
-                  color={'#EA9215'}
-                  style={tw`mr-2`}
-                />
-                <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                  About Us
-                </Text>
-              </View>
-              <ArrowCircleRight
-                size={24}
-                weight="fill"
-                color={'#EA9215'}
-                style={tw`mr-2`}
-              />
-            </TouchableOpacity>
-          </View>
-          {user.user && (
-            <View style={tw` py-4 border-b border-accent-6`}>
-              <TouchableOpacity
-                style={tw`flex-row w-full justify-between items-center`}
-                onPress={() => navigation.navigate('AccountSettings')}>
-                <View style={tw`flex-row items-center`}>
-                  <UserCircle
-                    size={20}
-                    weight="fill"
-                    color={'#EA9215'}
-                    style={tw`mr-2`}
-                  />
-                  <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                    Account Settings
-                  </Text>
-                </View>
-                <ArrowCircleRight
-                  size={24}
-                  weight="fill"
-                  color={'#EA9215'}
-                  style={tw`mr-2`}
-                />
-              </TouchableOpacity>
-            </View>
-          )}
-          <View style={tw`py-4 border-b border-accent-6`}>
-            <TouchableOpacity
-              style={tw`flex-row w-full justify-between items-center`}
-              onPress={() => navigation.navigate('NotificationSettings')}>
-              <View style={tw`flex-row items-center`}>
-                <Bell
-                  size={20}
-                  weight="fill"
-                  color={'#EA9215'}
-                  style={tw`mr-2`}
-                />
-                <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                  Notification Settings
-                </Text>
-              </View>
-              <ArrowCircleRight
-                size={24}
-                weight="fill"
-                color={'#EA9215'}
-                style={tw`mr-2`}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-        <TouchableOpacity
-          onPress={handleLogout}
-          style={[
-            tw`w-36 flex justify-center self-center border border-red-500 rounded-full my-8`,
-            user.user ? null : tw`border-accent-6 bg-accent-6`,
-          ]}>
-          <Text
+              }
+            />
+          </Animated.View>
+
+          {/* Support Section */}
+          <Animated.View
             style={[
-              tw`text-center font-nokia-bold text-lg text-red-500 px-8 py-2 `,
-              user.user ? null : tw`text-primary-1`,
+              tw`mb-6 p-4 rounded-2xl border border-accent-6`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                transform: [{scale: scaleAnim}],
+              },
             ]}>
-            {user.user ? 'Logout' : 'Login'}
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                tw`font-nokia-bold text-lg text-secondary-6 mb-4`,
+                darkMode ? tw`text-primary-1` : null,
+              ]}>
+              Support
+            </Text>
+
+            <SettingItem
+              icon={<Envelope size={16} weight="fill" color={'#FFFFFF'} />}
+              title="Contact Us"
+              onPress={() =>
+                handleLinkPress('https://ezraseminary.org/contactUs')
+              }
+            />
+          </Animated.View>
+        </Animated.View>
+
+        <Animated.View
+          style={{
+            opacity: fadeAnim,
+            transform: [{scale: scaleAnim}],
+          }}>
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={[
+              tw`w-36 flex justify-center self-center border border-red-500 rounded-full mb-8`,
+              user.user ? null : tw`border-accent-6 bg-accent-6`,
+            ]}>
+            <Text
+              style={[
+                tw`text-center font-nokia-bold text-lg text-red-500 px-8 py-2 `,
+                user.user ? null : tw`text-primary-1`,
+              ]}>
+              {user.user ? 'Logout' : 'Login'}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
       </ScrollView>
       <Modal
         animationType="slide"
@@ -367,29 +447,158 @@ const Setting = ({navigation}) => {
           setModalVisible(!modalVisible);
         }}>
         <View
-          style={tw`flex-1 justify-center items-center bg-black bg-opacity-50`}>
-          <View style={tw`bg-primary-1 w-80 p-4 rounded-lg`}>
-            <Text style={tw`font-nokia-bold text-lg text-center mb-4`}>
-              Select Language
-            </Text>
-            <TouchableOpacity
-              style={tw`py-2`}
-              onPress={() => handleLanguageChange('am')}>
-              <Text style={tw`font-nokia-bold text-accent-6 text-center`}>
-                Amharic
+          style={tw`flex-1 justify-center items-center bg-black bg-opacity-50 px-6`}>
+          <View
+            style={[
+              tw`bg-white rounded-6 p-6 w-full max-w-sm shadow-xl border border-accent-6`,
+              darkMode ? tw`bg-secondary-8 border-secondary-6` : null,
+            ]}>
+            {/* Header */}
+            <View style={tw`items-center mb-6`}>
+              <View
+                style={tw`w-12 h-12 bg-accent-6 rounded-full items-center justify-center mb-3`}>
+                <Globe size={24} weight="bold" color="#FFFFFF" />
+              </View>
+              <Text
+                style={[
+                  tw`text-xl font-nokia-bold text-secondary-6 text-center`,
+                  darkMode ? tw`text-primary-1` : null,
+                ]}>
+                Select Language
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={tw`py-2`}
-              onPress={() => handleLanguageChange('en')}>
-              <Text style={tw`font-nokia-bold text-accent-6 text-center`}>
-                English
+              <Text
+                style={[
+                  tw`text-sm font-nokia-bold text-secondary-4 text-center mt-1`,
+                  darkMode ? tw`text-primary-3` : null,
+                ]}>
+                Choose your preferred SSL language
               </Text>
-            </TouchableOpacity>
+            </View>
+
+            {/* Language Options */}
+            <View style={tw`gap-3 mb-6`}>
+              {/* Amharic Option */}
+              <TouchableOpacity
+                style={[
+                  tw`flex-row items-center p-4 rounded-4 border-2`,
+                  language === 'am'
+                    ? tw`bg-accent-6 border-accent-6`
+                    : tw`bg-primary-1 border-accent-6`,
+                  darkMode && language !== 'am' ? tw`bg-secondary-7` : null,
+                ]}
+                onPress={() => handleLanguageChange('am')}
+                activeOpacity={0.8}>
+                <View
+                  style={[
+                    tw`w-10 h-10 rounded-3 items-center justify-center mr-4`,
+                    language === 'am'
+                      ? tw`bg-white bg-opacity-20`
+                      : tw`bg-accent-6`,
+                  ]}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-lg`,
+                      language === 'am' ? tw`text-white` : tw`text-white`,
+                    ]}>
+                    አ
+                  </Text>
+                </View>
+                <View style={tw`flex-1`}>
+                  <Text
+                    style={[
+                      tw`text-lg font-nokia-bold`,
+                      language === 'am' ? tw`text-white` : tw`text-secondary-6`,
+                      darkMode && language !== 'am' ? tw`text-primary-1` : null,
+                    ]}>
+                    Amharic
+                  </Text>
+                  <Text
+                    style={[
+                      tw`text-sm font-nokia-bold`,
+                      language === 'am'
+                        ? tw`text-primary-1 opacity-90`
+                        : tw`text-secondary-4`,
+                      darkMode && language !== 'am' ? tw`text-primary-3` : null,
+                    ]}>
+                    አማርኛ
+                  </Text>
+                </View>
+                {language === 'am' && (
+                  <View
+                    style={tw`w-6 h-6 bg-white rounded-full items-center justify-center`}>
+                    <View style={tw`w-3 h-3 bg-accent-6 rounded-full`} />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* English Option */}
+              <TouchableOpacity
+                style={[
+                  tw`flex-row items-center p-4 rounded-4 border-2`,
+                  language === 'en'
+                    ? tw`bg-accent-6 border-accent-6`
+                    : tw`bg-primary-1 border-accent-6`,
+                  darkMode && language !== 'en' ? tw`bg-secondary-7` : null,
+                ]}
+                onPress={() => handleLanguageChange('en')}
+                activeOpacity={0.8}>
+                <View
+                  style={[
+                    tw`w-10 h-10 rounded-3 items-center justify-center mr-4`,
+                    language === 'en'
+                      ? tw`bg-white bg-opacity-20`
+                      : tw`bg-accent-6`,
+                  ]}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-lg`,
+                      language === 'en' ? tw`text-white` : tw`text-white`,
+                    ]}>
+                    A
+                  </Text>
+                </View>
+                <View style={tw`flex-1`}>
+                  <Text
+                    style={[
+                      tw`text-lg font-nokia-bold`,
+                      language === 'en' ? tw`text-white` : tw`text-secondary-6`,
+                      darkMode && language !== 'en' ? tw`text-primary-1` : null,
+                    ]}>
+                    English
+                  </Text>
+                  <Text
+                    style={[
+                      tw`text-sm font-nokia-bold`,
+                      language === 'en'
+                        ? tw`text-primary-1 opacity-90`
+                        : tw`text-secondary-4`,
+                      darkMode && language !== 'en' ? tw`text-primary-3` : null,
+                    ]}>
+                    International
+                  </Text>
+                </View>
+                {language === 'en' && (
+                  <View
+                    style={tw`w-6 h-6 bg-white rounded-full items-center justify-center`}>
+                    <View style={tw`w-3 h-3 bg-accent-6 rounded-full`} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Cancel Button */}
             <TouchableOpacity
-              style={tw`py-2`}
-              onPress={() => setModalVisible(false)}>
-              <Text style={tw`font-nokia-bold text-red-500 text-center`}>
+              style={[
+                tw`py-3 px-6 border border-accent-6 rounded-4 self-center`,
+                darkMode ? tw`border-secondary-6` : null,
+              ]}
+              onPress={() => setModalVisible(false)}
+              activeOpacity={0.7}>
+              <Text
+                style={[
+                  tw`text-sm font-nokia-bold text-accent-6`,
+                  darkMode ? tw`text-primary-2` : null,
+                ]}>
                 Cancel
               </Text>
             </TouchableOpacity>

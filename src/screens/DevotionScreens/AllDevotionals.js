@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useMemo} from 'react';
+import React, {useState, useCallback, useMemo, useEffect} from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
 import tw from './../../../tailwind';
 import {useGetDevotionsQuery} from './../../redux/api-slices/apiSlice';
 import ErrorScreen from '../../components/ErrorScreen';
+import networkManager from '../../utils/networkManager';
 
 // Utility function for Ethiopian month names
 const ethopianMonths = [
@@ -48,15 +49,68 @@ const AllDevotionals = ({navigation}) => {
   } = useGetDevotionsQuery();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedMonth, setExpandedMonth] = useState(null);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
 
   const onRefresh = useCallback(async () => {
     try {
       setIsRefreshing(true);
+      setLoadingTimeout(false);
+      setNetworkError(false);
+
+      // Check network connectivity first
+      if (!networkManager.isOnline) {
+        setNetworkError(true);
+        return;
+      }
+
       await refetch();
+    } catch (err) {
+      console.error('Refresh error:', err);
     } finally {
       setIsRefreshing(false);
     }
   }, [refetch]);
+
+  // Add loading timeout effect
+  useEffect(() => {
+    let timeoutId;
+    if (isFetching && !error && !originalDevotionals.length) {
+      timeoutId = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 15000); // 15 second timeout
+    } else {
+      setLoadingTimeout(false);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isFetching, error, originalDevotionals.length]);
+
+  // Check network connectivity on mount and set up listener
+  useEffect(() => {
+    // Initial check
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+    }
+
+    // Set up network state listener
+    const unsubscribe = networkManager.addListener(networkState => {
+      if (!networkState.isOnline) {
+        setNetworkError(true);
+      } else {
+        setNetworkError(false);
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // Function to get the index of an Ethiopian month
   const getEthiopianMonthIndex = monthName => ethopianMonths.indexOf(monthName);
@@ -87,9 +141,100 @@ const AllDevotionals = ({navigation}) => {
   const toggleMonth = month =>
     setExpandedMonth(expandedMonth === month ? null : month);
 
-  if (isFetching) {
+  const handleRetry = async () => {
+    setLoadingTimeout(false);
+    setNetworkError(false);
+
+    if (!networkManager.isOnline) {
+      setNetworkError(true);
+      return;
+    }
+
+    try {
+      await refetch();
+    } catch (err) {
+      console.error('Retry error:', err);
+    }
+  };
+
+  // Handle different error states
+  if (networkError && !originalDevotionals.length) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <TouchableOpacity
+            style={tw`absolute top-12 left-6`}
+            onPress={() => navigation.goBack()}>
+            <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
+          </TouchableOpacity>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+            ]}>
+            No Internet Connection
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+            ]}>
+            Please check your internet connection and try again.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
+            onPress={handleRetry}>
+            <Text style={tw`font-nokia-bold text-white text-base`}>
+              Try Again
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loadingTimeout && !originalDevotionals.length) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <TouchableOpacity
+            style={tw`absolute top-12 left-6`}
+            onPress={() => navigation.goBack()}>
+            <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
+          </TouchableOpacity>
+          <ActivityIndicator size="large" color="#EA9215" style={tw`mb-4`} />
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+            ]}>
+            Still loading...
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+            ]}>
+            This is taking longer than expected. Please check your connection.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
+            onPress={handleRetry}>
+            <Text style={tw`font-nokia-bold text-white text-base`}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isFetching && !originalDevotionals.length) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-full flex-1` : null}>
+        <TouchableOpacity
+          style={tw`absolute top-12 left-6 z-10`}
+          onPress={() => navigation.goBack()}>
+          <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
+        </TouchableOpacity>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
         <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
           Loading
@@ -98,7 +243,7 @@ const AllDevotionals = ({navigation}) => {
     );
   }
 
-  if (error) {
+  if (error && !originalDevotionals.length) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
 

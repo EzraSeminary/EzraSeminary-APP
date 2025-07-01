@@ -10,7 +10,13 @@ import {
   RefreshControl,
   Modal,
 } from 'react-native';
-import {ArrowSquareLeft, Warning, XCircle} from 'phosphor-react-native';
+import {
+  ArrowSquareLeft,
+  Warning,
+  XCircle,
+  ArrowClockwise,
+  CloudSlash,
+} from 'phosphor-react-native';
 import DateConverter from './DateConverter';
 import tw from './../../../tailwind';
 import {useNavigation} from '@react-navigation/native';
@@ -18,6 +24,7 @@ import {useSelector} from 'react-redux';
 import {useGetSSLOfQuarterQuery} from '../../services/SabbathSchoolApi';
 import LinearGradient from 'react-native-linear-gradient';
 import ErrorScreen from '../../components/ErrorScreen';
+
 const SSLQuarter = ({route}) => {
   const {sslId} = route.params;
   const language = useSelector(state => state.language.language);
@@ -55,17 +62,134 @@ const SSLQuarter = ({route}) => {
   if (isLoading) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
-        <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
-        <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
-          Loading
-        </Text>
+        <View style={tw`flex-1`}>
+          {/* Compact Header */}
+          <View style={tw`flex-row items-center justify-between p-4`}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
+            </TouchableOpacity>
+            <Text
+              style={[
+                tw`font-nokia-bold text-lg`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              Sabbath School
+            </Text>
+            <View style={tw`w-9`} />
+          </View>
+
+          {/* Compact Loading Card */}
+          <View
+            style={[
+              tw`mx-4 p-4 rounded-3 border`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#F8FAFC',
+                borderColor: '#E2E8F0',
+              },
+            ]}>
+            <View style={tw`flex-row items-center`}>
+              <ActivityIndicator
+                size="large"
+                color="#EA9215"
+                style={tw`mr-3`}
+              />
+              <View style={tw`flex-1`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-base mb-1`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  Loading Quarter...
+                </Text>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-sm opacity-70`,
+                    darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+                  ]}>
+                  Please wait while we fetch the lessons
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
       </SafeAreaView>
     );
   }
 
   if (error) {
-    return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
+        <View style={tw`flex-1`}>
+          {/* Compact Header */}
+          <View style={tw`flex-row items-center justify-between p-4`}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
+            </TouchableOpacity>
+            <Text
+              style={[
+                tw`font-nokia-bold text-lg`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              Sabbath School
+            </Text>
+            <View style={tw`w-9`} />
+          </View>
+
+          {/* Compact Error Card */}
+          <View
+            style={[
+              tw`mx-4 p-4 rounded-3 border`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#FEF2F2',
+                borderColor: '#EF4444',
+              },
+            ]}>
+            <View style={tw`flex-row items-center justify-between`}>
+              <View style={tw`flex-row items-center flex-1`}>
+                <CloudSlash
+                  size={24}
+                  color="#EF4444"
+                  weight="bold"
+                  style={tw`mr-3`}
+                />
+                <View style={tw`flex-1`}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-base mb-1`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                    ]}>
+                    Quarterly Update Pending
+                  </Text>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-sm opacity-70`,
+                      darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+                    ]}>
+                    New lessons are being prepared
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[
+                  tw`p-2 rounded-full`,
+                  {backgroundColor: '#EF4444'},
+                  isRefreshing && tw`opacity-70`,
+                ]}
+                onPress={onRefresh}
+                disabled={isRefreshing}>
+                {isRefreshing ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <ArrowClockwise size={16} color="#FFFFFF" weight="bold" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
   }
+
   const handleButtonPress = (ssl, weekId) => {
     navigation.navigate('SSLWeek', {ssl, weekId});
   };
@@ -136,34 +260,23 @@ const SSLQuarter = ({route}) => {
                     ]}>
                     <View style={tw`p-4`}>
                       <View
-                        style={[
-                          tw`flex flex-row justify-between border-b border-accent-6 mb-4`,
-                          {
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            zIndex: 1,
-                            padding: 16,
-                            backgroundColor: darkMode ? '#313C44' : '#FFFFFF',
-                          },
-                        ]}>
+                        style={tw`flex-row justify-between items-center mb-4`}>
                         <Text
                           style={[
-                            tw`font-nokia-bold text-lg text-secondary-6 text-center`,
+                            tw`font-nokia-bold text-lg text-secondary-6`,
                             darkMode ? tw`text-primary-1` : null,
                           ]}>
-                          ሙሉ መግለጫ
+                          Quarter Information
                         </Text>
                         <TouchableOpacity onPress={closeModal}>
                           <XCircle
-                            weight="bold"
                             size={24}
-                            style={tw`text-accent-6`}
+                            weight="bold"
+                            color={darkMode ? '#EA9215' : '#6B7280'}
                           />
                         </TouchableOpacity>
                       </View>
-                      <ScrollView contentContainerStyle={{paddingTop: 56}}>
+                      <ScrollView style={tw`max-h-100`}>
                         <Text
                           style={[
                             tw`font-nokia-bold text-sm text-secondary-6 text-justify`,

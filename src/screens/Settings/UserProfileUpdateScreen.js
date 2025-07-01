@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
+  Platform,
 } from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import {useUpdateUserMutation} from '../../redux/api-slices/apiSlice';
@@ -19,10 +21,13 @@ import {
   EnvelopeSimple,
   Lock,
   Eye,
+  Camera,
+  Image as ImageIcon,
 } from 'phosphor-react-native';
 import bible from '../../assets/bible.png';
 import localStorage from 'redux-persist/es/storage';
 import Toast from 'react-native-toast-message';
+import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 
 const UserProfileUpdateScreen = ({navigation}) => {
   const dispatch = useDispatch();
@@ -36,6 +41,7 @@ const UserProfileUpdateScreen = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const currentUser = useSelector(state => state.auth);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [updateUserMutation, {isLoading}] = useUpdateUserMutation();
 
   useEffect(() => {
@@ -56,15 +62,66 @@ const UserProfileUpdateScreen = ({navigation}) => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
+  const selectImage = () => {
+    const options = {
+      title: 'Select Profile Picture',
+      mediaType: 'photo',
+      quality: 0.8,
+      maxWidth: 800,
+      maxHeight: 800,
+    };
+
+    Alert.alert(
+      'Select Profile Picture',
+      'Choose an option',
+      [
+        {text: 'Camera', onPress: () => openCamera(options)},
+        {text: 'Photo Library', onPress: () => openImageLibrary(options)},
+        {text: 'Cancel', style: 'cancel'},
+      ],
+      {cancelable: true},
+    );
+  };
+
+  const openCamera = options => {
+    launchCamera(options, response => {
+      if (response.assets && response.assets[0]) {
+        const imageUri = response.assets[0].uri;
+        setAvatarPreview(imageUri);
+        setSelectedImage(response.assets[0]);
+      }
+    });
+  };
+
+  const openImageLibrary = options => {
+    launchImageLibrary(options, response => {
+      if (response.assets && response.assets[0]) {
+        const imageUri = response.assets[0].uri;
+        setAvatarPreview(imageUri);
+        setSelectedImage(response.assets[0]);
+      }
+    });
+  };
+
   const handleUpdateUser = async e => {
     e.preventDefault();
+
+    // Add password validation
+    if (password && password !== confirmPassword) {
+      Toast.show({
+        type: 'error',
+        text1: 'Passwords do not match!',
+      });
+      return;
+    }
 
     if (currentUser) {
       if (
         firstName !== currentUser.firstName ||
         lastName !== currentUser.lastName ||
         email !== currentUser.email ||
-        password
+        password ||
+        selectedImage
       ) {
         try {
           const formData = new FormData();
@@ -73,6 +130,16 @@ const UserProfileUpdateScreen = ({navigation}) => {
           formData.append('email', email);
           if (password) {
             formData.append('password', password);
+          }
+
+          // Add image to form data if selected
+          if (selectedImage) {
+            const imageData = {
+              uri: selectedImage.uri,
+              type: selectedImage.type,
+              name: selectedImage.fileName || `profile_${Date.now()}.jpg`,
+            };
+            formData.append('avatar', imageData);
           }
 
           const updatedUser = await updateUserMutation(formData).unwrap();
@@ -84,11 +151,10 @@ const UserProfileUpdateScreen = ({navigation}) => {
           setFirstName(updatedUser.firstName);
           setLastName(updatedUser.lastName);
           setEmail(updatedUser.email);
-          setPassword(updatedUser.password);
-          Toast.show({
-            type: 'success',
-            text1: 'Profile updated successfully!',
-          });
+          setPassword('');
+          setConfirmPassword('');
+          setSelectedImage(null);
+          setAvatarPreview(updatedUser.avatar ? `${updatedUser.avatar}` : null);
           navigation.navigate('SettingsStack');
           localStorage.setItem('user', JSON.stringify(updatedUser));
         } catch (error) {
@@ -103,6 +169,13 @@ const UserProfileUpdateScreen = ({navigation}) => {
                 type: 'error',
                 text1: 'Failed to upload avatar. Please try again.',
               });
+            } else {
+              Toast.show({
+                type: 'error',
+                text1:
+                  apiError.data?.message ||
+                  'An error occurred. Please try again.',
+              });
             }
           } else {
             console.error('Mutation failed:', error);
@@ -112,6 +185,11 @@ const UserProfileUpdateScreen = ({navigation}) => {
             });
           }
         }
+      } else {
+        Toast.show({
+          type: 'info',
+          text1: 'No changes detected!',
+        });
       }
     }
   };
@@ -139,16 +217,31 @@ const UserProfileUpdateScreen = ({navigation}) => {
         </Text>
         {currentUser && (
           <View style={tw`flex-col w-full justify-center items-center my-4`}>
-            <Image
-              style={tw`w-24 h-24 rounded-full border border-accent-6 my-2`}
-              source={
-                currentUser && currentUser.user.avatar
-                  ? {
-                      uri: `${currentUser.user.avatar}`,
-                    }
-                  : require('./../../assets/default-avatar.png') // replace with the actual path to your default avatar
-              }
-            />
+            <View style={tw`relative`}>
+              <Image
+                style={tw`w-24 h-24 rounded-full border border-accent-6 my-2`}
+                source={
+                  avatarPreview && avatarPreview !== bible
+                    ? typeof avatarPreview === 'string' &&
+                      avatarPreview.startsWith('file://')
+                      ? {uri: avatarPreview}
+                      : avatarPreview === bible
+                      ? bible
+                      : {uri: avatarPreview}
+                    : currentUser && currentUser.user.avatar
+                    ? {uri: `${currentUser.user.avatar}`}
+                    : require('./../../assets/default-avatar.png')
+                }
+              />
+              <TouchableOpacity
+                style={[
+                  tw`absolute bottom-2 right-0 w-8 h-8 bg-accent-6 rounded-full items-center justify-center border-2 border-primary-1`,
+                  darkMode && tw`border-secondary-9`,
+                ]}
+                onPress={selectImage}>
+                <Camera size={16} color="#FFFFFF" weight="fill" />
+              </TouchableOpacity>
+            </View>
             <Text
               style={[
                 tw`font-nokia-bold text-lg text-secondary-6`,
