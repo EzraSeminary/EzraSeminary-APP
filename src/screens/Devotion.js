@@ -27,6 +27,7 @@ import {useGetDevotionsQuery} from '../redux/api-slices/apiSlice';
 import {toEthiopian} from 'ethiopian-date';
 import HTMLView from 'react-native-htmlview';
 import ErrorScreen from '../components/ErrorScreen';
+import SelectableHTMLView from '../components/SelectableHTMLView';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import NotificationService from '../services/NotificationService';
 import DevotionalShareModal from '../components/DevotionalShareModal';
@@ -359,11 +360,30 @@ const Devotion = () => {
               {devotionToDisplay.verse}
             </Text>
           </View>
-          <View style={tw`mt-6`}>
-            <HTMLView
+          <View style={tw`mt-4`}>
+            {/* Text Selection Tip */}
+            <View
+              style={[
+                tw`flex-row items-center p-2 mb-2 rounded-lg border border-accent-6 border-opacity-30`,
+                darkMode ? tw`bg-secondary-8` : tw`bg-blue-50`,
+              ]}>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-xs flex-1`,
+                  darkMode ? tw`text-primary-2` : tw`text-blue-700`,
+                ]}>
+                💡 Tip: Long press on text to copy or share devotional content
+              </Text>
+            </View>
+
+            <SelectableHTMLView
               value={devotionToDisplay.body[0]} // Assuming body[0] contains HTML string
               stylesheet={tailwindStyles}
               linebreak={false}
+              enableSelection={true}
+              onLongPress={text => {
+                console.log('Selected devotional text:', text);
+              }}
             />
           </View>
           <View

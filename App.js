@@ -126,35 +126,43 @@ const App = () => {
 
   useEffect(() => {
     const initializeNotifications = async () => {
-      // Request permissions
-      if (Platform.OS === 'android') {
-        await NotificationService.requestPermissions();
+      try {
+        // Request permissions safely
+        if (Platform.OS === 'android') {
+          await NotificationService.requestPermissions();
+        }
+
+        // Handle notification events
+        notifee.onForegroundEvent(({type, detail}) => {
+          if (type === EventType.PRESS) {
+            handleNotificationPress(detail.notification);
+          }
+        });
+
+        notifee.onBackgroundEvent(async ({type, detail}) => {
+          console.log('Background event:', type, detail);
+          if (type === EventType.PRESS) {
+            handleNotificationPress(detail.notification);
+          }
+        });
+      } catch (error) {
+        console.warn('Failed to initialize notifications:', error);
       }
-
-      // Handle notification events
-      notifee.onForegroundEvent(({type, detail}) => {
-        if (type === EventType.PRESS) {
-          handleNotificationPress(detail.notification);
-        }
-      });
-
-      notifee.onBackgroundEvent(async ({type, detail}) => {
-        console.log('Background event:', type, detail);
-        if (type === EventType.PRESS) {
-          handleNotificationPress(detail.notification);
-        }
-      });
     };
 
     const handleNotificationPress = notification => {
-      if (notification?.data?.type === 'daily-verse') {
-        setTimeout(() => {
-          if (navigationRef.current) {
-            navigationRef.current.navigate('MainTab', {
-              screen: 'Devotional',
-            });
-          }
-        }, 1000);
+      try {
+        if (notification?.data?.type === 'daily-verse') {
+          setTimeout(() => {
+            if (navigationRef.current) {
+              navigationRef.current.navigate('MainTab', {
+                screen: 'Devotional',
+              });
+            }
+          }, 1000);
+        }
+      } catch (error) {
+        console.warn('Failed to handle notification press:', error);
       }
     };
 

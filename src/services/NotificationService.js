@@ -13,30 +13,34 @@ class NotificationService {
   }
 
   async configure() {
-    // Request permissions
-    if (Platform.OS === 'android') {
-      await this.requestPermissions();
-    }
-
-    // Create channels
-    await this.createChannels();
-
-    // Listen for notification events
-    notifee.onForegroundEvent(({type, detail}) => {
-      // console.log('Foreground event:', type, detail);
-      switch (type) {
-        case EventType.DISMISSED:
-          console.log('User dismissed notification', detail.notification);
-          break;
-        case EventType.PRESS:
-          console.log('User pressed notification', detail.notification);
-          break;
+    try {
+      // Request permissions
+      if (Platform.OS === 'android') {
+        await this.requestPermissions();
       }
-    });
 
-    notifee.onBackgroundEvent(async ({type, detail}) => {
-      console.log('Background event:', type, detail);
-    });
+      // Create channels
+      await this.createChannels();
+
+      // Listen for notification events
+      notifee.onForegroundEvent(({type, detail}) => {
+        // console.log('Foreground event:', type, detail);
+        switch (type) {
+          case EventType.DISMISSED:
+            console.log('User dismissed notification', detail.notification);
+            break;
+          case EventType.PRESS:
+            console.log('User pressed notification', detail.notification);
+            break;
+        }
+      });
+
+      notifee.onBackgroundEvent(async ({type, detail}) => {
+        console.log('Background event:', type, detail);
+      });
+    } catch (error) {
+      console.warn('Failed to configure notifications:', error);
+    }
   }
 
   async createChannels() {
@@ -65,18 +69,34 @@ class NotificationService {
 
   async requestPermissions() {
     if (Platform.OS === 'android') {
-      if (Platform.Version >= 33) {
-        try {
+      try {
+        // Request notification permission for Android 13+
+        if (Platform.Version >= 33) {
           const granted = await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
           );
-          return granted === PermissionsAndroid.RESULTS.GRANTED;
-        } catch (err) {
-          console.warn(err);
-          return false;
+
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            console.log('POST_NOTIFICATIONS permission denied');
+            return false;
+          }
         }
+
+        // Check and request exact alarm permission for Android 12+
+        if (Platform.Version >= 31) {
+          const canScheduleExactAlarms = await notifee.canScheduleExactAlarms();
+          if (!canScheduleExactAlarms) {
+            console.log('Exact alarm scheduling not allowed');
+            // For API 35, we'll use regular notifications instead of exact alarms
+            return true; // Still allow basic notifications
+          }
+        }
+
+        return true;
+      } catch (err) {
+        console.warn('Permission request failed:', err);
+        return false;
       }
-      return true;
     } else {
       return await notifee.requestPermission();
     }
@@ -139,6 +159,10 @@ class NotificationService {
         notificationDate.getTime() - now.getTime(),
       );
 
+      // Check if we can use exact alarms
+      const canScheduleExactAlarms =
+        Platform.Version >= 31 ? await notifee.canScheduleExactAlarms() : true;
+
       // Schedule notification
       const notificationId = await notifee.createTriggerNotification(
         {
@@ -161,7 +185,7 @@ class NotificationService {
           type: TriggerType.TIMESTAMP,
           timestamp: notificationDate.getTime(),
           repeatFrequency: RepeatFrequency.DAILY,
-          alarmManager: true,
+          alarmManager: canScheduleExactAlarms && Platform.Version < 35, // Disable for API 35
         },
       );
 
