@@ -349,29 +349,11 @@ const SelectedDevotional = ({route}) => {
               {devotional.verse}
             </Text>
           </View>
-          <View style={tw`mt-4`}>
-            {/* Text Selection Tip */}
-            <View
-              style={[
-                tw`flex-row items-center p-2 mb-2 rounded-lg border border-accent-6 border-opacity-30`,
-                darkMode ? tw`bg-secondary-8` : tw`bg-blue-50`,
-              ]}>
-              <Text
-                style={[
-                  tw`font-nokia-bold text-xs flex-1`,
-                  darkMode ? tw`text-primary-2` : tw`text-blue-700`,
-                ]}>
-                💡 Tip: Long press on text to copy or share devotional content
-              </Text>
-            </View>
-
-            <SelectableHTMLView
-              value={devotional.body[0]}
+          <View style={tw`mt-8`}>
+            <HTMLView
+              value={devotional.body[0]} // Assuming body[0] contains HTML string
               stylesheet={tailwindStyles}
-              enableSelection={true}
-              onLongPress={text => {
-                console.log('Selected devotional text:', text);
-              }}
+              linebreak={false}
             />
           </View>
           <View

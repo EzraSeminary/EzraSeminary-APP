@@ -27,7 +27,6 @@ import {useGetDevotionsQuery} from '../redux/api-slices/apiSlice';
 import {toEthiopian} from 'ethiopian-date';
 import HTMLView from 'react-native-htmlview';
 import ErrorScreen from '../components/ErrorScreen';
-import SelectableHTMLView from '../components/SelectableHTMLView';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import NotificationService from '../services/NotificationService';
 import DevotionalShareModal from '../components/DevotionalShareModal';
@@ -280,6 +279,130 @@ const Devotion = () => {
   const devotionToDisplay = selectedDevotion || devotions[0];
   const url = `${devotionToDisplay.image}`;
 
+  // Extract content from devotional (try multiple fields with better fallbacks)
+  const content =
+    devotionToDisplay.body?.[0] ||
+    devotionToDisplay.body ||
+    devotionToDisplay.content ||
+    devotionToDisplay.text ||
+    devotionToDisplay.description ||
+    '';
+
+  // Ensure content is properly formatted for HTMLView
+  const sanitizedContent =
+    typeof content === 'string'
+      ? content.includes('<') && content.includes('>')
+        ? content // Keep HTML content as-is
+        : `<div><p>${content.replace(/\n/g, '<br/>')}</p></div>`
+      : '';
+
+  // Debug logging for development
+  useEffect(() => {
+    if (__DEV__ && devotionToDisplay && devotionToDisplay._id) {
+      console.log('Devotion data:', devotionToDisplay);
+      console.log('Devotion body:', devotionToDisplay.body);
+      console.log('Devotion content:', devotionToDisplay.content);
+      console.log('Extracted content:', content);
+      console.log('Content type:', typeof content);
+      console.log('Content length:', content ? content.length : 0);
+      console.log('Sanitized content:', sanitizedContent);
+      console.log(
+        'Sanitized content length:',
+        sanitizedContent ? sanitizedContent.length : 0,
+      );
+      console.log('Available fields:', Object.keys(devotionToDisplay));
+    }
+  }, [devotionToDisplay, content]);
+
+  // Create styles for HTMLView
+  const htmlStyles = StyleSheet.create({
+    p: {
+      ...(darkMode
+        ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
+        : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
+      marginVertical: -15,
+    },
+    a: tw`text-accent-6 font-nokia-bold text-sm underline`,
+    h1: darkMode
+      ? tw`text-primary-1 font-nokia-bold text-justify text-2xl leading-snug`
+      : tw`text-secondary-6 font-nokia-bold text-justify text-2xl leading-snug`,
+    h2: darkMode
+      ? tw`text-secondary-6 font-nokia-bold text-justify text-xl leading-snug`
+      : tw`text-secondary-6 font-nokia-bold text-justify text-xl leading-snug`,
+    h3: darkMode
+      ? tw`text-primary-1 font-nokia-bold text-justify text-lg leading-snug`
+      : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`,
+    // Table styles for HTML content
+    table: tw`border border-gray-300 my-4`,
+    td: tw`border-r border-gray-300 p-2`,
+  });
+
+  // Render node function for HTMLView
+  const renderNode = (node, index, siblings, parent, defaultRenderer) => {
+    if (node.name === 'a') {
+      return (
+        <Text key={index} style={htmlStyles.a}>
+          {defaultRenderer(node.children, node)}
+        </Text>
+      );
+    }
+
+    if (node.name === 'blockquote') {
+      const childrenWithStyles = node.children.map((child, childIndex) => {
+        if (child.type === 'text') {
+          return (
+            <Text
+              key={childIndex}
+              style={[
+                tw`font-nokia-bold text-lg text-justify`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+              ]}>
+              {child.data}
+            </Text>
+          );
+        } else {
+          return defaultRenderer(child.children, child);
+        }
+      });
+      return (
+        <View
+          key={index}
+          style={[
+            tw`border-l-4 border-accent-6 pl-4 flex flex-row flex-wrap text-wrap mb-4`,
+          ]}>
+          {childrenWithStyles}
+        </View>
+      );
+    }
+
+    if (node.name === 'table') {
+      return (
+        <View key={index} style={htmlStyles.table}>
+          {defaultRenderer(node.children, node)}
+        </View>
+      );
+    }
+
+    if (node.name === 'tr') {
+      return (
+        <View key={index} style={tw`flex-row border-b border-gray-300`}>
+          {defaultRenderer(node.children, node)}
+        </View>
+      );
+    }
+
+    if (node.name === 'td') {
+      return (
+        <Text key={index} style={htmlStyles.td}>
+          {defaultRenderer(node.children, node)}
+        </Text>
+      );
+    }
+
+    // Default renderer for other nodes
+    return defaultRenderer(node.children, node);
+  };
+
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
       <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
@@ -360,30 +483,11 @@ const Devotion = () => {
               {devotionToDisplay.verse}
             </Text>
           </View>
-          <View style={tw`mt-4`}>
-            {/* Text Selection Tip */}
-            <View
-              style={[
-                tw`flex-row items-center p-2 mb-2 rounded-lg border border-accent-6 border-opacity-30`,
-                darkMode ? tw`bg-secondary-8` : tw`bg-blue-50`,
-              ]}>
-              <Text
-                style={[
-                  tw`font-nokia-bold text-xs flex-1`,
-                  darkMode ? tw`text-primary-2` : tw`text-blue-700`,
-                ]}>
-                💡 Tip: Long press on text to copy or share devotional content
-              </Text>
-            </View>
-
-            <SelectableHTMLView
+          <View style={tw`mt-8`}>
+            <HTMLView
               value={devotionToDisplay.body[0]} // Assuming body[0] contains HTML string
               stylesheet={tailwindStyles}
               linebreak={false}
-              enableSelection={true}
-              onLongPress={text => {
-                console.log('Selected devotional text:', text);
-              }}
             />
           </View>
           <View

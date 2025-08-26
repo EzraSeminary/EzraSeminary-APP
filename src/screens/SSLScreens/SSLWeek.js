@@ -409,30 +409,6 @@ const SSLWeek = ({route}) => {
   };
 
   const renderNode = (node, index, siblings, parent, defaultRenderer) => {
-    // Enable highlighting for paragraph content
-    if (node.name === 'p' && node.children && node.children.length > 0) {
-      const textContent = node.children
-        .map(child => (child.type === 'text' ? child.data : ''))
-        .join('');
-
-      if (textContent.trim().length > 50) {
-        // Only highlight substantial paragraphs
-        return (
-          <View key={index} style={tw`mb-4`}>
-            <HighlightableText
-              content={textContent}
-              lessonId={ssl}
-              dayId={check}
-              style={[
-                tw`font-nokia-bold text-secondary-6 text-justify leading-relaxed`,
-                darkMode ? tw`text-primary-1` : null,
-              ]}
-            />
-          </View>
-        );
-      }
-    }
-
     if (node.name === 'a') {
       const {class: className, verse: verseReference} = node.attribs;
       if (className === 'verse' && verseReference) {
@@ -471,7 +447,7 @@ const SSLWeek = ({route}) => {
         <View
           key={index}
           style={[
-            tw`border-l-4 border-accent-6 pl-4 flex flex-row flex-wrap text-wrap`,
+            tw`border-l-4 border-accent-6 pl-4 flex flex-row flex-wrap text-wrap mb-4`,
           ]}>
           {childrenWithStyles}
         </View>
@@ -747,23 +723,6 @@ const SSLWeek = ({route}) => {
               </Text>
             </View>
           </ImageBackground>
-
-          {/* Highlighting Tip */}
-          <View style={tw`mx-4 mt-2 mb-2`}>
-            <View
-              style={[
-                tw`flex-row items-center p-2 rounded-lg border border-accent-6 border-opacity-30`,
-                darkMode ? tw`bg-secondary-8` : tw`bg-orange-50`,
-              ]}>
-              <Text
-                style={[
-                  tw`font-nokia-bold text-xs flex-1`,
-                  darkMode ? tw`text-primary-2` : tw`text-orange-700`,
-                ]}>
-                💡 Tip: Select text to highlight important passages
-              </Text>
-            </View>
-          </View>
 
           <View style={tw`flex flex-col gap-4 px-4 mt-2`}>
             <HTMLView
