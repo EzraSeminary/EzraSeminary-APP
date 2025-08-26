@@ -2,6 +2,7 @@ package com.ezraapp
 
 import android.content.Intent
 import android.content.IntentSender
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import com.facebook.react.ReactActivity
@@ -33,7 +34,9 @@ class MainActivity : ReactActivity() {
         DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        // Prevent fragment state restoration to avoid react-native-screens crash on Android 11+
+        // See: https://github.com/software-mansion/react-native-screens/issues/17#issuecomment-424704067
+        super.onCreate(null)
         appUpdateManager = AppUpdateManagerFactory.create(this)
 
         // Checks that the platform will allow the specified type of update.
@@ -54,6 +57,11 @@ class MainActivity : ReactActivity() {
                 }
             }
         }
+
+        // On Android 12+ request exact alarm capability if your app schedules exact alarms
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            tryRequestExactAlarmPermissionIfNeeded()
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -63,5 +71,20 @@ class MainActivity : ReactActivity() {
             }
         }
         super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    private fun tryRequestExactAlarmPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        val alarmManager = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
+        val hasPermission = alarmManager.canScheduleExactAlarms()
+        if (!hasPermission) {
+            val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                .setData(android.net.Uri.parse("package:$packageName"))
+            try {
+                startActivity(intent)
+            } catch (_: Exception) {
+                // Best-effort; some OEMs may block the intent
+            }
+        }
     }
 }
