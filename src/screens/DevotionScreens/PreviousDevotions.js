@@ -5,7 +5,7 @@ import {ArrowSquareUpRight} from 'phosphor-react-native';
 import tw from './../../../tailwind';
 import {toEthiopian} from 'ethiopian-date';
 
-const PreviousDevotions = ({devotions, darkMode}) => {
+const PreviousDevotions = ({devotions, darkMode, currentYear}) => {
   const navigation = useNavigation();
 
   const ethiopianMonths = [
@@ -33,14 +33,23 @@ const PreviousDevotions = ({devotions, darkMode}) => {
       today.getDate(),
     );
     const ethiopianMonth = ethiopianMonths[month];
+
+    // Filter devotions by year if provided, otherwise use current year
+    const yearToFilter = currentYear || year;
+
     return devotions
-      .filter(
-        devotion =>
-          devotion.month === ethiopianMonth && Number(devotion.day) < day,
-      )
+      .filter(devotion => {
+        // Filter by year if devotion has year field, otherwise assume it's 2017 data
+        const devotionYear = devotion.year || 2017;
+        return (
+          devotionYear === yearToFilter &&
+          devotion.month === ethiopianMonth &&
+          Number(devotion.day) < day
+        );
+      })
       .sort((a, b) => Number(b.day) - Number(a.day))
       .slice(0, 4);
-  }, [devotions]);
+  }, [devotions, currentYear]);
 
   return (
     <View style={tw`flex flex-row flex-wrap justify-between mt-4`}>
@@ -51,7 +60,7 @@ const PreviousDevotions = ({devotions, darkMode}) => {
           onPress={() =>
             navigation.navigate('Devotional', {
               screen: 'SelectedDevotional',
-              params: {devotionalId: item._id},
+              params: {devotionalId: item._id, year: currentYear},
             })
           }>
           <ImageBackground

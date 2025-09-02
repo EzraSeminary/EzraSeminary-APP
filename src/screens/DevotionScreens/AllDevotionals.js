@@ -20,6 +20,7 @@ import tw from './../../../tailwind';
 import {useGetDevotionsQuery} from './../../redux/api-slices/apiSlice';
 import ErrorScreen from '../../components/ErrorScreen';
 import networkManager from '../../utils/networkManager';
+import YearDropdown from '../../components/YearDropdown';
 
 // Utility function for Ethiopian month names
 const ethopianMonths = [
@@ -40,13 +41,38 @@ const ethopianMonths = [
 
 const AllDevotionals = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
+  const currentUser = useSelector(state => state.auth.user);
+
+  // Get current Ethiopian year
+  const getCurrentEthiopianYear = () => {
+    // For now, we'll use 2017 as the current Ethiopian year
+    // This should be updated based on the actual current Ethiopian year
+    return 2017;
+  };
+
+  const currentEthiopianYear = getCurrentEthiopianYear();
+  const [selectedYear, setSelectedYear] = useState(currentEthiopianYear);
+
+  // Determine if user can access year filtering (instructor or admin)
+  const canAccessYearFiltering =
+    currentUser &&
+    (currentUser.role === 'instructor' ||
+      currentUser.role === 'admin' ||
+      currentUser.role !== 'Learner');
+
+  // Determine which year to fetch data for
+  // For admin/instructor: use selected year (default to current year)
+  // For regular users: always use current year
+  const yearToFetch = canAccessYearFiltering
+    ? selectedYear
+    : currentEthiopianYear;
 
   const {
     data: originalDevotionals = [],
     isFetching,
     refetch,
     error,
-  } = useGetDevotionsQuery();
+  } = useGetDevotionsQuery(); // Fetch all devotions, filter on frontend
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedMonth, setExpandedMonth] = useState(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
@@ -117,7 +143,14 @@ const AllDevotionals = ({navigation}) => {
 
   // Organize devotionals by month and sort days within each month
   const sortedDevotionals = useMemo(() => {
-    const devotionalsByMonth = originalDevotionals.reduce((acc, devotion) => {
+    // Filter devotions by year first
+    const filteredDevotionals = originalDevotionals.filter(devotion => {
+      // If devotion has a year field, use it; otherwise assume it's 2017 data
+      const devotionYear = devotion.year || 2017;
+      return devotionYear === yearToFetch;
+    });
+
+    const devotionalsByMonth = filteredDevotionals.reduce((acc, devotion) => {
       const monthName = devotion.month;
       if (!acc[monthName]) acc[monthName] = [];
       acc[monthName].push(devotion);
@@ -136,10 +169,24 @@ const AllDevotionals = ({navigation}) => {
     });
 
     return {sortedMonths, devotionalsByMonth};
-  }, [originalDevotionals]);
+  }, [originalDevotionals, yearToFetch, currentEthiopianYear]);
 
   const toggleMonth = month =>
     setExpandedMonth(expandedMonth === month ? null : month);
+
+  // Generate available years (current year and next year for instructor/admin)
+  const availableYears = useMemo(() => {
+    const years = [currentEthiopianYear];
+    if (canAccessYearFiltering) {
+      years.push(currentEthiopianYear + 1); // Add next year for instructor/admin
+    }
+
+    return years;
+  }, [currentEthiopianYear, canAccessYearFiltering]);
+
+  const handleYearSelect = year => {
+    setSelectedYear(year);
+  };
 
   const handleRetry = async () => {
     setLoadingTimeout(false);
@@ -281,6 +328,26 @@ const AllDevotionals = ({navigation}) => {
               ]}
             />
           </View>
+
+          {/* Year Filter Dropdown for Instructor/Admin */}
+          {canAccessYearFiltering && (
+            <View style={tw`mb-4`}>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-base mb-2`,
+                  darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                ]}>
+                Select Year:
+              </Text>
+              <YearDropdown
+                selectedYear={selectedYear}
+                onYearSelect={handleYearSelect}
+                availableYears={availableYears}
+                darkMode={darkMode}
+              />
+            </View>
+          )}
+
           {sortedDevotionals.sortedMonths.map(month => (
             <View key={month} style={tw`my-2`}>
               <TouchableOpacity
@@ -310,6 +377,7 @@ const AllDevotionals = ({navigation}) => {
                         onPress={() =>
                           navigation.navigate('SelectedDevotional', {
                             devotionalId: item._id,
+                            year: yearToFetch,
                           })
                         }>
                         <ImageBackground

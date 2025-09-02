@@ -48,7 +48,7 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
           onPress={() => {
             navigation.navigate('Devotional', {
               screen: 'SelectedDevotional',
-              params: {devotionalId: devotion._id},
+              params: {devotionalId: devotion._id, year: 2017},
             });
           }}>
           <Text style={tw`text-primary-1 font-nokia-bold text-sm`}>ክፈት</Text>

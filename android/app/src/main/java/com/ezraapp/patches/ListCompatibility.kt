@@ -6,47 +6,27 @@ import java.util.*
 /**
  * Compatibility layer for List methods that are not available on older Android versions.
  * This provides safe alternatives for removeFirst() and removeLast() methods.
+ * 
+ * Note: Always uses removeAt() to avoid conflicts with Java functions in Android 15+.
  */
 object ListCompatibility {
     
     /**
      * Safely removes and returns the first element from a list.
-     * Uses remove(0) on older Android versions where removeFirst() is not available.
+     * Always uses removeAt(0) to ensure compatibility across all Android versions.
      */
     @JvmStatic
     fun <T> removeFirst(list: MutableList<T>): T? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            // Android 15+ has native removeFirst()
-            try {
-                list.removeFirst()
-            } catch (e: NoSuchMethodError) {
-                // Fallback to manual removal
-                if (list.isNotEmpty()) list.removeAt(0) else null
-            }
-        } else {
-            // Older Android versions - use remove(0)
-            if (list.isNotEmpty()) list.removeAt(0) else null
-        }
+        return if (list.isNotEmpty()) list.removeAt(0) else null
     }
     
     /**
      * Safely removes and returns the last element from a list.
-     * Uses remove(size-1) on older Android versions where removeLast() is not available.
+     * Always uses removeAt(list.lastIndex) to ensure compatibility across all Android versions.
      */
     @JvmStatic
     fun <T> removeLast(list: MutableList<T>): T? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            // Android 15+ has native removeLast()
-            try {
-                list.removeLast()
-            } catch (e: NoSuchMethodError) {
-                // Fallback to manual removal
-                if (list.isNotEmpty()) list.removeAt(list.size - 1) else null
-            }
-        } else {
-            // Older Android versions - use remove(size-1)
-            if (list.isNotEmpty()) list.removeAt(list.size - 1) else null
-        }
+        return if (list.isNotEmpty()) list.removeAt(list.lastIndex) else null
     }
     
     /**

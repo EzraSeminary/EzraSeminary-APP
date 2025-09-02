@@ -80,12 +80,25 @@ const Home = () => {
   const persistedDevotions = useSelector(state => state.devotions);
   const persistedCourses = useSelector(state => state.courses);
 
+  // Get current Ethiopian year
+  const getCurrentEthiopianYear = () => {
+    // For now, we'll use 2017 as the current Ethiopian year
+    // This should be updated based on the actual current Ethiopian year
+    return 2017;
+  };
+
+  const currentEthiopianYear = getCurrentEthiopianYear();
+
+  // Determine which year to fetch data for (same logic as other screens)
+  // Always fetch current year data for Home screen - let user select year in AllDevotionals
+  const yearToFetch = currentEthiopianYear;
+
   const {
     data: devotions = [],
     isFetching,
     refetch: refetchDevotions,
     error,
-  } = useGetDevotionsQuery();
+  } = useGetDevotionsQuery(); // Fetch all devotions, filter on frontend
 
   const {
     data: courses = [],
@@ -160,6 +173,13 @@ const Home = () => {
 
     const devotionsToUse = getDevotionsToUse();
     if (devotionsToUse && devotionsToUse.length > 0) {
+      // Filter devotions by year first
+      const filteredDevotions = devotionsToUse.filter(devotion => {
+        // If devotion has a year field, use it; otherwise assume it's 2017 data
+        const devotionYear = devotion.year || 2017;
+        return devotionYear === yearToFetch;
+      });
+
       const today = new Date();
       const ethiopianDate = toEthiopian(
         today.getFullYear(),
@@ -168,13 +188,20 @@ const Home = () => {
       );
       const [year, month, day] = ethiopianDate;
       const ethiopianMonth = ethiopianMonths[month];
-      const todaysDevotion = devotionsToUse.find(
+      const todaysDevotion = filteredDevotions.find(
         devotion =>
           devotion.month === ethiopianMonth && Number(devotion.day) === day,
       );
-      setSelectedDevotion(todaysDevotion || devotionsToUse[0]);
+      setSelectedDevotion(todaysDevotion || filteredDevotions[0]);
     }
-  }, [devotions, isOffline, persistedDevotions, cachedData.devotions]);
+  }, [
+    devotions,
+    isOffline,
+    persistedDevotions,
+    cachedData.devotions,
+    yearToFetch,
+    currentEthiopianYear,
+  ]);
 
   const getDataToDisplay = () => {
     if (isOffline) {
@@ -197,7 +224,15 @@ const Home = () => {
 
   const {devotions: devotionsToDisplay, courses: coursesToDisplay} =
     getDataToDisplay();
-  const devotionToDisplay = selectedDevotion || devotionsToDisplay[0];
+
+  // Filter devotions by year
+  const filteredDevotionsToDisplay = devotionsToDisplay.filter(devotion => {
+    // If devotion has a year field, use it; otherwise assume it's 2017 data
+    const devotionYear = devotion.year || 2017;
+    return devotionYear === yearToFetch;
+  });
+
+  const devotionToDisplay = selectedDevotion || filteredDevotionsToDisplay[0];
 
   const fetchData = useCallback(async () => {
     const netInfo = await NetInfo.fetch();

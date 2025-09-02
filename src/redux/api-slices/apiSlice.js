@@ -98,10 +98,17 @@ export const apiSlice = createApi({
       }),
     }),
     getDevotions: builder.query({
-      query: ({limit, sort} = {}) => {
+      query: ({limit, sort, year} = {}) => {
         const queryParams = new URLSearchParams();
-        if (limit) queryParams.append('limit', limit);
-        if (sort) queryParams.append('sort', sort);
+        if (limit) {
+          queryParams.append('limit', limit);
+        }
+        if (sort) {
+          queryParams.append('sort', sort);
+        }
+        if (year) {
+          queryParams.append('year', year);
+        }
         return {
           url: '/devotion/show',
           params: queryParams.toString(),

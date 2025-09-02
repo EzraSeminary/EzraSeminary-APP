@@ -296,24 +296,6 @@ const Devotion = () => {
         : `<div><p>${content.replace(/\n/g, '<br/>')}</p></div>`
       : '';
 
-  // Debug logging for development
-  useEffect(() => {
-    if (__DEV__ && devotionToDisplay && devotionToDisplay._id) {
-      console.log('Devotion data:', devotionToDisplay);
-      console.log('Devotion body:', devotionToDisplay.body);
-      console.log('Devotion content:', devotionToDisplay.content);
-      console.log('Extracted content:', content);
-      console.log('Content type:', typeof content);
-      console.log('Content length:', content ? content.length : 0);
-      console.log('Sanitized content:', sanitizedContent);
-      console.log(
-        'Sanitized content length:',
-        sanitizedContent ? sanitizedContent.length : 0,
-      );
-      console.log('Available fields:', Object.keys(devotionToDisplay));
-    }
-  }, [devotionToDisplay, content]);
-
   // Create styles for HTMLView
   const htmlStyles = StyleSheet.create({
     p: {

@@ -127,13 +127,13 @@ const styles = StyleSheet.create({
     textAlign: 'justify', // Default to justified text
     fontFamily: 'NokiaPureText-Bold', // Add explicit font family
   },
-  defaultFont: tw`text-base`,
-  hugeFont: tw`text-3xl`,
-  largeFont: tw`text-2xl`,
-  smallFont: tw`text-sm`,
-  underlineText: tw`underline`,
-  listContainer: tw`mt-2`,
-  listItem: tw`flex-row items-start`,
+  defaultFont: tw`text-base font-nokia-bold`,
+  hugeFont: tw`text-3xl font-nokia-bold`,
+  largeFont: tw`text-2xl font-nokia-bold`,
+  smallFont: tw`text-sm font-nokia-bold`,
+  underlineText: tw`underline font-nokia-bold`,
+  listContainer: tw`mt-2 font-nokia-bold`,
+  listItem: tw`flex-row items-start font-nokia-bold`,
   centerText: {
     textAlign: 'center',
   },

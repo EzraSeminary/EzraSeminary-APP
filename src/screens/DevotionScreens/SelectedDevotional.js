@@ -7,7 +7,6 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  ImageBackground,
   StyleSheet,
 } from 'react-native';
 import {useSelector} from 'react-redux';
@@ -15,7 +14,6 @@ import {useNavigation} from '@react-navigation/native';
 import handleDownload from '../../components/handleDownload';
 import {handleShare} from '../../components/handleShare';
 import {
-  User,
   DownloadSimple,
   ShareNetwork,
   ArrowSquareLeft,
@@ -25,28 +23,50 @@ import ErrorScreen from '../../components/ErrorScreen';
 import PreviousDevotions from './PreviousDevotions';
 import HTMLView from 'react-native-htmlview';
 import tw from './../../../tailwind';
-import SelectableHTMLView from '../../components/SelectableHTMLView';
 import {useGetDevotionsQuery} from '../../redux/api-slices/apiSlice';
 import DevotionalShareModal from '../../components/DevotionalShareModal';
 import networkManager from '../../utils/networkManager';
 
 const SelectedDevotional = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
+  const currentUser = useSelector(state => state.auth.user);
   const navigation = useNavigation();
-  const {devotionalId} = route.params;
+  const {devotionalId, year: navigationYear} = route.params;
+
+  // Get current Ethiopian year
+  const getCurrentEthiopianYear = () => {
+    // For now, we'll use 2017 as the current Ethiopian year
+    // This should be updated based on the actual current Ethiopian year
+    return 2017;
+  };
+
+  const currentEthiopianYear = getCurrentEthiopianYear();
+
+  // Determine which year to fetch data for
+  // Use year from navigation if available, otherwise use current year
+  const yearToFetch = navigationYear || currentEthiopianYear;
+
   const {
     data: devotionals = [],
     isFetching,
     error,
     refetch,
-  } = useGetDevotionsQuery();
+  } = useGetDevotionsQuery(); // Fetch all devotions, filter on frontend
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [networkError, setNetworkError] = useState(false);
   const scrollViewRef = useRef();
-  const devotional = devotionals.find(item => item._id === devotionalId) || {};
+  // Filter devotions by year first, then find the specific devotional
+  const filteredDevotionals = devotionals.filter(devotion => {
+    // If devotion has a year field, use it; otherwise assume it's 2017 data
+    const devotionYear = devotion.year || 2017;
+    return devotionYear === yearToFetch;
+  });
+
+  const devotional =
+    filteredDevotionals.find(item => item._id === devotionalId) || {};
 
   const tailwindStyles = StyleSheet.create({
     p: {
@@ -452,8 +472,10 @@ const SelectedDevotional = ({route}) => {
           </View>
           <View style={tw`flex flex-row flex-wrap justify-between mt-4`}>
             <PreviousDevotions
-              devotions={devotionals}
+              devotions={filteredDevotionals}
               navigation={navigation}
+              darkMode={darkMode}
+              currentYear={yearToFetch}
             />
           </View>
         </ScrollView>
