@@ -39,13 +39,8 @@ const PreviousDevotions = ({devotions, darkMode, currentYear}) => {
 
     return devotions
       .filter(devotion => {
-        // Filter by year if devotion has year field, otherwise assume it's 2017 data
-        const devotionYear = devotion.year || 2017;
-        return (
-          devotionYear === yearToFilter &&
-          devotion.month === ethiopianMonth &&
-          Number(devotion.day) < day
-        );
+        // No need to filter by year since API already returns year-specific data
+        return devotion.month === ethiopianMonth && Number(devotion.day) < day;
       })
       .sort((a, b) => Number(b.day) - Number(a.day))
       .slice(0, 4);

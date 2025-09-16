@@ -6,22 +6,15 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  ImageBackground,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import React, {useState, useCallback, useEffect, useMemo} from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 import {useSelector} from 'react-redux';
 import {useNavigation} from '@react-navigation/native';
 import handleDownload from '../components/handleDownload';
 import {handleShare} from '../components/handleShare';
-import {
-  User,
-  ArrowSquareUpRight,
-  DownloadSimple,
-  ShareNetwork,
-  Share,
-} from 'phosphor-react-native';
+import {DownloadSimple, ShareNetwork, Share} from 'phosphor-react-native';
 import tw from './../../tailwind';
 import {useGetDevotionsQuery} from '../redux/api-slices/apiSlice';
 import {toEthiopian} from 'ethiopian-date';
@@ -57,7 +50,7 @@ const Devotion = () => {
     isFetching,
     error,
     refetch,
-  } = useGetDevotionsQuery();
+  } = useGetDevotionsQuery({year: 2018}); // Fetch devotions for current year (2018)
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDevotion, setSelectedDevotion] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -148,8 +141,9 @@ const Devotion = () => {
 
   useEffect(() => {
     if (devotions.length > 0) {
+      // No need to filter by year since API already returns year-specific data
       const today = new Date();
-      const [year, month, day] = toEthiopian(
+      const [, month, day] = toEthiopian(
         today.getFullYear(),
         today.getMonth() + 1,
         today.getDate(),
@@ -176,27 +170,10 @@ const Devotion = () => {
           settings.time,
         );
       }
-    } catch (error) {
-      console.error('Error scheduling notification:', error);
+    } catch (err) {
+      console.error('Error scheduling notification:', err);
     }
   };
-
-  const previousDevotions = useMemo(() => {
-    const today = new Date();
-    const [year, month, day] = toEthiopian(
-      today.getFullYear(),
-      today.getMonth() + 1,
-      today.getDate(),
-    );
-    const ethiopianMonth = ethiopianMonths[month];
-    return devotions
-      .filter(
-        devotion =>
-          devotion.month === ethiopianMonth && Number(devotion.day) < day,
-      )
-      .sort((a, b) => Number(b.day) - Number(a.day))
-      .slice(0, 4);
-  }, [devotions]);
 
   // Handle different error states
   if (networkError && !devotions.length) {
@@ -278,112 +255,6 @@ const Devotion = () => {
   }
   const devotionToDisplay = selectedDevotion || devotions[0];
   const url = `${devotionToDisplay.image}`;
-
-  // Extract content from devotional (try multiple fields with better fallbacks)
-  const content =
-    devotionToDisplay.body?.[0] ||
-    devotionToDisplay.body ||
-    devotionToDisplay.content ||
-    devotionToDisplay.text ||
-    devotionToDisplay.description ||
-    '';
-
-  // Ensure content is properly formatted for HTMLView
-  const sanitizedContent =
-    typeof content === 'string'
-      ? content.includes('<') && content.includes('>')
-        ? content // Keep HTML content as-is
-        : `<div><p>${content.replace(/\n/g, '<br/>')}</p></div>`
-      : '';
-
-  // Create styles for HTMLView
-  const htmlStyles = StyleSheet.create({
-    p: {
-      ...(darkMode
-        ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
-        : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
-      marginVertical: -15,
-    },
-    a: tw`text-accent-6 font-nokia-bold text-sm underline`,
-    h1: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify text-2xl leading-snug`
-      : tw`text-secondary-6 font-nokia-bold text-justify text-2xl leading-snug`,
-    h2: darkMode
-      ? tw`text-secondary-6 font-nokia-bold text-justify text-xl leading-snug`
-      : tw`text-secondary-6 font-nokia-bold text-justify text-xl leading-snug`,
-    h3: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify text-lg leading-snug`
-      : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`,
-    // Table styles for HTML content
-    table: tw`border border-gray-300 my-4`,
-    td: tw`border-r border-gray-300 p-2`,
-  });
-
-  // Render node function for HTMLView
-  const renderNode = (node, index, siblings, parent, defaultRenderer) => {
-    if (node.name === 'a') {
-      return (
-        <Text key={index} style={htmlStyles.a}>
-          {defaultRenderer(node.children, node)}
-        </Text>
-      );
-    }
-
-    if (node.name === 'blockquote') {
-      const childrenWithStyles = node.children.map((child, childIndex) => {
-        if (child.type === 'text') {
-          return (
-            <Text
-              key={childIndex}
-              style={[
-                tw`font-nokia-bold text-lg text-justify`,
-                darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-              ]}>
-              {child.data}
-            </Text>
-          );
-        } else {
-          return defaultRenderer(child.children, child);
-        }
-      });
-      return (
-        <View
-          key={index}
-          style={[
-            tw`border-l-4 border-accent-6 pl-4 flex flex-row flex-wrap text-wrap mb-4`,
-          ]}>
-          {childrenWithStyles}
-        </View>
-      );
-    }
-
-    if (node.name === 'table') {
-      return (
-        <View key={index} style={htmlStyles.table}>
-          {defaultRenderer(node.children, node)}
-        </View>
-      );
-    }
-
-    if (node.name === 'tr') {
-      return (
-        <View key={index} style={tw`flex-row border-b border-gray-300`}>
-          {defaultRenderer(node.children, node)}
-        </View>
-      );
-    }
-
-    if (node.name === 'td') {
-      return (
-        <Text key={index} style={htmlStyles.td}>
-          {defaultRenderer(node.children, node)}
-        </Text>
-      );
-    }
-
-    // Default renderer for other nodes
-    return defaultRenderer(node.children, node);
-  };
 
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
@@ -559,7 +430,11 @@ const Devotion = () => {
               </Text>
             </TouchableOpacity>
           </View>
-          <PreviousDevotions devotions={devotions} darkMode={darkMode} />
+          <PreviousDevotions
+            devotions={devotions}
+            darkMode={darkMode}
+            currentYear={2018}
+          />
         </ScrollView>
       </SafeAreaView>
 

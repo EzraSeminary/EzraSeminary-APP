@@ -45,9 +45,9 @@ const AllDevotionals = ({navigation}) => {
 
   // Get current Ethiopian year
   const getCurrentEthiopianYear = () => {
-    // For now, we'll use 2017 as the current Ethiopian year
+    // For now, we'll use 2018 as the current Ethiopian year
     // This should be updated based on the actual current Ethiopian year
-    return 2017;
+    return 2018;
   };
 
   const currentEthiopianYear = getCurrentEthiopianYear();
@@ -72,7 +72,7 @@ const AllDevotionals = ({navigation}) => {
     isFetching,
     refetch,
     error,
-  } = useGetDevotionsQuery(); // Fetch all devotions, filter on frontend
+  } = useGetDevotionsQuery({year: yearToFetch}); // Fetch devotions for specific year
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedMonth, setExpandedMonth] = useState(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
@@ -143,14 +143,8 @@ const AllDevotionals = ({navigation}) => {
 
   // Organize devotionals by month and sort days within each month
   const sortedDevotionals = useMemo(() => {
-    // Filter devotions by year first
-    const filteredDevotionals = originalDevotionals.filter(devotion => {
-      // If devotion has a year field, use it; otherwise assume it's 2017 data
-      const devotionYear = devotion.year || 2017;
-      return devotionYear === yearToFetch;
-    });
-
-    const devotionalsByMonth = filteredDevotionals.reduce((acc, devotion) => {
+    // No need to filter by year since API already returns year-specific data
+    const devotionalsByMonth = originalDevotionals.reduce((acc, devotion) => {
       const monthName = devotion.month;
       if (!acc[monthName]) acc[monthName] = [];
       acc[monthName].push(devotion);
@@ -169,16 +163,16 @@ const AllDevotionals = ({navigation}) => {
     });
 
     return {sortedMonths, devotionalsByMonth};
-  }, [originalDevotionals, yearToFetch, currentEthiopianYear]);
+  }, [originalDevotionals]);
 
   const toggleMonth = month =>
     setExpandedMonth(expandedMonth === month ? null : month);
 
-  // Generate available years (current year and next year for instructor/admin)
+  // Generate available years (current year and previous year for instructor/admin)
   const availableYears = useMemo(() => {
     const years = [currentEthiopianYear];
     if (canAccessYearFiltering) {
-      years.push(currentEthiopianYear + 1); // Add next year for instructor/admin
+      years.push(currentEthiopianYear - 1); // Add previous year for instructor/admin
     }
 
     return years;

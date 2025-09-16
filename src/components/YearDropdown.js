@@ -25,9 +25,9 @@ const YearDropdown = ({
   };
 
   const getCurrentEthiopianYear = () => {
-    // For now, we'll use 2017 as the current Ethiopian year
+    // For now, we'll use 2018 as the current Ethiopian year
     // This should be updated based on the actual current Ethiopian year
-    return 2017;
+    return 2018;
   };
 
   const currentEthiopianYear = getCurrentEthiopianYear();

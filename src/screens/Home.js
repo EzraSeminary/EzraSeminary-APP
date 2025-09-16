@@ -82,9 +82,9 @@ const Home = () => {
 
   // Get current Ethiopian year
   const getCurrentEthiopianYear = () => {
-    // For now, we'll use 2017 as the current Ethiopian year
+    // For now, we'll use 2018 as the current Ethiopian year
     // This should be updated based on the actual current Ethiopian year
-    return 2017;
+    return 2018;
   };
 
   const currentEthiopianYear = getCurrentEthiopianYear();
@@ -98,7 +98,7 @@ const Home = () => {
     isFetching,
     refetch: refetchDevotions,
     error,
-  } = useGetDevotionsQuery(); // Fetch all devotions, filter on frontend
+  } = useGetDevotionsQuery({year: yearToFetch}); // Fetch devotions for current year
 
   const {
     data: courses = [],
@@ -173,26 +173,20 @@ const Home = () => {
 
     const devotionsToUse = getDevotionsToUse();
     if (devotionsToUse && devotionsToUse.length > 0) {
-      // Filter devotions by year first
-      const filteredDevotions = devotionsToUse.filter(devotion => {
-        // If devotion has a year field, use it; otherwise assume it's 2017 data
-        const devotionYear = devotion.year || 2017;
-        return devotionYear === yearToFetch;
-      });
-
+      // No need to filter by year since API already returns year-specific data
       const today = new Date();
       const ethiopianDate = toEthiopian(
         today.getFullYear(),
         today.getMonth() + 1,
         today.getDate(),
       );
-      const [year, month, day] = ethiopianDate;
+      const [, month, day] = ethiopianDate;
       const ethiopianMonth = ethiopianMonths[month];
-      const todaysDevotion = filteredDevotions.find(
+      const todaysDevotion = devotionsToUse.find(
         devotion =>
           devotion.month === ethiopianMonth && Number(devotion.day) === day,
       );
-      setSelectedDevotion(todaysDevotion || filteredDevotions[0]);
+      setSelectedDevotion(todaysDevotion || devotionsToUse[0]);
     }
   }, [
     devotions,
@@ -225,12 +219,8 @@ const Home = () => {
   const {devotions: devotionsToDisplay, courses: coursesToDisplay} =
     getDataToDisplay();
 
-  // Filter devotions by year
-  const filteredDevotionsToDisplay = devotionsToDisplay.filter(devotion => {
-    // If devotion has a year field, use it; otherwise assume it's 2017 data
-    const devotionYear = devotion.year || 2017;
-    return devotionYear === yearToFetch;
-  });
+  // No need to filter by year since API already returns year-specific data
+  const filteredDevotionsToDisplay = devotionsToDisplay;
 
   const devotionToDisplay = selectedDevotion || filteredDevotionsToDisplay[0];
 
@@ -882,6 +872,7 @@ const Home = () => {
                 <PreviousDevotions
                   devotions={devotionsToDisplay}
                   darkMode={darkMode}
+                  currentYear={2018}
                 />
               </Animated.View>
             )}

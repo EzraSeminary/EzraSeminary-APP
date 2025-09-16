@@ -35,9 +35,9 @@ const SelectedDevotional = ({route}) => {
 
   // Get current Ethiopian year
   const getCurrentEthiopianYear = () => {
-    // For now, we'll use 2017 as the current Ethiopian year
+    // For now, we'll use 2018 as the current Ethiopian year
     // This should be updated based on the actual current Ethiopian year
-    return 2017;
+    return 2018;
   };
 
   const currentEthiopianYear = getCurrentEthiopianYear();
@@ -51,22 +51,15 @@ const SelectedDevotional = ({route}) => {
     isFetching,
     error,
     refetch,
-  } = useGetDevotionsQuery(); // Fetch all devotions, filter on frontend
+  } = useGetDevotionsQuery({year: yearToFetch}); // Fetch devotions for specific year
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [networkError, setNetworkError] = useState(false);
   const scrollViewRef = useRef();
-  // Filter devotions by year first, then find the specific devotional
-  const filteredDevotionals = devotionals.filter(devotion => {
-    // If devotion has a year field, use it; otherwise assume it's 2017 data
-    const devotionYear = devotion.year || 2017;
-    return devotionYear === yearToFetch;
-  });
-
-  const devotional =
-    filteredDevotionals.find(item => item._id === devotionalId) || {};
+  // No need to filter by year since API already returns year-specific data
+  const devotional = devotionals.find(item => item._id === devotionalId) || {};
 
   const tailwindStyles = StyleSheet.create({
     p: {
@@ -472,7 +465,7 @@ const SelectedDevotional = ({route}) => {
           </View>
           <View style={tw`flex flex-row flex-wrap justify-between mt-4`}>
             <PreviousDevotions
-              devotions={filteredDevotionals}
+              devotions={devotionals}
               navigation={navigation}
               darkMode={darkMode}
               currentYear={yearToFetch}
