@@ -7,6 +7,8 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import React, {useState, useRef, useEffect} from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -217,261 +219,265 @@ const Signup = ({navigation}) => {
   return (
     <SafeAreaView
       style={[tw`flex-1 bg-primary-1`, darkMode ? tw`bg-secondary-9` : null]}>
-      <ScrollView
-        contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-6`}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled">
-        <Animated.View
-          style={[
-            tw`w-full max-w-sm`,
-            {
-              opacity: fadeAnim,
-              transform: [{translateY: slideAnim}],
-            },
-          ]}>
-          {/* Enhanced Welcome Section */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={tw`flex-1`}>
+        <ScrollView
+          contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-6`}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
           <Animated.View
             style={[
-              tw`my-8 p-6 rounded-2xl items-center`,
+              tw`w-full max-w-sm`,
               {
-                backgroundColor: darkMode ? '#374151' : '#F9FAFB',
-                transform: [{scale: scaleAnim}],
-                elevation: 8,
+                opacity: fadeAnim,
+                transform: [{translateY: slideAnim}],
               },
             ]}>
+            {/* Enhanced Welcome Section */}
             <Animated.View
               style={[
-                tw`mb-4`,
+                tw`my-8 p-6 rounded-2xl items-center`,
                 {
-                  transform: [
-                    {
-                      scale: sparkleAnim.interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: [1, 1.1, 1],
-                      }),
-                    },
-                  ],
+                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                  transform: [{scale: scaleAnim}],
+                  elevation: 8,
                 },
               ]}>
-              <Image
-                source={require('./../assets/ezra_logo.png')}
-                style={tw`w-16 h-16`}
-                resizeMode="contain"
-              />
-            </Animated.View>
-            <Text
-              style={[
-                tw`font-nokia-bold text-4xl text-secondary-6 text-center mb-2`,
-                darkMode ? tw`text-accent-6` : null,
-              ]}>
-              እንኳን ደህና መጡ!
-            </Text>
-            <Text
-              style={[
-                tw`font-Lato-Black text-2xl text-secondary-6 text-center mb-2`,
-                darkMode ? tw`text-primary-1` : null,
-              ]}>
-              Create an account
-            </Text>
-            <Text
-              style={[
-                tw`font-Lato-Regular text-sm text-secondary-6 text-center opacity-70`,
-                darkMode ? tw`text-primary-3` : null,
-              ]}>
-              Join our spiritual community and track your progress
-            </Text>
-          </Animated.View>
-          <View style={tw`flex flex-col gap-4`}>
-            <View style={tw`flex flex-row mb-2 justify-between`}>
-              <View
+              <Animated.View
                 style={[
-                  tw`flex flex-row items-center gap-2 w-48% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
-                  darkMode ? tw`bg-secondary-6` : null,
+                  tw`mb-4`,
+                  {
+                    transform: [
+                      {
+                        scale: sparkleAnim.interpolate({
+                          inputRange: [0, 0.5, 1],
+                          outputRange: [1, 1.1, 1],
+                        }),
+                      },
+                    ],
+                  },
                 ]}>
-                <UserCircle
-                  size={20}
-                  style={[
-                    tw`text-secondary-5`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
+                <Image
+                  source={require('./../assets/ezra_logo.png')}
+                  style={tw`w-16 h-16`}
+                  resizeMode="contain"
                 />
-                <TextInput
-                  placeholder="First Name"
-                  keyboardType="default"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  style={[
-                    tw`font-nokia-bold text-sm text-secondary-6 w-100%`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
-                  placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
-                />
-              </View>
-              <View
+              </Animated.View>
+              <Text
                 style={[
-                  tw`flex flex-row items-center gap-2 w-48% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
-                  darkMode ? tw`bg-secondary-6` : null,
+                  tw`font-nokia-bold text-4xl text-secondary-6 text-center mb-2`,
+                  darkMode ? tw`text-accent-6` : null,
                 ]}>
-                <UserCircle
-                  size={20}
-                  style={[
-                    tw`text-secondary-5`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
-                />
-                <TextInput
-                  placeholder="Last Name"
-                  keyboardType="default"
-                  value={lastName}
-                  onChangeText={setLastName}
-                  style={[
-                    tw`font-nokia-bold text-sm text-secondary-6 w-100%`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
-                  placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
-                />
-              </View>
-            </View>
-            <View style={tw`mb-2`}>
-              <View
-                style={[
-                  tw`flex flex-row items-center gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
-                  darkMode ? tw`bg-secondary-6` : null,
-                ]}>
-                <EnvelopeSimple
-                  size={20}
-                  style={[
-                    tw`text-secondary-5`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
-                />
-                <TextInput
-                  placeholder="Email address"
-                  keyboardType="email-address"
-                  value={email}
-                  onChangeText={setEmail}
-                  style={[
-                    tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
-                  placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
-                />
-              </View>
-            </View>
-            <View style={tw`mb-2`}>
-              <View
-                style={[
-                  tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
-                  darkMode ? tw`bg-secondary-6` : null,
-                ]}>
-                <View style={tw`flex flex-row items-center gap-2`}>
-                  <Lock
-                    size={20}
-                    style={[
-                      tw`text-secondary-5`,
-                      darkMode ? tw`text-primary-3` : null,
-                    ]}
-                  />
-                  <TextInput
-                    placeholder="Password"
-                    secureTextEntry={showPassword}
-                    keyboardType="default"
-                    value={password}
-                    onChangeText={setPassword}
-                    style={[
-                      tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
-                      darkMode ? tw`text-primary-3` : null,
-                    ]}
-                    placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
-                  />
-                </View>
-                <TouchableOpacity onPress={toggleShowPassword}>
-                  <Eye
-                    size={20}
-                    style={[
-                      tw`text-secondary-5`,
-                      darkMode ? tw`text-primary-3` : null,
-                    ]}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View style={tw`mb-2`}>
-              <View
-                style={[
-                  tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
-                  darkMode ? tw`bg-secondary-6` : null,
-                ]}>
-                <View style={tw`flex flex-row items-center gap-2`}>
-                  <Lock
-                    size={20}
-                    style={[
-                      tw`text-secondary-5`,
-                      darkMode ? tw`text-primary-3` : null,
-                    ]}
-                  />
-                  <TextInput
-                    placeholder="Confirm Password"
-                    secureTextEntry={showConfirmPassword}
-                    keyboardType="default"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    style={[
-                      tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
-                      darkMode ? tw`text-primary-3` : null,
-                    ]}
-                    placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
-                  />
-                </View>
-                <TouchableOpacity onPress={toggleShowConfirmPassword}>
-                  <Eye
-                    size={20}
-                    style={[
-                      tw`text-secondary-5`,
-                      darkMode ? tw`text-primary-3` : null,
-                    ]}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-          <TouchableOpacity
-            style={tw`w-100% py-4 items-center bg-accent-6 rounded-2 my-2`}
-            onPress={handleSubmit}
-            disabled={isLoading}>
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={tw`font-Lato-Black text-primary-1`}>
-                Create Account
+                እንኳን ደህና መጡ!
               </Text>
-            )}
-          </TouchableOpacity>
+              <Text
+                style={[
+                  tw`font-Lato-Black text-2xl text-secondary-6 text-center mb-2`,
+                  darkMode ? tw`text-primary-1` : null,
+                ]}>
+                Create an account
+              </Text>
+              <Text
+                style={[
+                  tw`font-Lato-Regular text-sm text-secondary-6 text-center opacity-70`,
+                  darkMode ? tw`text-primary-3` : null,
+                ]}>
+                Join our spiritual community and track your progress
+              </Text>
+            </Animated.View>
+            <View style={tw`flex flex-col gap-4`}>
+              <View style={tw`flex flex-row mb-2 justify-between`}>
+                <View
+                  style={[
+                    tw`flex flex-row items-center gap-2 w-48% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                    darkMode ? tw`bg-secondary-6` : null,
+                  ]}>
+                  <UserCircle
+                    size={20}
+                    style={[
+                      tw`text-secondary-5`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                  />
+                  <TextInput
+                    placeholder="First Name"
+                    keyboardType="default"
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    style={[
+                      tw`font-nokia-bold text-sm text-secondary-6 w-100%`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                    placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
+                  />
+                </View>
+                <View
+                  style={[
+                    tw`flex flex-row items-center gap-2 w-48% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                    darkMode ? tw`bg-secondary-6` : null,
+                  ]}>
+                  <UserCircle
+                    size={20}
+                    style={[
+                      tw`text-secondary-5`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                  />
+                  <TextInput
+                    placeholder="Last Name"
+                    keyboardType="default"
+                    value={lastName}
+                    onChangeText={setLastName}
+                    style={[
+                      tw`font-nokia-bold text-sm text-secondary-6 w-100%`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                    placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
+                  />
+                </View>
+              </View>
+              <View style={tw`mb-2`}>
+                <View
+                  style={[
+                    tw`flex flex-row items-center gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                    darkMode ? tw`bg-secondary-6` : null,
+                  ]}>
+                  <EnvelopeSimple
+                    size={20}
+                    style={[
+                      tw`text-secondary-5`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                  />
+                  <TextInput
+                    placeholder="Email address"
+                    keyboardType="email-address"
+                    value={email}
+                    onChangeText={setEmail}
+                    style={[
+                      tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                    placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
+                  />
+                </View>
+              </View>
+              <View style={tw`mb-2`}>
+                <View
+                  style={[
+                    tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                    darkMode ? tw`bg-secondary-6` : null,
+                  ]}>
+                  <View style={tw`flex flex-row items-center gap-2`}>
+                    <Lock
+                      size={20}
+                      style={[
+                        tw`text-secondary-5`,
+                        darkMode ? tw`text-primary-3` : null,
+                      ]}
+                    />
+                    <TextInput
+                      placeholder="Password"
+                      secureTextEntry={showPassword}
+                      keyboardType="default"
+                      value={password}
+                      onChangeText={setPassword}
+                      style={[
+                        tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
+                        darkMode ? tw`text-primary-3` : null,
+                      ]}
+                      placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
+                    />
+                  </View>
+                  <TouchableOpacity onPress={toggleShowPassword}>
+                    <Eye
+                      size={20}
+                      style={[
+                        tw`text-secondary-5`,
+                        darkMode ? tw`text-primary-3` : null,
+                      ]}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={tw`mb-2`}>
+                <View
+                  style={[
+                    tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                    darkMode ? tw`bg-secondary-6` : null,
+                  ]}>
+                  <View style={tw`flex flex-row items-center gap-2`}>
+                    <Lock
+                      size={20}
+                      style={[
+                        tw`text-secondary-5`,
+                        darkMode ? tw`text-primary-3` : null,
+                      ]}
+                    />
+                    <TextInput
+                      placeholder="Confirm Password"
+                      secureTextEntry={showConfirmPassword}
+                      keyboardType="default"
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      style={[
+                        tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
+                        darkMode ? tw`text-primary-3` : null,
+                      ]}
+                      placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
+                    />
+                  </View>
+                  <TouchableOpacity onPress={toggleShowConfirmPassword}>
+                    <Eye
+                      size={20}
+                      style={[
+                        tw`text-secondary-5`,
+                        darkMode ? tw`text-primary-3` : null,
+                      ]}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={tw`w-100% py-4 items-center bg-accent-6 rounded-2 my-2`}
+              onPress={handleSubmit}
+              disabled={isLoading}>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={tw`font-Lato-Black text-primary-1`}>
+                  Create Account
+                </Text>
+              )}
+            </TouchableOpacity>
 
-          <View style={tw`flex-row justify-center my-4`}>
-            <Text
-              style={[
-                tw`font-Lato-Bold text-secondary-6 text-lg`,
-                darkMode ? tw`text-primary-3` : null,
-              ]}>
-              Already have an account{' '}
-            </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={tw`font-Lato-Bold text-accent-6 text-lg`}>
-                Login
+            <View style={tw`flex-row justify-center my-4`}>
+              <Text
+                style={[
+                  tw`font-Lato-Bold text-secondary-6 text-lg`,
+                  darkMode ? tw`text-primary-3` : null,
+                ]}>
+                Already have an account{' '}
+              </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={tw`font-Lato-Bold text-accent-6 text-lg`}>
+                  Login
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={tw`flex flex-row justify-center mt-4`}
+              onPress={() => navigation.navigate('MainTab')}>
+              <Text
+                style={tw`font-nokia-bold text-accent-6 px-4 py-2 border border-accent-6 rounded-full`}>
+                Continue without account
               </Text>
             </TouchableOpacity>
-          </View>
-          <TouchableOpacity
-            style={tw`flex flex-row justify-center mt-4`}
-            onPress={() => navigation.navigate('MainTab')}>
-            <Text
-              style={tw`font-nokia-bold text-accent-6 px-4 py-2 border border-accent-6 rounded-full`}>
-              Continue without account
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </ScrollView>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

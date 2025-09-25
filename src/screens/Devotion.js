@@ -50,7 +50,7 @@ const Devotion = () => {
     isFetching,
     error,
     refetch,
-  } = useGetDevotionsQuery({year: 2018}); // Fetch devotions for current year (2018)
+  } = useGetDevotionsQuery({year: 2018}); // Fetch only 2018 devotions
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDevotion, setSelectedDevotion] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -141,7 +141,7 @@ const Devotion = () => {
 
   useEffect(() => {
     if (devotions.length > 0) {
-      // No need to filter by year since API already returns year-specific data
+      // API already returns only 2018 devotions, no need to filter
       const today = new Date();
       const [, month, day] = toEthiopian(
         today.getFullYear(),

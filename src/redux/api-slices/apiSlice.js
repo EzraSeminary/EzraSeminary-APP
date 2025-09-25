@@ -99,19 +99,19 @@ export const apiSlice = createApi({
     }),
     getDevotions: builder.query({
       query: ({limit, sort, year} = {}) => {
-        const queryParams = new URLSearchParams();
-        if (limit) {
-          queryParams.append('limit', limit);
+        const params = {};
+        if (limit !== undefined) {
+          params.limit = limit;
         }
-        if (sort) {
-          queryParams.append('sort', sort);
+        if (sort !== undefined) {
+          params.sort = sort;
         }
-        if (year) {
-          queryParams.append('year', year);
+        if (year !== undefined) {
+          params.year = year;
         }
         return {
           url: '/devotion/show',
-          params: queryParams.toString(),
+          params,
         };
       },
       providesTags: ['Devotions'],

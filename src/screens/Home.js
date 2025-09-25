@@ -98,7 +98,7 @@ const Home = () => {
     isFetching,
     refetch: refetchDevotions,
     error,
-  } = useGetDevotionsQuery({year: yearToFetch}); // Fetch devotions for current year
+  } = useGetDevotionsQuery({year: 2018}); // Fetch only 2018 devotions
 
   const {
     data: courses = [],
@@ -147,9 +147,40 @@ const Home = () => {
         courses: coursesData || [],
         lastCacheTime: new Date().toISOString(),
       };
-      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+      // Compact the data to reduce storage size
+      const compact = data =>
+        (data || []).map(d => ({
+          _id: d._id,
+          title: d.title,
+          month: d.month,
+          day: d.day,
+          image: d.image,
+          verse: d.verse,
+          chapter: d.chapter,
+          year: d.year,
+        }));
+
+      const minimized = {
+        devotions: compact(devotionsData),
+        courses: (coursesData || []).map(c => ({
+          _id: c._id,
+          title: c.title,
+          image: c.image,
+          published: c.published,
+        })),
+        lastCacheTime: cacheData.lastCacheTime,
+      };
+
+      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(minimized));
       setCachedData(cacheData);
     } catch (error) {
+      // Handle SQLITE_FULL gracefully by purging cache
+      const message = String(error?.message || '');
+      if (message.includes('SQLITE_FULL') || message.includes('disk is full')) {
+        try {
+          await AsyncStorage.removeItem(CACHE_KEY);
+        } catch {}
+      }
       console.error('Error saving cached data:', error);
     }
   }, []);
@@ -173,7 +204,7 @@ const Home = () => {
 
     const devotionsToUse = getDevotionsToUse();
     if (devotionsToUse && devotionsToUse.length > 0) {
-      // No need to filter by year since API already returns year-specific data
+      // API already returns only 2018 devotions, no need to filter
       const today = new Date();
       const ethiopianDate = toEthiopian(
         today.getFullYear(),
@@ -219,7 +250,7 @@ const Home = () => {
   const {devotions: devotionsToDisplay, courses: coursesToDisplay} =
     getDataToDisplay();
 
-  // No need to filter by year since API already returns year-specific data
+  // API already returns only 2018 devotions, no need to filter
   const filteredDevotionsToDisplay = devotionsToDisplay;
 
   const devotionToDisplay = selectedDevotion || filteredDevotionsToDisplay[0];
@@ -870,7 +901,7 @@ const Home = () => {
                   transform: [{scale: scaleAnim}],
                 }}>
                 <PreviousDevotions
-                  devotions={devotionsToDisplay}
+                  devotions={filteredDevotionsToDisplay}
                   darkMode={darkMode}
                   currentYear={2018}
                 />

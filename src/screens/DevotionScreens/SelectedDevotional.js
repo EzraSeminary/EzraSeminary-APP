@@ -51,15 +51,18 @@ const SelectedDevotional = ({route}) => {
     isFetching,
     error,
     refetch,
-  } = useGetDevotionsQuery({year: yearToFetch}); // Fetch devotions for specific year
+  } = useGetDevotionsQuery({year: 2018}); // Fetch only 2018 devotions
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [networkError, setNetworkError] = useState(false);
   const scrollViewRef = useRef();
-  // No need to filter by year since API already returns year-specific data
-  const devotional = devotionals.find(item => item._id === devotionalId) || {};
+  // API already returns only 2018 devotions, no need to filter
+  const listForDisplay = devotionals;
+
+  const devotional =
+    listForDisplay.find(item => item._id === devotionalId) || {};
 
   const tailwindStyles = StyleSheet.create({
     p: {
@@ -296,7 +299,10 @@ const SelectedDevotional = ({route}) => {
         <ScrollView showsVerticalScrollIndicator={false} ref={scrollViewRef}>
           <View
             style={tw`flex flex-row justify-between items-center mt-4 mb-4`}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('Devotional', {screen: 'Devotion'})
+              }>
               <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
             </TouchableOpacity>
             <Text
@@ -465,7 +471,7 @@ const SelectedDevotional = ({route}) => {
           </View>
           <View style={tw`flex flex-row flex-wrap justify-between mt-4`}>
             <PreviousDevotions
-              devotions={devotionals}
+              devotions={listForDisplay}
               navigation={navigation}
               darkMode={darkMode}
               currentYear={yearToFetch}

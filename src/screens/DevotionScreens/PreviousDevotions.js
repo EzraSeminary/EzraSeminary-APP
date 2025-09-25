@@ -39,7 +39,6 @@ const PreviousDevotions = ({devotions, darkMode, currentYear}) => {
 
     return devotions
       .filter(devotion => {
-        // No need to filter by year since API already returns year-specific data
         return devotion.month === ethiopianMonth && Number(devotion.day) < day;
       })
       .sort((a, b) => Number(b.day) - Number(a.day))
