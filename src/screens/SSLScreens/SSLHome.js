@@ -19,6 +19,7 @@ import {
   useGetSSLsQuery,
   useGetSSLOfDayQuery,
   useGetSSLOfQuarterQuery,
+  useInvalidateSSLCacheMutation,
   usePrefetch,
 } from '../../services/SabbathSchoolApi';
 import {useGetVideoLinkQuery} from '../../services/videoLinksApi';
@@ -45,6 +46,7 @@ const SSLHome = ({onReload}) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [reloadingLesson, setReloadingLesson] = useState(false);
+  const [invalidateSSLCache] = useInvalidateSSLCacheMutation();
   const {data: ssl, error, isLoading, refetch} = useGetSSLsQuery();
 
   const {
@@ -91,15 +93,20 @@ const SSLHome = ({onReload}) => {
         return;
       }
 
+      // First invalidate all SSL caches to force fresh data
+      await invalidateSSLCache();
+
       await lessonRefetch();
       await quarterRefetch();
       await refetch();
+
+      console.log('SSL cache invalidated and data refetched successfully');
     } catch (err) {
       console.error('SSL refresh error:', err);
     } finally {
       setIsRefreshing(false);
     }
-  }, [lessonRefetch, quarterRefetch, refetch]);
+  }, [lessonRefetch, quarterRefetch, refetch, invalidateSSLCache]);
 
   // Add loading timeout effect
   useEffect(() => {

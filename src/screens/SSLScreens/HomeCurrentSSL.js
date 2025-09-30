@@ -4,6 +4,7 @@ import {useSelector} from 'react-redux';
 import {
   useGetSSLOfDayQuery,
   useGetSSLOfQuarterQuery,
+  useInvalidateSSLCacheMutation,
 } from '../../services/SabbathSchoolApi';
 import {useNavigation} from '@react-navigation/native';
 import DateConverter from './DateConverter';
@@ -32,7 +33,21 @@ const HomeCurrentSSL = () => {
   const [backgroundImage, setBackgroundImage] = useState('');
   const [isRefetching, setIsRefetching] = useState(false);
   const [isBackgroundUpdating, setIsBackgroundUpdating] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const navigation = useNavigation();
+  const [invalidateSSLCache] = useInvalidateSSLCacheMutation();
+  // Guard against infinite loading on home card
+  useEffect(() => {
+    let timeoutId;
+    if (lessonIsLoading || quarterIsLoading) {
+      timeoutId = setTimeout(() => setLoadingTimeout(true), 10000);
+    } else {
+      setLoadingTimeout(false);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [lessonIsLoading, quarterIsLoading]);
   const {
     data: lessonDetails,
     error: lessonError,
@@ -86,8 +101,14 @@ const HomeCurrentSSL = () => {
           // Store current data for comparison
           const previousLessonId = lessonDetails?.lesson?.id;
           const previousQuarterId = quarterDetails?.quarterly?.id;
+          const previousLessonTitle = lessonDetails?.lesson?.title;
+          const previousQuarterTitle = quarterDetails?.quarterly?.title;
 
-          // Silent background refresh
+          // Force cache invalidation to get fresh data
+          await invalidateSSLCache();
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          // Silent background refresh with fresh data
           const [lessonResult, quarterResult] = await Promise.all([
             refetchLesson(),
             refetchQuarter(),
@@ -99,24 +120,37 @@ const HomeCurrentSSL = () => {
           // Check if content was updated and show success feedback
           const newLessonId = lessonResult.data?.lesson?.id;
           const newQuarterId = quarterResult.data?.quarterly?.id;
+          const newLessonTitle = lessonResult.data?.lesson?.title;
+          const newQuarterTitle = quarterResult.data?.quarterly?.title;
 
-          if (
+          // More comprehensive comparison
+          const lessonChanged =
             (previousLessonId &&
               newLessonId &&
               previousLessonId !== newLessonId) ||
+            (previousLessonTitle &&
+              newLessonTitle &&
+              previousLessonTitle !== newLessonTitle);
+
+          const quarterChanged =
             (previousQuarterId &&
               newQuarterId &&
-              previousQuarterId !== newQuarterId)
-          ) {
+              previousQuarterId !== newQuarterId) ||
+            (previousQuarterTitle &&
+              newQuarterTitle &&
+              previousQuarterTitle !== newQuarterTitle);
+
+          if (lessonChanged || quarterChanged) {
             Toast.show({
               type: 'success',
-              text1: 'New Lesson Available!',
-              text2: 'The latest Sabbath School lesson has been updated.',
+              text1: 'New Content Available!',
+              text2: 'Updated lesson data has been loaded.',
               visibilityTime: 3000,
             });
+            console.log('🎉 New lesson content detected and updated');
+          } else {
+            console.log('✅ Background check completed - no new content');
           }
-
-          console.log('✅ Background lesson check completed');
         } else {
           console.log(
             '📶 No internet connection - skipping background lesson check',
@@ -136,8 +170,11 @@ const HomeCurrentSSL = () => {
     refetchLesson,
     refetchQuarter,
     lessonDetails?.lesson?.id,
+    lessonDetails?.lesson?.title,
     quarterDetails?.quarterly?.id,
-  ]); // Include IDs for comparison
+    quarterDetails?.quarterly?.title,
+    invalidateSSLCache,
+  ]); // Include IDs and titles for comparison
 
   const darkMode = useSelector(state => state.ui.darkMode);
   const language = useSelector(state => state.language.language);
@@ -155,9 +192,48 @@ const HomeCurrentSSL = () => {
   const handleRefetch = async () => {
     setIsRefetching(true);
     try {
-      await Promise.all([refetchLesson(), refetchQuarter()]);
+      // Check internet connectivity first
+      const netInfo = await NetInfo.fetch();
+      if (!netInfo.isConnected || !netInfo.isInternetReachable) {
+        Toast.show({
+          type: 'info',
+          text1: 'No Internet Connection',
+          text2: 'Please check your internet connection and try again.',
+        });
+        return;
+      }
+
+      console.log('🔄 Force refreshing SSL data...');
+
+      // Force invalidate all SSL caches to bypass any cached errors
+      await invalidateSSLCache();
+
+      // Wait a moment for cache invalidation to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Force refetch with fresh data (bypass cache completely)
+      const [lessonResult, quarterResult] = await Promise.all([
+        refetchLesson(),
+        refetchQuarter(),
+      ]);
+
+      console.log('✅ SSL data refreshed successfully');
+
+      // Show success message if data was found
+      if (lessonResult.data && quarterResult.data) {
+        Toast.show({
+          type: 'success',
+          text1: 'Data Updated',
+          text2: 'New lesson data has been loaded successfully.',
+        });
+      }
     } catch (error) {
-      console.error('Refetch error:', error);
+      console.error('❌ Refetch error:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Update Failed',
+        text2: 'Unable to fetch new data. Please try again later.',
+      });
     } finally {
       setIsRefetching(false);
     }
@@ -179,7 +255,7 @@ const HomeCurrentSSL = () => {
     }
   };
 
-  if (lessonIsLoading || quarterIsLoading) {
+  if ((lessonIsLoading || quarterIsLoading) && !loadingTimeout) {
     return (
       <View
         style={[
@@ -316,7 +392,7 @@ const HomeCurrentSSL = () => {
   }
 
   if (lessonError) {
-    console.error('Lesson Error:', lessonError);
+    // Error is already logged at API level, just show UI
     return (
       <View
         style={[
@@ -402,7 +478,7 @@ const HomeCurrentSSL = () => {
   }
 
   if (quarterError) {
-    console.error('Quarter Error:', quarterError);
+    // Error is already logged at API level, just show UI
     return (
       <View
         style={[

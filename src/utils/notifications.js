@@ -3,8 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Function to schedule a notification
 export const scheduleVerseOfTheDayNotification = async verse => {
-  const savedTime = await AsyncStorage.getItem('notificationTime');
-  const [hour, minute] = savedTime ? savedTime.split(':').map(Number) : [6, 0]; // Default to 6:00 AM
+  const savedTime = await AsyncStorage.getItem('dailyNotificationTime');
+  const timeObj = savedTime ? JSON.parse(savedTime) : {hour: 7, minute: 30};
+  const [hour, minute] = [timeObj.hour, timeObj.minute];
   console.log('Saved Time Check: ' + savedTime);
   const now = new Date();
   const notificationDate = new Date(

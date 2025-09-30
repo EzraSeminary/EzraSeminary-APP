@@ -66,8 +66,8 @@ const baseQueryWithRetry = async (args, api, extraOptions) => {
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithRetry,
-  // Add keep unused data for 5 minutes to improve UX
-  keepUnusedDataFor: 300,
+  // Keep unused data for 10 minutes to improve UX and reduce API calls
+  keepUnusedDataFor: 600,
   tagTypes: ['Devotions', 'Courses', 'User'],
   endpoints: builder => ({
     login: builder.mutation({
@@ -115,8 +115,8 @@ export const apiSlice = createApi({
         };
       },
       providesTags: ['Devotions'],
-      // Add stale time to reduce unnecessary refetches
-      keepUnusedDataFor: 600, // 10 minutes for devotions
+      // Keep devotions data for 15 minutes to reduce API calls
+      keepUnusedDataFor: 900,
     }),
     getCurrentUser: builder.query({
       query: () => '/users/current',

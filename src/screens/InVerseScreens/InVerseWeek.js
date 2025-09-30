@@ -168,6 +168,22 @@ const InVerseWeek = ({route}) => {
 
   const darkMode = useSelector(state => state.ui.darkMode);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+
+  // Add timeout for loading state
+  useEffect(() => {
+    let timeoutId;
+    if (isQuarterLoading || isWeekLoading) {
+      timeoutId = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 10000); // 10 second timeout
+    } else {
+      setLoadingTimeout(false);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isQuarterLoading, isWeekLoading]);
 
   // Load notes from AsyncStorage when component mounts or when weekId/check changes
   useEffect(() => {
@@ -274,6 +290,15 @@ const InVerseWeek = ({route}) => {
     blockquote: darkMode
       ? tw`text-primary-1 font-nokia-bold text-xl`
       : tw`text-secondary-6 font-nokia-bold text-xl`,
+    ol: darkMode
+      ? tw`text-primary-1 font-nokia-bold text-justify py-2`
+      : tw`text-secondary-6 font-nokia-bold text-justify py-2`,
+    ul: darkMode
+      ? tw`text-primary-1 font-nokia-bold text-justify py-2`
+      : tw`text-secondary-6 font-nokia-bold text-justify py-2`,
+    li: darkMode
+      ? tw`text-primary-1 font-nokia-bold text-justify py-1`
+      : tw`text-secondary-6 font-nokia-bold text-justify py-1`,
     'blockquote.p': tw`font-nokia-bold text-4xl`,
     em: tw`mt-4`,
     code: {
@@ -580,14 +605,27 @@ const InVerseWeek = ({route}) => {
   const dateStyle = 'font-nokia-bold text-lg text-primary-6';
   const modifiedContent = selectedVerseContent.replace(/<h2>/g, '<br><h2>');
 
-  // Show loading state while data is being fetched
-  if (isQuarterLoading || isWeekLoading) {
+  // Show loading state while data is being fetched - but with timeout
+  if ((isQuarterLoading || isWeekLoading) && !loadingTimeout) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
-        <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
-        <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
-          {language === 'en' ? 'Loading lesson...' : 'ትምህርቱን በመጫን ላይ...'}
-        </Text>
+        <View
+          style={[
+            tw`mx-4 mt-4 p-3 rounded-3 border flex-row items-center`,
+            {
+              backgroundColor: darkMode ? '#374151' : '#F8FAFC',
+              borderColor: '#E2E8F0',
+            },
+          ]}>
+          <ActivityIndicator size="small" color="#EA9215" style={tw`mr-3`} />
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            {language === 'en' ? 'Loading lesson...' : 'ትምህርቱን በመጫን ላይ...'}
+          </Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -782,6 +820,18 @@ const InVerseWeek = ({route}) => {
                   ],
                   h2: tw`font-nokia-bold text-2xl text-accent-6`,
                   sup: tw`text-xs font-nokia-bold text-superscript text-accent-6`,
+                  ol: [
+                    tw`text-secondary-6 font-nokia-bold text-justify py-2`,
+                    darkMode ? tw`text-primary-1` : null,
+                  ],
+                  ul: [
+                    tw`text-secondary-6 font-nokia-bold text-justify py-2`,
+                    darkMode ? tw`text-primary-1` : null,
+                  ],
+                  li: [
+                    tw`text-secondary-6 font-nokia-bold text-justify py-1`,
+                    darkMode ? tw`text-primary-1` : null,
+                  ],
                 }}
                 addLineBreaks={true}
               />

@@ -5,15 +5,11 @@ import {
   Switch,
   SafeAreaView,
   TouchableOpacity,
-  Image,
   Share,
   Linking,
   ScrollView,
-  Alert,
   Modal,
-  Button,
   Animated,
-  Dimensions,
 } from 'react-native';
 import tw from './../../tailwind';
 import {useSelector, useDispatch} from 'react-redux';
@@ -32,10 +28,10 @@ import {
   Globe,
   Bell,
   Sparkle,
-  Cross,
 } from 'phosphor-react-native';
 import {useGetSSLsQuery} from '../services/SabbathSchoolApi';
 import NotificationSettings from '../screens/Settings/NotificationSettings';
+import UserAvatar from '../components/UserAvatar';
 
 const Setting = ({navigation}) => {
   const dispatch = useDispatch();
@@ -237,9 +233,10 @@ const Setting = ({navigation}) => {
                     ],
                   },
                 ]}>
-                <Image
+                <UserAvatar
+                  avatarUri={user?.user?.avatar}
+                  size={96}
                   style={[
-                    tw`w-24 h-24 rounded-full border-2 border-accent-6`,
                     {
                       shadowColor: '#EA9215',
                       shadowOffset: {width: 0, height: 4},
@@ -248,13 +245,6 @@ const Setting = ({navigation}) => {
                       elevation: 10,
                     },
                   ]}
-                  source={
-                    user && user.user && user.user.avatar
-                      ? {
-                          uri: `${user.user.avatar}`,
-                        }
-                      : require('./../assets/default-avatar.png')
-                  }
                 />
               </Animated.View>
               <Text

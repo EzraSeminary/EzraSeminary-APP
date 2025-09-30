@@ -33,10 +33,10 @@ const authSlice = createSlice({
     },
     logout: state => {
       state.user = null;
+      state.isAuthReady = false;
 
-      // Remove the token from AsyncStorage
-      AsyncStorage.removeItem('token');
-      AsyncStorage.removeItem('user');
+      // Remove all auth-related data from AsyncStorage
+      AsyncStorage.multiRemove(['token', 'user', 'userProfile', 'authData']);
     },
     setAuthReady: (state, action) => {
       state.isAuthReady = action.payload;
@@ -103,8 +103,20 @@ export const signupUser = userData => async dispatch => {
 };
 
 export const logoutUser = () => async dispatch => {
-  await AsyncStorage.removeItem('token');
-  dispatch(authSlice.actions.logout());
+  try {
+    // Clear all auth-related data
+    await AsyncStorage.multiRemove([
+      'token',
+      'user',
+      'userProfile',
+      'authData',
+      'home_data_cache',
+    ]);
+    dispatch(authSlice.actions.logout());
+  } catch (error) {
+    console.error('Logout error:', error);
+    dispatch(authSlice.actions.logout());
+  }
 };
 
 export const deactivateUserAccount = id => async dispatch => {

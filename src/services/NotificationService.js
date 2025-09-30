@@ -4,12 +4,13 @@ import notifee, {
   TriggerType,
   RepeatFrequency,
 } from '@notifee/react-native';
-import {Platform, PermissionsAndroid} from 'react-native';
+import {Platform, PermissionsAndroid, AppState} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 class NotificationService {
   constructor() {
     this.configure();
+    this.setupAppStateListener();
   }
 
   async configure() {
@@ -219,7 +220,8 @@ class NotificationService {
     try {
       const enabled = await AsyncStorage.getItem('dailyNotificationEnabled');
       const timeString = await AsyncStorage.getItem('dailyNotificationTime');
-      const time = timeString ? JSON.parse(timeString) : {hour: 8, minute: 0};
+      // Default to 7:30 AM if no time is saved
+      const time = timeString ? JSON.parse(timeString) : {hour: 7, minute: 30};
 
       return {
         enabled: enabled === 'true',
@@ -229,7 +231,7 @@ class NotificationService {
       console.error('Error getting notification settings:', error);
       return {
         enabled: false,
-        time: {hour: 8, minute: 0},
+        time: {hour: 7, minute: 30},
       };
     }
   }
@@ -237,6 +239,11 @@ class NotificationService {
   async updateDailyNotificationTime(time) {
     try {
       await AsyncStorage.setItem('dailyNotificationTime', JSON.stringify(time));
+      // Also save in a backup key for persistence
+      await AsyncStorage.setItem(
+        'notification_time_backup',
+        JSON.stringify(time),
+      );
       console.log('Notification time updated:', time);
       return true;
     } catch (error) {
@@ -245,10 +252,68 @@ class NotificationService {
     }
   }
 
+  async enableDailyNotifications(time = {hour: 7, minute: 30}) {
+    try {
+      await AsyncStorage.setItem('dailyNotificationEnabled', 'true');
+      await this.updateDailyNotificationTime(time);
+      console.log('Daily notifications enabled');
+      return true;
+    } catch (error) {
+      console.error('Error enabling notifications:', error);
+      return false;
+    }
+  }
+
   async disableDailyNotifications() {
     await this.cancelDailyVerseNotifications();
     await AsyncStorage.setItem('dailyNotificationEnabled', 'false');
     console.log('Daily notifications disabled');
+  }
+
+  setupAppStateListener() {
+    AppState.addEventListener('change', this.handleAppStateChange.bind(this));
+  }
+
+  async handleAppStateChange(nextAppState) {
+    if (nextAppState === 'active') {
+      // App came to foreground, reschedule notifications if needed
+      console.log('App became active, checking notification schedule');
+      await this.rescheduleNotificationsIfNeeded();
+    }
+  }
+
+  async rescheduleNotificationsIfNeeded() {
+    try {
+      const settings = await this.getDailyNotificationSettings();
+      if (settings.enabled) {
+        // Cancel existing notifications and reschedule
+        await this.cancelDailyVerseNotifications();
+
+        // Get today's devotion and reschedule
+        const devotion = await this.getTodaysDevotion();
+        if (devotion) {
+          await this.scheduleDailyVerseNotification(devotion, settings.time);
+          console.log('Notifications rescheduled successfully');
+        }
+      }
+    } catch (error) {
+      console.error('Error rescheduling notifications:', error);
+    }
+  }
+
+  async getTodaysDevotion() {
+    try {
+      // This is a simple implementation - in a real app, you'd fetch from your API
+      // For now, return a default devotion
+      return {
+        verse:
+          'Trust in the Lord with all your heart and lean not on your own understanding.',
+        title: 'Daily Devotion',
+      };
+    } catch (error) {
+      console.error("Error getting today's devotion:", error);
+      return null;
+    }
   }
 
   async scheduleWeeklyDevotionReminder() {

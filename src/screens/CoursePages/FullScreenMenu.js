@@ -119,7 +119,7 @@ const FullScreenMenu = ({
         </Text>
       </View>
       <ScrollView
-        style={tw`h-64`}
+        style={tw`flex-1 max-h-96`}
         contentContainerStyle={tw`pb-4`}
         showsVerticalScrollIndicator={false}>
         {chapter.slides.map((slide, index) => {
@@ -145,9 +145,9 @@ const FullScreenMenu = ({
           );
         })}
       </ScrollView>
-      <View style={tw`flex-0.5`}>
+      <View style={tw`mt-4 mb-8`}>
         <TouchableOpacity
-          style={tw`bg-accent-6 px-4 py-2 rounded-full w-36 my-2 mx-auto`}
+          style={tw`bg-accent-6 px-4 py-2 rounded-full w-36 mx-auto`}
           onPress={() => {
             navigation.navigate('CourseHome');
           }}>

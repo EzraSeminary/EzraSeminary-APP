@@ -27,6 +27,7 @@ import ErrorScreen from '../components/ErrorScreen';
 import {ProgressBar} from 'react-native-paper';
 import NetInfo from '@react-native-community/netinfo';
 import Toast from 'react-native-toast-message';
+import LinearGradient from 'react-native-linear-gradient';
 
 const Course = () => {
   const {data: courses, error, isLoading, refetch} = useGetCoursesQuery();
@@ -190,24 +191,44 @@ const Course = () => {
             {/* Enhanced Header */}
             <Animated.View
               style={[
-                tw`flex flex-row justify-between items-center my-4 p-4 rounded-2xl`,
+                tw`flex flex-row justify-between items-center my-6 p-6 rounded-3xl`,
                 {
-                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                  backgroundColor: darkMode ? '#374151' : '#FFFFFF',
+                  shadowColor: darkMode ? '#000000' : '#EA9215',
+                  shadowOffset: {width: 0, height: 4},
+                  shadowOpacity: darkMode ? 0.2 : 0.1,
+                  shadowRadius: 12,
+                  elevation: 4,
                   transform: [{scale: scaleAnim}],
                 },
               ]}>
               <View style={tw`flex-row items-center`}>
-                <BookOpen size={24} color="#EA9215" weight="bold" />
-                <Text
+                <View
                   style={[
-                    tw`font-nokia-bold text-xl text-secondary-6 ml-3`,
-                    darkMode ? tw`text-primary-1` : null,
+                    tw`w-12 h-12 rounded-2xl items-center justify-center mr-4`,
+                    {backgroundColor: 'rgba(234, 146, 21, 0.1)'},
                   ]}>
-                  Courses
-                </Text>
+                  <BookOpen size={24} color="#EA9215" weight="bold" />
+                </View>
+                <View>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-2xl`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                    ]}>
+                    Courses
+                  </Text>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-sm opacity-70`,
+                      darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+                    ]}>
+                    {filteredData?.length || 0} courses available
+                  </Text>
+                </View>
                 <Animated.View
                   style={[
-                    tw`ml-2`,
+                    tw`ml-3`,
                     {
                       transform: [
                         {
@@ -219,17 +240,19 @@ const Course = () => {
                       ],
                     },
                   ]}>
-                  <Sparkle size={16} color="#EA9215" weight="fill" />
+                  <Sparkle size={20} color="#EA9215" weight="fill" />
                 </Animated.View>
               </View>
-              <TouchableOpacity onPress={() => navigation.navigate('Setting')}>
+              <TouchableOpacity
+                style={[
+                  tw`w-12 h-12 rounded-2xl items-center justify-center`,
+                  {backgroundColor: darkMode ? '#4B5563' : '#F3F4F6'},
+                ]}
+                onPress={() => navigation.navigate('Setting')}>
                 <User
-                  size={32}
+                  size={24}
                   weight="bold"
-                  style={[
-                    tw`text-secondary-6`,
-                    darkMode ? tw`text-primary-1` : null,
-                  ]}
+                  color={darkMode ? '#FFFFFF' : '#374151'}
                 />
               </TouchableOpacity>
             </Animated.View>
@@ -237,20 +260,31 @@ const Course = () => {
             {/* Enhanced Search Bar */}
             <Animated.View
               style={[
-                tw`mb-4 p-4 rounded-2xl`,
+                tw`mb-6 p-5 rounded-3xl`,
                 {
-                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                  backgroundColor: darkMode ? '#374151' : '#FFFFFF',
+                  shadowColor: darkMode ? '#000000' : '#EA9215',
+                  shadowOffset: {width: 0, height: 2},
+                  shadowOpacity: darkMode ? 0.1 : 0.05,
+                  shadowRadius: 8,
+                  elevation: 2,
                   transform: [{scale: scaleAnim}],
                 },
               ]}>
               <View style={tw`flex-row items-center`}>
-                <MagnifyingGlass size={20} color="#EA9215" weight="bold" />
+                <View
+                  style={[
+                    tw`w-10 h-10 rounded-2xl items-center justify-center mr-4`,
+                    {backgroundColor: 'rgba(234, 146, 21, 0.1)'},
+                  ]}>
+                  <MagnifyingGlass size={20} color="#EA9215" weight="bold" />
+                </View>
                 <TextInput
                   placeholder="ትምህርቶችን ፈልግ..."
                   value={searchTerm}
                   onChangeText={handleSearch}
                   style={[
-                    tw`flex-1 ml-3 font-nokia-bold text-base`,
+                    tw`flex-1 font-nokia-bold text-lg`,
                     darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
                   ]}
                   placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
@@ -276,8 +310,14 @@ const Course = () => {
                 return (
                   <Animated.View
                     style={[
-                      tw`border border-accent-6 my-2 rounded-4 p-2 w-[100%]`,
+                      tw`my-4 rounded-3xl overflow-hidden`,
                       {
+                        backgroundColor: darkMode ? '#374151' : '#FFFFFF',
+                        shadowColor: darkMode ? '#000000' : '#EA9215',
+                        shadowOffset: {width: 0, height: 8},
+                        shadowOpacity: darkMode ? 0.3 : 0.15,
+                        shadowRadius: 16,
+                        elevation: 8,
                         opacity: fadeAnim,
                         transform: [
                           {
@@ -291,67 +331,189 @@ const Course = () => {
                       },
                     ]}
                     key={index}>
-                    <View style={tw`h-48 relative`}>
+                    {/* Course Image with Gradient Overlay */}
+                    <View style={tw`h-56 relative`}>
                       <Image
-                        source={{
-                          uri: `${course.image}`,
-                        }}
-                        style={tw`w-full h-full rounded-3`}
+                        source={{uri: `${course.image}`}}
+                        style={tw`w-full h-full`}
+                        resizeMode="cover"
                       />
-                      <View
-                        style={tw`absolute bottom-2 right-0 bg-white bg-opacity-60 p-2 rounded-l-2`}>
-                        <Text
-                          style={tw`font-nokia-bold text-secondary-8 text-xs`}>
-                          {progressValue !== undefined
-                            ? progressValue * 100
-                            : 0}
-                          % አጠናቅቀዋል
-                        </Text>
+
+                      {/* Gradient Overlay */}
+                      <LinearGradient
+                        colors={[
+                          'rgba(0,0,0,0)',
+                          'rgba(0,0,0,0.3)',
+                          'rgba(0,0,0,0.8)',
+                        ]}
+                        locations={[0, 0.5, 1]}
+                        style={tw`absolute inset-0`}
+                      />
+
+                      {/* Category Badge */}
+                      <View style={tw`absolute top-4 left-4`}>
+                        <View
+                          style={[
+                            tw`px-3 py-1 rounded-full`,
+                            {backgroundColor: 'rgba(234, 146, 21, 0.9)'},
+                          ]}>
+                          <Text style={tw`text-white font-nokia-bold text-xs`}>
+                            {course.category}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Progress Badge */}
+                      <View style={tw`absolute top-4 right-4`}>
+                        <View
+                          style={[
+                            tw`px-3 py-1 rounded-full`,
+                            {backgroundColor: 'rgba(255, 255, 255, 0.9)'},
+                          ]}>
+                          <Text
+                            style={tw`text-secondary-8 font-nokia-bold text-xs`}>
+                            {progressValue !== undefined
+                              ? Math.round(progressValue * 100)
+                              : 0}
+                            %
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Chapter Count Badge */}
+                      <View style={tw`absolute bottom-4 right-4`}>
+                        <View
+                          style={[
+                            tw`px-3 py-2 rounded-full`,
+                            {backgroundColor: 'rgba(234, 146, 21, 0.9)'},
+                          ]}>
+                          <Text style={tw`text-white font-nokia-bold text-sm`}>
+                            {course.chapterCount} ምዕራፎች
+                          </Text>
+                        </View>
                       </View>
                     </View>
-                    {progressValue !== undefined && (
-                      <ProgressBar
-                        color={'#EA9215'}
-                        animatedValue={progressValue}
-                        style={tw`mt-2 mx-2 h-2 rounded-full`}
-                      />
-                    )}
-                    <Text
-                      style={tw`font-nokia-bold text-accent-6 text-sm mt-2`}>
-                      {course.category}
-                    </Text>
-                    <Text
-                      style={[
-                        tw`font-nokia-bold text-secondary-6 text-2xl`,
-                        darkMode ? tw`text-primary-3` : null,
-                      ]}>
-                      {course.title}
-                    </Text>
-                    <View
-                      style={tw`flex flex-row items-center justify-between`}>
+
+                    {/* Course Content */}
+                    <View style={tw`p-6`}>
+                      {/* Progress Bar */}
+                      {progressValue !== undefined && (
+                        <View style={tw`mb-4`}>
+                          <View
+                            style={tw`flex-row justify-between items-center mb-2`}>
+                            <Text
+                              style={[
+                                tw`font-nokia-bold text-sm`,
+                                darkMode
+                                  ? tw`text-primary-3`
+                                  : tw`text-secondary-6`,
+                              ]}>
+                              Progress
+                            </Text>
+                            <Text
+                              style={[
+                                tw`font-nokia-bold text-sm`,
+                                darkMode
+                                  ? tw`text-primary-3`
+                                  : tw`text-secondary-6`,
+                              ]}>
+                              {Math.round(progressValue * 100)}%
+                            </Text>
+                          </View>
+                          <View
+                            style={[
+                              tw`h-2 rounded-full`,
+                              {
+                                backgroundColor: darkMode
+                                  ? '#4B5563'
+                                  : '#E5E7EB',
+                              },
+                            ]}>
+                            <View
+                              style={[
+                                tw`h-full rounded-full`,
+                                {
+                                  backgroundColor: '#EA9215',
+                                  width: `${progressValue * 100}%`,
+                                },
+                              ]}
+                            />
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Course Stats */}
+                      <View
+                        style={tw`flex-row justify-between items-center mb-6`}>
+                        <View style={tw`flex-row items-center gap-2`}>
+                          <BookOpen size={20} color="#EA9215" weight="bold" />
+                          <Text
+                            style={[
+                              tw`font-nokia-bold text-2xl leading-tight`,
+                              darkMode
+                                ? tw`text-primary-1`
+                                : tw`text-secondary-8`,
+                            ]}
+                            numberOfLines={2}>
+                            {course.title}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Action Button */}
                       <TouchableOpacity
-                        style={tw`bg-accent-6 px-4 py-2 rounded-full w-36 mt-2`}
+                        style={[
+                          tw`py-4 px-6 rounded-2xl`,
+                          {
+                            backgroundColor: '#EA9215',
+                            shadowColor: '#EA9215',
+                            shadowOffset: {width: 0, height: 4},
+                            shadowOpacity: 0.3,
+                            shadowRadius: 8,
+                            elevation: 6,
+                          },
+                        ]}
                         onPress={() => handleButtonPress(course._id)}>
                         <Text
-                          style={tw`text-primary-1 font-nokia-bold text-sm text-center`}>
+                          style={tw`text-white font-nokia-bold text-lg text-center`}>
                           ኮርሱን ክፈት
                         </Text>
                       </TouchableOpacity>
-                      <View style={tw`flex flex-row items-center gap-1`}>
-                        <Text
-                          style={tw`font-nokia-bold text-accent-6 text-lg `}>
-                          {course.chapterCount} {''}ምዕራፎች
-                        </Text>
-                      </View>
                     </View>
                   </Animated.View>
                 );
               })
             ) : (
-              <Text
-                style={tw`font-nokia-bold text-accent-6 text-lg text-center mt-4 h-full`}>
-                No results found
-              </Text>
+              <Animated.View
+                style={[
+                  tw`items-center justify-center py-16 px-8`,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{translateY: slideAnim}],
+                  },
+                ]}>
+                <View
+                  style={[
+                    tw`w-24 h-24 rounded-full items-center justify-center mb-6`,
+                    {backgroundColor: darkMode ? '#374151' : '#F3F4F6'},
+                  ]}>
+                  <MagnifyingGlass size={40} color="#EA9215" weight="bold" />
+                </View>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xl text-center mb-2`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  No courses found
+                </Text>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-base text-center opacity-70`,
+                    darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+                  ]}>
+                  Try adjusting your search terms
+                </Text>
+              </Animated.View>
             )}
           </Animated.View>
         </ScrollView>

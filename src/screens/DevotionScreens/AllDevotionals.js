@@ -52,12 +52,13 @@ const AllDevotionals = ({navigation}) => {
   // Always show 2018 devotions only (those with year field = 2018)
   const yearToFetch = 2018;
 
+  // Only fetch devotional metadata (titles, months) initially
   const {
     data: originalDevotionals = [],
     isFetching,
     refetch,
     error,
-  } = useGetDevotionsQuery({year: 2018}); // Fetch only 2018 devotions
+  } = useGetDevotionsQuery({year: 2018, limit: 365}); // Fetch all 2018 devotions
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedMonth, setExpandedMonth] = useState(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
@@ -152,8 +153,13 @@ const AllDevotionals = ({navigation}) => {
     return {sortedMonths, devotionalsByMonth};
   }, [originalDevotionals]);
 
-  const toggleMonth = month =>
+  const toggleMonth = month => {
     setExpandedMonth(expandedMonth === month ? null : month);
+    // Optional: Could implement lazy loading here for individual months
+    // if (expandedMonth !== month) {
+    //   // Fetch detailed data for this month only
+    // }
+  };
 
   const handleRetry = async () => {
     setLoadingTimeout(false);

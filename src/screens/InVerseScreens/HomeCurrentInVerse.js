@@ -4,7 +4,10 @@ import {useSelector} from 'react-redux';
 import {
   useGetInVerseOfDayQuery,
   useGetInVerseOfQuarterQuery,
-} from '../../services/SabbathSchoolApi';
+  useInvalidateInVerseCacheMutation,
+} from '../../services/InVerseapi';
+import NetInfo from '@react-native-community/netinfo';
+import Toast from 'react-native-toast-message';
 import {useNavigation} from '@react-navigation/native';
 import DateConverter from './DateConverter';
 import {View, Image, Text, TouchableOpacity} from 'react-native';
@@ -15,6 +18,8 @@ const HomeCurrentInVerse = () => {
   const currentDate = new Date().toISOString().slice(0, 10);
   const [quarter, week] = useCalculateLessonIndex(currentDate);
   const [backgroundImage, setBackgroundImage] = useState('');
+  const [isRefetching, setIsRefetching] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const navigation = useNavigation();
   const {
     data: lessonDetails,
@@ -37,6 +42,7 @@ const HomeCurrentInVerse = () => {
 
   const darkMode = useSelector(state => state.ui.darkMode);
   const language = useSelector(state => state.language.language);
+  const [invalidateInVerseCache] = useInvalidateInVerseCacheMutation();
 
   const handleOpenButtonPress = () => {
     navigation.navigate('InVerse', {
@@ -48,9 +54,49 @@ const HomeCurrentInVerse = () => {
     });
   };
 
-  const handleRefetch = () => {
-    refetchLesson();
-    refetchQuarter();
+  useEffect(() => {
+    let timeoutId;
+    if (lessonIsLoading || quarterIsLoading) {
+      timeoutId = setTimeout(() => setLoadingTimeout(true), 10000);
+    } else {
+      setLoadingTimeout(false);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [lessonIsLoading, quarterIsLoading]);
+
+  const handleRefetch = async () => {
+    setIsRefetching(true);
+    try {
+      const netInfo = await NetInfo.fetch();
+      if (!netInfo.isConnected || !netInfo.isInternetReachable) {
+        Toast.show({
+          type: 'info',
+          text1: 'No Internet Connection',
+          text2: 'Please check your internet and try again.',
+        });
+        return;
+      }
+
+      await invalidateInVerseCache();
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await Promise.all([refetchLesson(), refetchQuarter()]);
+      Toast.show({
+        type: 'success',
+        text1: 'Data Updated',
+        text2: 'New lesson data has been loaded successfully.',
+      });
+    } catch (error) {
+      console.error('InVerse refetch error:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Update Failed',
+        text2: 'Unable to fetch new data. Please try again later.',
+      });
+    } finally {
+      setIsRefetching(false);
+    }
   };
 
   const parseCustomDate = dateString => {
@@ -69,12 +115,12 @@ const HomeCurrentInVerse = () => {
     }
   };
 
-  if (lessonIsLoading || quarterIsLoading) {
+  if ((lessonIsLoading || quarterIsLoading) && !loadingTimeout) {
     return <Text>Loading...</Text>;
   }
 
   if (lessonError) {
-    console.error('Lesson Error:', lessonError); // Log the entire error object
+    // Error is already logged at API level, just show UI
     return (
       <View style={tw`border border-accent-6 rounded my-2`}>
         <Text style={tw`font-nokia-bold text-accent-6 text-center py-4`}>
@@ -92,7 +138,7 @@ const HomeCurrentInVerse = () => {
   }
 
   if (quarterError) {
-    console.error('Quarter Error:', quarterError); // Log the entire error object
+    // Error is already logged at API level, just show UI
     return (
       <View style={tw`border border-accent-6 rounded my-2`}>
         <Text style={tw`font-nokia-bold text-accent-6 text-center py-4`}>

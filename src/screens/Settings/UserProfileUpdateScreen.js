@@ -2,14 +2,12 @@ import React, {useState, useEffect} from 'react';
 import {
   View,
   TextInput,
-  Image,
   Text,
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
   Alert,
-  Platform,
 } from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import {useUpdateUserMutation} from '../../redux/api-slices/apiSlice';
@@ -22,12 +20,11 @@ import {
   Lock,
   Eye,
   Camera,
-  Image as ImageIcon,
 } from 'phosphor-react-native';
-import bible from '../../assets/bible.png';
 import localStorage from 'redux-persist/es/storage';
 import Toast from 'react-native-toast-message';
 import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
+import UserAvatar from '../../components/UserAvatar';
 
 const UserProfileUpdateScreen = ({navigation}) => {
   const dispatch = useDispatch();
@@ -42,17 +39,23 @@ const UserProfileUpdateScreen = ({navigation}) => {
   const currentUser = useSelector(state => state.auth);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isAvatarChanged, setIsAvatarChanged] = useState(false);
   const [updateUserMutation, {isLoading}] = useUpdateUserMutation();
 
+  // Initialize form data when currentUser changes
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && currentUser.user) {
       setFirstName(currentUser.firstName || '');
       setLastName(currentUser.lastName || '');
       setEmail(currentUser.user.email || '');
       setPassword(currentUser.password || '');
-      setAvatarPreview(currentUser.avatar ? `${currentUser.avatar}` : bible);
+
+      // Only set avatar preview if it's not already set or if user changed
+      if (!isAvatarChanged) {
+        setAvatarPreview(currentUser.user.avatar || null);
+      }
     }
-  }, [currentUser]);
+  }, [currentUser, isAvatarChanged]);
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
@@ -85,20 +88,32 @@ const UserProfileUpdateScreen = ({navigation}) => {
 
   const openCamera = options => {
     launchCamera(options, response => {
+      if (response.didCancel || response.error) {
+        return;
+      }
+
       if (response.assets && response.assets[0]) {
         const imageUri = response.assets[0].uri;
+        console.log('Camera image selected:', imageUri);
         setAvatarPreview(imageUri);
         setSelectedImage(response.assets[0]);
+        setIsAvatarChanged(true);
       }
     });
   };
 
   const openImageLibrary = options => {
     launchImageLibrary(options, response => {
+      if (response.didCancel || response.error) {
+        return;
+      }
+
       if (response.assets && response.assets[0]) {
         const imageUri = response.assets[0].uri;
+        console.log('Library image selected:', imageUri);
         setAvatarPreview(imageUri);
         setSelectedImage(response.assets[0]);
+        setIsAvatarChanged(true);
       }
     });
   };
@@ -154,7 +169,8 @@ const UserProfileUpdateScreen = ({navigation}) => {
           setPassword('');
           setConfirmPassword('');
           setSelectedImage(null);
-          setAvatarPreview(updatedUser.avatar ? `${updatedUser.avatar}` : null);
+          setAvatarPreview(updatedUser.avatar || null);
+          setIsAvatarChanged(false);
           navigation.navigate('SettingsStack');
           localStorage.setItem('user', JSON.stringify(updatedUser));
         } catch (error) {
@@ -218,20 +234,14 @@ const UserProfileUpdateScreen = ({navigation}) => {
         {currentUser && (
           <View style={tw`flex-col w-full justify-center items-center my-4`}>
             <View style={tw`relative`}>
-              <Image
-                style={tw`w-24 h-24 rounded-full border border-accent-6 my-2`}
-                source={
-                  avatarPreview && avatarPreview !== bible
-                    ? typeof avatarPreview === 'string' &&
-                      avatarPreview.startsWith('file://')
-                      ? {uri: avatarPreview}
-                      : avatarPreview === bible
-                      ? bible
-                      : {uri: avatarPreview}
-                    : currentUser && currentUser.user.avatar
-                    ? {uri: `${currentUser.user.avatar}`}
-                    : require('./../../assets/default-avatar.png')
+              <UserAvatar
+                avatarUri={
+                  avatarPreview
+                    ? avatarPreview
+                    : currentUser?.user?.avatar || null
                 }
+                size={96}
+                style={tw`my-2`}
               />
               <TouchableOpacity
                 style={[

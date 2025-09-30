@@ -60,23 +60,24 @@ const NotificationSettings = () => {
         return;
       }
 
-      // Set default time to 7:30 AM
-      const defaultTime = new Date();
-      defaultTime.setHours(7, 30, 0, 0);
-      setNotificationTime(defaultTime);
+      // Load saved notification settings
+      const settings = await NotificationService.getDailyNotificationSettings();
+      const savedTime = new Date();
+      savedTime.setHours(settings.time.hour, settings.time.minute, 0, 0);
+      setNotificationTime(savedTime);
 
-      // Schedule notification with default time
+      // Schedule notification with saved time or default
       const currentDevotion = getCurrentDevotion();
       if (currentDevotion) {
-        const time = {
-          hour: 7,
-          minute: 30,
-        };
-
         await NotificationService.scheduleDailyVerseNotification(
           currentDevotion,
-          time,
+          settings.time,
         );
+
+        // Enable notifications if not already enabled
+        if (!settings.enabled) {
+          await NotificationService.enableDailyNotifications(settings.time);
+        }
       }
     } catch (error) {
       console.error('Error initializing notifications:', error);

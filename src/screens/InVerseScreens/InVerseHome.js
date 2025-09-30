@@ -19,6 +19,7 @@ import {
   useGetInVersesQuery,
   useGetInVerseOfDayQuery,
   useGetInVerseOfQuarterQuery,
+  useInvalidateInVerseCacheMutation,
   usePrefetch,
 } from '../../services/InVerseapi';
 import {useGetVideoLinkQuery} from '../../services/videoLinksApi';
@@ -74,6 +75,7 @@ const InVerseHome = ({onReload}) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [reloadingLesson, setReloadingLesson] = useState(false);
+  const [invalidateInVerseCache] = useInvalidateInVerseCacheMutation();
 
   const lastDigitQuarter = parseInt(quarter?.slice(-1), 10);
   useEffect(() => {
@@ -186,6 +188,9 @@ const InVerseHome = ({onReload}) => {
     }
 
     try {
+      // First invalidate all InVerse caches to force fresh data
+      await invalidateInVerseCache();
+
       if (onReload) {
         await onReload();
       } else {
@@ -193,6 +198,8 @@ const InVerseHome = ({onReload}) => {
         await lessonRefetch();
         await quarterRefetch();
       }
+
+      console.log('InVerse cache invalidated and data refetched successfully');
     } catch (err) {
       console.error('InVerse retry error:', err);
     }
@@ -208,8 +215,15 @@ const InVerseHome = ({onReload}) => {
     }
 
     try {
+      // First invalidate all InVerse caches to force fresh data
+      await invalidateInVerseCache();
+
       await lessonRefetch();
       await quarterRefetch();
+
+      console.log(
+        'InVerse lesson cache invalidated and refetched successfully',
+      );
     } catch (err) {
       console.error('Lesson reload error:', err);
     } finally {

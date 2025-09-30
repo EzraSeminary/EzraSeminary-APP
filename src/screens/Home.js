@@ -256,55 +256,56 @@ const Home = () => {
   const devotionToDisplay = selectedDevotion || filteredDevotionsToDisplay[0];
 
   const fetchData = useCallback(async () => {
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      setIsOffline(true);
-      // Load cached data when offline
-      const cached = await loadCachedData();
-      if (
-        cached &&
-        (cached.devotions?.length > 0 || cached.courses?.length > 0)
-      ) {
-        Toast.show({
-          type: 'info',
-          text1: 'Offline Mode',
-          text2: 'Showing cached data. Connect to internet for updates.',
-        });
-        setHasError(false);
-        setIsLoading(false);
-        return;
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'No Cached Data',
-          text2: 'Please connect to the internet to load data.',
-        });
-        setHasError(true);
-        setIsLoading(false);
-        return;
-      }
-    }
-
     try {
       setIsLoading(true);
       setHasError(false);
       setIsOffline(false);
 
-      const [devotionsData, coursesData] = await Promise.all([
-        refetchDevotions(),
-        refetchCourses(),
-      ]);
+      // Check network connectivity first
+      const netInfo = await NetInfo.fetch();
+      if (!netInfo.isConnected) {
+        setIsOffline(true);
+        const cached = await loadCachedData();
+        if (
+          cached &&
+          (cached.devotions?.length > 0 || cached.courses?.length > 0)
+        ) {
+          setHasError(false);
+          setIsLoading(false);
+          return;
+        } else {
+          setHasError(true);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Fetch data with timeout
+      const fetchWithTimeout = (promise, timeout = 10000) => {
+        return Promise.race([
+          promise,
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Request timeout')), timeout),
+          ),
+        ]);
+      };
+
+      const [devotionsData, coursesData] = await fetchWithTimeout(
+        Promise.all([refetchDevotions(), refetchCourses()]),
+      );
 
       // Update Redux store
-      dispatch(setDevotions(devotionsData.data));
-      dispatch(setCourses(coursesData.data));
-
-      // Save to cache
-      await saveCachedData(devotionsData.data, coursesData.data);
-
-      if (devotionToDisplay) {
-        scheduleVerseOfTheDayNotification(devotionToDisplay.verse);
+      if (devotionsData?.data) {
+        dispatch(setDevotions(devotionsData.data));
       }
+      if (coursesData?.data) {
+        dispatch(setCourses(coursesData.data));
+      }
+
+      // Save to cache (non-blocking)
+      saveCachedData(devotionsData?.data, coursesData?.data).catch(
+        console.error,
+      );
     } catch (e) {
       console.error('Fetch error:', e);
       // Try to load cached data if network request fails
@@ -313,11 +314,6 @@ const Home = () => {
         cached &&
         (cached.devotions?.length > 0 || cached.courses?.length > 0)
       ) {
-        Toast.show({
-          type: 'info',
-          text1: 'Network Error',
-          text2: 'Showing cached data. Please check your connection.',
-        });
         setHasError(false);
       } else {
         setHasError(true);
@@ -329,7 +325,6 @@ const Home = () => {
     refetchDevotions,
     refetchCourses,
     dispatch,
-    devotionToDisplay,
     loadCachedData,
     saveCachedData,
   ]);
@@ -378,22 +373,24 @@ const Home = () => {
   // Load cached data on app start
   useEffect(() => {
     const initializeApp = async () => {
-      // First, try to load cached data
-      const cached = await loadCachedData();
-      if (
-        cached &&
-        (cached.devotions?.length > 0 || cached.courses?.length > 0)
-      ) {
-        setIsLoading(false);
-        // Check internet connection and fetch fresh data in background
-        const netInfo = await NetInfo.fetch();
-        if (netInfo.isConnected) {
-          fetchData();
+      try {
+        // First, try to load cached data immediately
+        const cached = await loadCachedData();
+        if (
+          cached &&
+          (cached.devotions?.length > 0 || cached.courses?.length > 0)
+        ) {
+          setIsLoading(false);
+          // Fetch fresh data in background without blocking UI
+          setTimeout(() => {
+            fetchData().catch(console.error);
+          }, 100);
         } else {
-          setIsOffline(true);
+          // No cached data, fetch from network
+          fetchData();
         }
-      } else {
-        // No cached data, must fetch from network
+      } catch (error) {
+        console.error('Initialization error:', error);
         fetchData();
       }
     };
