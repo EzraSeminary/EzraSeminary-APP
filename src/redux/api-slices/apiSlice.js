@@ -1,4 +1,8 @@
 import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
+import {
+  normalizeDevotionsResponse,
+  normalizeCoursesResponse,
+} from '../../utils/apiResponse';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Custom base query with timeout and retry logic
@@ -114,6 +118,7 @@ export const apiSlice = createApi({
           params,
         };
       },
+      transformResponse: response => normalizeDevotionsResponse(response),
       providesTags: ['Devotions'],
       // Keep devotions data for 15 minutes to reduce API calls
       keepUnusedDataFor: 900,
@@ -123,6 +128,7 @@ export const apiSlice = createApi({
     }),
     getCourses: builder.query({
       query: () => 'course/getall',
+      transformResponse: response => normalizeCoursesResponse(response),
       providesTags: ['Courses'],
     }),
     getCourseById: builder.query({

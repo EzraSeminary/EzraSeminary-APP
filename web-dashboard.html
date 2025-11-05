@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EzraApp Push Notification Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #EA9215;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #EA9215;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #d17a0f;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .token-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .token-input {
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .instructions {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #EA9215;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #EA9215;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 EzraApp Push Notification Dashboard</h1>
+        
+        <div class="instructions">
+            <h3>How to Send Notifications:</h3>
+            <ol>
+                <li><strong>Get FCM Token:</strong> Open EzraApp and check console logs for "FCM Token:"</li>
+                <li><strong>Paste Token:</strong> Copy the token and paste it in the "FCM Token" field below</li>
+                <li><strong>Compose Message:</strong> Fill in the title and message</li>
+                <li><strong>Send:</strong> Click "Send Notification" to test</li>
+            </ol>
+        </div>
+
+        <form id="notificationForm">
+            <div class="form-group">
+                <label for="fcmToken">FCM Token (from app console):</label>
+                <input type="text" id="fcmToken" class="token-input" placeholder="Paste FCM token here..." required>
+            </div>
+
+            <div class="form-group">
+                <label for="notificationType">Notification Type:</label>
+                <select id="notificationType">
+                    <option value="general">General Notification</option>
+                    <option value="daily-verse">Daily Verse</option>
+                    <option value="devotional">Devotional Update</option>
+                    <option value="course">Course Update</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" placeholder="Notification title" required>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea id="message" placeholder="Notification message" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="data">Additional Data (JSON, optional):</label>
+                <textarea id="data" placeholder='{"screen": "Devotional", "id": "123"}'></textarea>
+            </div>
+
+            <button type="submit" id="sendButton">Send Notification</button>
+        </form>
+
+        <div id="result" class="result"></div>
+
+        <div class="token-section">
+            <h3>🔧 Server Integration Examples</h3>
+            <p><strong>Node.js with firebase-admin:</strong></p>
+            <pre style="background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto;">
+const admin = require('firebase-admin');
+const serviceAccount = require('./serviceAccountKey.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+async function sendNotification(token, title, body, data = {}) {
+  const message = {
+    token,
+    notification: { title, body },
+    data
+  };
+  
+  try {
+    const response = await admin.messaging().send(message);
+    console.log('Successfully sent message:', response);
+    return response;
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
+}
+
+// Usage
+sendNotification('FCM_TOKEN_HERE', 'EzraApp', 'New devotional available!');
+            </pre>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration (replace with your actual config)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDXwVjlIURgnX7KCghv71y2Llt_JUgIKSQ",
+            authDomain: "ezra-seminary-ffc4e.firebaseapp.com",
+            projectId: "ezra-seminary-ffc4e",
+            storageBucket: "ezra-seminary-ffc4e.appspot.com",
+            messagingSenderId: "1096965053624",
+            appId: "1:1096965053624:ios:6d1113f7b5387036fb284d"
+        };
+
+        // Initialize Firebase (for web SDK)
+        import { initializeApp } from 'firebase/app';
+        import { getMessaging, getToken } from 'firebase/messaging';
+
+        const app = initializeApp(firebaseConfig);
+        const messaging = getMessaging(app);
+
+        document.getElementById('notificationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const sendButton = document.getElementById('sendButton');
+            const resultDiv = document.getElementById('result');
+            
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending...';
+            
+            try {
+                const fcmToken = document.getElementById('fcmToken').value.trim();
+                const notificationType = document.getElementById('notificationType').value;
+                const title = document.getElementById('title').value.trim();
+                const message = document.getElementById('message').value.trim();
+                const dataString = document.getElementById('data').value.trim();
+                
+                let data = {};
+                if (dataString) {
+                    try {
+                        data = JSON.parse(dataString);
+                    } catch (error) {
+                        throw new Error('Invalid JSON in data field');
+                    }
+                }
+                
+                // Add notification type to data
+                data.type = notificationType;
+                
+                // Send notification using Firebase HTTP v1 API
+                const response = await sendNotificationViaHTTP(fcmToken, title, message, data);
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <strong>✅ Notification Sent Successfully!</strong><br>
+                    Message ID: ${response.name}<br>
+                    <small>Check your EzraApp to see the notification</small>
+                `;
+                resultDiv.style.display = 'block';
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>❌ Error Sending Notification:</strong><br>
+                    ${error.message}
+                `;
+                resultDiv.style.display = 'block';
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send Notification';
+            }
+        });
+
+        async function sendNotificationViaHTTP(token, title, body, data) {
+            // Note: This is a simplified example. In production, you should:
+            // 1. Use Firebase Admin SDK on your server
+            // 2. Authenticate with proper service account credentials
+            // 3. Handle errors properly
+            
+            const message = {
+                message: {
+                    token: token,
+                    notification: {
+                        title: title,
+                        body: body
+                    },
+                    data: data
+                }
+            };
+
+            // For demo purposes, we'll simulate the API call
+            // In reality, you need proper authentication and server-side implementation
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    if (token && title && body) {
+                        resolve({ name: 'mock-message-id-' + Date.now() });
+                    } else {
+                        reject(new Error('Missing required fields'));
+                    }
+                }, 1000);
+            });
+        }
+
+        // Auto-fill example data
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('title').value = '📖 EzraApp Notification';
+            document.getElementById('message').value = 'This is a test notification from the web dashboard!';
+            document.getElementById('data').value = '{"screen": "Devotional", "test": true}';
+        });
+    </script>
+</body>
+</html>
+

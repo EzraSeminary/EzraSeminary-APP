@@ -19,6 +19,7 @@ import tw from './../../tailwind';
 import {useGetDevotionsQuery} from '../redux/api-slices/apiSlice';
 import {toEthiopian} from 'ethiopian-date';
 import HTMLView from 'react-native-htmlview';
+import {useCachedImage} from '../utils/imageCache';
 import ErrorScreen from '../components/ErrorScreen';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import NotificationService from '../services/NotificationService';
@@ -255,6 +256,48 @@ const Devotion = () => {
   }
   const devotionToDisplay = selectedDevotion || devotions[0];
   const url = `${devotionToDisplay.image}`;
+  const cachedImage = useCachedImage(url);
+
+  // Extract the verse content and reference
+  // Handle various quote types: double quotes, single quotes, and mixed quotes
+  const separateVerseAndReference = verseText => {
+    if (!verseText) {
+      return {verse: '', reference: ''};
+    }
+
+    const quotePatterns = ['"', "'", '\u201C', '\u201D', '\u2018', '\u2019'];
+    let lastQuoteIndex = -1;
+    let lastQuoteChar = '';
+
+    // Find the last occurrence of any quote type
+    for (const quote of quotePatterns) {
+      const index = verseText.lastIndexOf(quote);
+      if (index > lastQuoteIndex) {
+        lastQuoteIndex = index;
+        lastQuoteChar = quote;
+      }
+    }
+
+    let verse = '';
+    let reference = '';
+
+    if (lastQuoteIndex !== -1) {
+      // Separate the verse content and reference
+      verse = verseText
+        .substring(0, lastQuoteIndex + lastQuoteChar.length)
+        .trim(); // Everything up to the last closing quote
+      reference = verseText
+        .substring(lastQuoteIndex + lastQuoteChar.length)
+        .trim(); // Everything after the last closing quote
+    } else {
+      // If no quotes are found, treat the entire text as the verse
+      verse = verseText;
+    }
+
+    return {verse, reference};
+  };
+
+  const {verse, reference} = separateVerseAndReference(devotionToDisplay.verse);
 
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
@@ -333,8 +376,19 @@ const Devotion = () => {
                 tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
                 darkMode ? tw`text-primary-1` : null,
               ]}>
-              {devotionToDisplay.verse}
+              {verse}
             </Text>
+            {reference && (
+              <View style={tw`border-t border-accent-6 mt-3 pt-3`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-accent-6 text-lg leading-tight`,
+                    darkMode ? tw`text-accent-6` : null,
+                  ]}>
+                  {reference}
+                </Text>
+              </View>
+            )}
           </View>
           <View style={tw`mt-8`}>
             <HTMLView
@@ -367,7 +421,7 @@ const Devotion = () => {
             style={tw`border border-accent-6 rounded-4 mt-4 overflow-hidden`}>
             <Image
               source={{
-                uri: `${devotionToDisplay.image}`,
+                uri: cachedImage,
               }}
               style={tw`w-full h-96`}
               resizeMode="cover"

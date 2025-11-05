@@ -81,8 +81,8 @@ android {
         applicationId "com.ezraapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 36
-        versionName "1.1.4"
+        versionCode 37
+        versionName "1.1.5"
     }
     
     // Add configuration to handle large assets and prevent timeouts

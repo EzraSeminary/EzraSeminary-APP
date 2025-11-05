@@ -1,28 +1,48 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, ImageBackground} from 'react-native';
 import {BookOpenText} from 'phosphor-react-native';
+import {useCachedImage} from '../utils/imageCache';
 import tw from './../../tailwind';
 
 const DevotionCard = ({devotion, darkMode, navigation}) => {
   const verseText = devotion.verse;
 
   // Extract the verse content and reference
-  const lastQuoteIndex = verseText.lastIndexOf('”'); // Find the last closing quote
+  // Handle various quote types: double quotes, single quotes, and mixed quotes
+  const quotePatterns = ['"', "'", '\u201C', '\u201D', '\u2018', '\u2019'];
+  let lastQuoteIndex = -1;
+  let lastQuoteChar = '';
+
+  // Find the last occurrence of any quote type
+  for (const quote of quotePatterns) {
+    const index = verseText.lastIndexOf(quote);
+    if (index > lastQuoteIndex) {
+      lastQuoteIndex = index;
+      lastQuoteChar = quote;
+    }
+  }
+
   let verse = '';
   let reference = '';
 
   if (lastQuoteIndex !== -1) {
     // Separate the verse content and reference
-    verse = verseText.substring(0, lastQuoteIndex + 1).trim(); // Everything up to the last closing quote
-    reference = verseText.substring(lastQuoteIndex + 1).trim(); // Everything after the last closing quote
+    verse = verseText
+      .substring(0, lastQuoteIndex + lastQuoteChar.length)
+      .trim(); // Everything up to the last closing quote
+    reference = verseText
+      .substring(lastQuoteIndex + lastQuoteChar.length)
+      .trim(); // Everything after the last closing quote
   } else {
     // If no quotes are found, treat the entire text as the verse
     verse = verseText;
   }
 
+  const cachedImage = useCachedImage(devotion.image);
+
   return (
     <ImageBackground
-      source={{uri: devotion.image}}
+      source={{uri: cachedImage}}
       style={[
         tw`border border-accent-6 mt-3 rounded-4 shadow-md px-4 py-4`,
         darkMode ? tw`bg-secondary-8` : null,
@@ -54,7 +74,7 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
           <Text style={tw`text-primary-1 font-nokia-bold text-sm`}>ክፈት</Text>
         </TouchableOpacity>
       </View>
-      <View style={tw`border-b border-accent-6 mt-2 mb-1`} />
+      <View style={tw`border-b border-accent-6 mt-2`} />
       <View>
         <Text
           style={[
@@ -63,17 +83,15 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
           ]}>
           {verse}
         </Text>
-        {reference && (
-          <View style={tw`border-t border-accent-6 mt-4 pt-2 w-[50%]`}>
-            <Text
-              style={[
-                tw`font-nokia-bold text-accent-6 text-lg leading-tight`,
-                darkMode ? tw`text-accent-6` : null,
-              ]}>
-              {reference}
-            </Text>
-          </View>
-        )}
+        <View style={tw`border-t border-accent-6 mt-2 pt-2 w-[50%]`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-accent-6 text-lg leading-tight`,
+              darkMode ? tw`text-accent-6` : null,
+            ]}>
+            {reference}
+          </Text>
+        </View>
       </View>
     </ImageBackground>
   );

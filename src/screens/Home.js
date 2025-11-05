@@ -28,6 +28,7 @@ import {setDevotions} from '../redux/devotionsSlice';
 import {setCourses} from '../redux/courseSlice';
 import {scheduleVerseOfTheDayNotification} from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {prefetchImages} from '../utils/imageCache';
 import {
   BookOpen,
   Calendar,
@@ -59,6 +60,7 @@ const {width} = Dimensions.get('window');
 const Home = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [cachedData, setCachedData] = useState({
@@ -98,7 +100,7 @@ const Home = () => {
     isFetching,
     refetch: refetchDevotions,
     error,
-  } = useGetDevotionsQuery({year: 2018}); // Fetch only 2018 devotions
+  } = useGetDevotionsQuery({year: yearToFetch});
 
   const {
     data: courses = [],
@@ -131,6 +133,12 @@ const Home = () => {
           if (cached.courses?.length > 0) {
             dispatch(setCourses(cached.courses));
           }
+          // Begin prefetching cached images in background (devotions & courses)
+          prefetchImages(
+            (cached.devotions || [])
+              .map(d => d.image)
+              .concat((cached.courses || []).map(c => c.image)),
+          ).catch(() => {});
           return cached;
         }
       }
@@ -255,79 +263,96 @@ const Home = () => {
 
   const devotionToDisplay = selectedDevotion || filteredDevotionsToDisplay[0];
 
-  const fetchData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setHasError(false);
-      setIsOffline(false);
+  const fetchData = useCallback(
+    async (opts = {background: false}) => {
+      try {
+        if (opts.background) {
+          setIsBackgroundRefreshing(true);
+        } else {
+          setIsLoading(true);
+        }
+        setHasError(false);
+        setIsOffline(false);
 
-      // Check network connectivity first
-      const netInfo = await NetInfo.fetch();
-      if (!netInfo.isConnected) {
-        setIsOffline(true);
+        // Check network connectivity first
+        const netInfo = await NetInfo.fetch();
+        if (!netInfo.isConnected) {
+          setIsOffline(true);
+          const cached = await loadCachedData();
+          if (
+            cached &&
+            (cached.devotions?.length > 0 || cached.courses?.length > 0)
+          ) {
+            setHasError(false);
+            setIsLoading(false);
+            return;
+          } else {
+            setHasError(true);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Fetch data with timeout
+        const fetchWithTimeout = (promise, timeout = 10000) => {
+          return Promise.race([
+            promise,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Request timeout')), timeout),
+            ),
+          ]);
+        };
+
+        const [devotionsData, coursesData] = await fetchWithTimeout(
+          Promise.all([refetchDevotions(), refetchCourses()]),
+        );
+
+        // Update Redux store
+        if (devotionsData?.data) {
+          dispatch(setDevotions(devotionsData.data));
+        }
+        if (coursesData?.data) {
+          dispatch(setCourses(coursesData.data));
+        }
+
+        // Save to cache (non-blocking)
+        saveCachedData(devotionsData?.data, coursesData?.data).catch(
+          console.error,
+        );
+        // Prefetch images for faster subsequent loads
+        prefetchImages(
+          (devotionsData?.data || [])
+            .map(d => d.image)
+            .concat((coursesData?.data || []).map(c => c.image)),
+        ).catch(() => {});
+      } catch (e) {
+        console.error('Fetch error:', e);
+        // Try to load cached data if network request fails
         const cached = await loadCachedData();
         if (
           cached &&
           (cached.devotions?.length > 0 || cached.courses?.length > 0)
         ) {
           setHasError(false);
-          setIsLoading(false);
-          return;
         } else {
           setHasError(true);
+        }
+      } finally {
+        if (opts.background) {
+          setIsBackgroundRefreshing(false);
+        } else {
           setIsLoading(false);
-          return;
         }
       }
-
-      // Fetch data with timeout
-      const fetchWithTimeout = (promise, timeout = 10000) => {
-        return Promise.race([
-          promise,
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Request timeout')), timeout),
-          ),
-        ]);
-      };
-
-      const [devotionsData, coursesData] = await fetchWithTimeout(
-        Promise.all([refetchDevotions(), refetchCourses()]),
-      );
-
-      // Update Redux store
-      if (devotionsData?.data) {
-        dispatch(setDevotions(devotionsData.data));
-      }
-      if (coursesData?.data) {
-        dispatch(setCourses(coursesData.data));
-      }
-
-      // Save to cache (non-blocking)
-      saveCachedData(devotionsData?.data, coursesData?.data).catch(
-        console.error,
-      );
-    } catch (e) {
-      console.error('Fetch error:', e);
-      // Try to load cached data if network request fails
-      const cached = await loadCachedData();
-      if (
-        cached &&
-        (cached.devotions?.length > 0 || cached.courses?.length > 0)
-      ) {
-        setHasError(false);
-      } else {
-        setHasError(true);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
-    refetchDevotions,
-    refetchCourses,
-    dispatch,
-    loadCachedData,
-    saveCachedData,
-  ]);
+    },
+    [
+      refetchDevotions,
+      refetchCourses,
+      dispatch,
+      loadCachedData,
+      saveCachedData,
+    ],
+  );
 
   // Animation effects
   useEffect(() => {
@@ -383,7 +408,7 @@ const Home = () => {
           setIsLoading(false);
           // Fetch fresh data in background without blocking UI
           setTimeout(() => {
-            fetchData().catch(console.error);
+            fetchData({background: true}).catch(console.error);
           }, 100);
         } else {
           // No cached data, fetch from network
@@ -491,7 +516,7 @@ const Home = () => {
                 tw`font-nokia-bold text-xl text-center mb-2`,
                 darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
               ]}>
-              {isOffline ? 'Loading cached data...' : 'ትምህርቶችን በማውረድ ላይ...'}
+              Loading...
             </Text>
             <Text
               style={[
@@ -556,14 +581,24 @@ const Home = () => {
     );
   }
 
-  if (!devotionsToDisplay || devotionsToDisplay.length === 0) {
+  if (!isLoading && (!devotionsToDisplay || devotionsToDisplay.length === 0)) {
     return (
       <SafeAreaView
         style={darkMode ? tw`bg-secondary-9 h-screen flex-1` : tw`flex-1`}>
-        <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
-        <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
-          Loading...
-        </Text>
+        <View style={tw`flex-1 justify-center items-center px-4`}>
+          <Text
+            style={tw`font-nokia-bold text-lg text-accent-6 text-center mb-4`}>
+            No Devotionals Available
+          </Text>
+          <Text style={tw`font-nokia-bold text-secondary-6 text-center mb-4`}>
+            Pull to refresh or check your connection.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-lg`}
+            onPress={fetchData}>
+            <Text style={tw`font-nokia-bold text-primary-1`}>Retry</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -591,7 +626,11 @@ const Home = () => {
               opacity: fadeAnim,
               transform: [{translateY: slideAnim}],
             }}>
-            <Header darkMode={darkMode} navigation={navigation} />
+            <Header
+              darkMode={darkMode}
+              navigation={navigation}
+              isRefreshing={isBackgroundRefreshing}
+            />
 
             {/* Enhanced Welcome Section */}
             {user && (

@@ -1,5 +1,6 @@
 import React, {useMemo} from 'react';
 import {View, TouchableOpacity, ImageBackground, Text} from 'react-native';
+import {useCachedImage} from '../../utils/imageCache';
 import {useNavigation} from '@react-navigation/native';
 import {ArrowSquareUpRight} from 'phosphor-react-native';
 import tw from './../../../tailwind';
@@ -45,6 +46,18 @@ const PreviousDevotions = ({devotions, darkMode, currentYear}) => {
       .slice(0, 4);
   }, [devotions, currentYear]);
 
+  const CachedImageBg = ({uri, children}) => {
+    const cached = useCachedImage(uri);
+    return (
+      <ImageBackground
+        source={{uri: cached}}
+        style={tw`w-full h-full justify-end`}
+        imageStyle={tw`rounded-lg`}>
+        {children}
+      </ImageBackground>
+    );
+  };
+
   return (
     <View style={tw`flex flex-row flex-wrap justify-between mt-4`}>
       {previousDevotions.map((item, index) => (
@@ -57,10 +70,7 @@ const PreviousDevotions = ({devotions, darkMode, currentYear}) => {
               params: {devotionalId: item._id, year: currentYear},
             })
           }>
-          <ImageBackground
-            source={{uri: `${item.image}`}}
-            style={tw`w-full h-full justify-end`}
-            imageStyle={tw`rounded-lg`}>
+          <CachedImageBg uri={`${item.image}`}>
             <View
               style={[
                 tw`absolute inset-0 bg-accent-10 bg-opacity-60 rounded-lg`,
@@ -82,7 +92,7 @@ const PreviousDevotions = ({devotions, darkMode, currentYear}) => {
                 </Text>
               </View>
             </View>
-          </ImageBackground>
+          </CachedImageBg>
         </TouchableOpacity>
       ))}
     </View>

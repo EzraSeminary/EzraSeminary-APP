@@ -1,8 +1,7 @@
 import React, {Component} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {navigate} from '../navigation/NavigationRef';
 import tw from './../../tailwind';
-import {Warning} from 'phosphor-react-native';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -29,8 +28,11 @@ class ErrorBoundary extends Component {
   };
 
   handleGoHome = () => {
-    const navigation = useNavigation();
-    navigation.navigate('HomeStack'); // Assuming 'Home' is the name of your home route
+    try {
+      navigate('MainTab', {screen: 'Home'});
+    } catch (e) {
+      console.warn('Navigation failed from ErrorBoundary:', e);
+    }
   };
 
   render() {
@@ -39,7 +41,6 @@ class ErrorBoundary extends Component {
       // You can render any custom fallback UI
       return (
         <View style={tw`flex-1 justify-center items-center bg-primary-1`}>
-          <Warning size={64} color="#FFD700" weight="fill" />
           <Text style={tw`text-2xl font-nokia-bold text-accent-6 mb-6`}>
             An error occurred: {error ? error.toString() : null}
           </Text>
