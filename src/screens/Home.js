@@ -200,6 +200,21 @@ const Home = () => {
     });
   };
 
+  const [lastVisitedCourseId, setLastVisitedCourseId] = useState(null);
+  const [startedCourseIds, setStartedCourseIds] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const last = await AsyncStorage.getItem('lastVisitedCourseId');
+        const started =
+          (await AsyncStorage.getItem('startedCourseIds')) || '[]';
+        if (last) setLastVisitedCourseId(last);
+        setStartedCourseIds(JSON.parse(started));
+      } catch {}
+    })();
+  }, []);
+
   useEffect(() => {
     const getDevotionsToUse = () => {
       if (isOffline) {
@@ -237,29 +252,35 @@ const Home = () => {
   ]);
 
   const getDataToDisplay = () => {
-    if (isOffline) {
-      return {
-        devotions:
-          cachedData.devotions?.length > 0
-            ? cachedData.devotions
-            : persistedDevotions,
-        courses:
-          cachedData.courses?.length > 0
-            ? cachedData.courses
-            : persistedCourses,
-      };
-    }
+    // Priority: fresh data > cached data > persisted data (always show something)
+    const devotionsSource =
+      (devotions?.length > 0 ? devotions : null) ||
+      (cachedData.devotions?.length > 0 ? cachedData.devotions : null) ||
+      (persistedDevotions?.length > 0 ? persistedDevotions : null) ||
+      [];
+
+    const coursesSource =
+      (courses?.length > 0 ? courses : null) ||
+      (cachedData.courses?.length > 0 ? cachedData.courses : null) ||
+      (persistedCourses?.length > 0 ? persistedCourses : null) ||
+      [];
+
     return {
-      devotions: devotions?.length > 0 ? devotions : cachedData.devotions,
-      courses: courses?.length > 0 ? courses : cachedData.courses,
+      devotions: devotionsSource,
+      courses: coursesSource,
     };
   };
 
   const {devotions: devotionsToDisplay, courses: coursesToDisplay} =
     getDataToDisplay();
 
+  // Ensure devotionsToDisplay is always an array
+  const safeDevotionsToDisplay = Array.isArray(devotionsToDisplay)
+    ? devotionsToDisplay
+    : [];
+
   // API already returns only 2018 devotions, no need to filter
-  const filteredDevotionsToDisplay = devotionsToDisplay;
+  const filteredDevotionsToDisplay = safeDevotionsToDisplay;
 
   const devotionToDisplay = selectedDevotion || filteredDevotionsToDisplay[0];
 
@@ -328,15 +349,9 @@ const Home = () => {
       } catch (e) {
         console.error('Fetch error:', e);
         // Try to load cached data if network request fails
-        const cached = await loadCachedData();
-        if (
-          cached &&
-          (cached.devotions?.length > 0 || cached.courses?.length > 0)
-        ) {
-          setHasError(false);
-        } else {
-          setHasError(true);
-        }
+        await loadCachedData();
+        // Don't set error if cache exists - UI will show cached data
+        setHasError(false);
       } finally {
         if (opts.background) {
           setIsBackgroundRefreshing(false);
@@ -559,54 +574,22 @@ const Home = () => {
     );
   }
 
-  if (hasError && (!devotionsToDisplay || devotionsToDisplay.length === 0)) {
-    return (
-      <SafeAreaView
-        style={darkMode ? tw`bg-secondary-9 h-screen flex-1` : tw`flex-1`}>
-        <View style={tw`flex-1 justify-center items-center px-4`}>
-          <Text
-            style={tw`font-nokia-bold text-lg text-accent-6 text-center mb-4`}>
-            No Data Available
-          </Text>
-          <Text style={tw`font-nokia-bold text-secondary-6 text-center mb-4`}>
-            Please connect to the internet to load content.
-          </Text>
-          <TouchableOpacity
-            style={tw`bg-accent-6 px-6 py-3 rounded-lg`}
-            onPress={fetchData}>
-            <Text style={tw`font-nokia-bold text-primary-1`}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // No full-screen errors - always show Home layout with inline error cards per section
 
-  if (!isLoading && (!devotionsToDisplay || devotionsToDisplay.length === 0)) {
-    return (
-      <SafeAreaView
-        style={darkMode ? tw`bg-secondary-9 h-screen flex-1` : tw`flex-1`}>
-        <View style={tw`flex-1 justify-center items-center px-4`}>
-          <Text
-            style={tw`font-nokia-bold text-lg text-accent-6 text-center mb-4`}>
-            No Devotionals Available
-          </Text>
-          <Text style={tw`font-nokia-bold text-secondary-6 text-center mb-4`}>
-            Pull to refresh or check your connection.
-          </Text>
-          <TouchableOpacity
-            style={tw`bg-accent-6 px-6 py-3 rounded-lg`}
-            onPress={fetchData}>
-            <Text style={tw`font-nokia-bold text-primary-1`}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
+  // Determine course to show: last visited, then started, else latest published
   const publishedCourses = coursesToDisplay
-    ? coursesToDisplay.filter(course => course.published)
+    ? coursesToDisplay.filter(c => c.published)
     : [];
-  const lastCourse = publishedCourses[publishedCourses.length - 1];
+
+  const courseById = id =>
+    (coursesToDisplay || []).find(c => String(c._id) === String(id));
+  const lastVisitedCourse = lastVisitedCourseId
+    ? courseById(lastVisitedCourseId)
+    : null;
+  const startedCourse = startedCourseIds.map(courseById).find(Boolean) || null;
+  const latestPublished = publishedCourses[publishedCourses.length - 1];
+  const courseToFeature =
+    lastVisitedCourse || startedCourse || latestPublished || null;
 
   return (
     <View style={darkMode ? tw`bg-secondary-9 flex-1` : tw`flex-1`}>
@@ -764,13 +747,13 @@ const Home = () => {
                 </TouchableOpacity>
               </View>
             </Animated.View>
-            {lastCourse && (
+            {courseToFeature && (
               <Animated.View
                 style={{
                   transform: [{scale: scaleAnim}],
                 }}>
                 <CourseCard
-                  course={lastCourse}
+                  course={courseToFeature}
                   darkMode={darkMode}
                   handleButtonPress={handleButtonPress}
                 />
@@ -931,7 +914,7 @@ const Home = () => {
               </View>
             </Animated.View>
 
-            {devotionsToDisplay.length > 0 && (
+            {safeDevotionsToDisplay.length > 0 && (
               <Animated.View
                 style={{
                   transform: [{scale: scaleAnim}],
@@ -939,7 +922,7 @@ const Home = () => {
                 <PreviousDevotions
                   devotions={filteredDevotionsToDisplay}
                   darkMode={darkMode}
-                  currentYear={2018}
+                  currentYear={yearToFetch}
                 />
               </Animated.View>
             )}
