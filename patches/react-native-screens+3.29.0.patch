@@ -1,8 +1,13 @@
-*** Update File: node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt
-@@
--    private fun obtainDrawingOp(): DrawingOp =
+diff --git a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt
+index 0000000..1111111 100644
+--- a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt
++++ b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt
+@@ -311,7 +311,7 @@ class ScreenStack(context: Context?) : ScreenContainer(context) {
+     }
+ 
+     private fun obtainDrawingOp(): DrawingOp =
 -        if (drawingOpPool.isEmpty()) DrawingOp() else drawingOpPool.removeLast()
-+    private fun obtainDrawingOp(): DrawingOp =
 +        if (drawingOpPool.isEmpty()) DrawingOp() else drawingOpPool.removeAt(drawingOpPool.lastIndex)
-
-
+ 
+     private inner class DrawingOp {
+         var canvas: Canvas? = null

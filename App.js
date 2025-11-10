@@ -34,6 +34,7 @@ import InVerseQuarter from './src/screens/InVerseScreens/InVerseQuarter';
 import InVerseWeek from './src/screens/InVerseScreens/InVerseWeek';
 import NotificationService from './src/services/NotificationService';
 import notifee, {EventType} from '@notifee/react-native';
+import RemotePush from './src/services/RemotePush';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -145,6 +146,13 @@ const App = () => {
             handleNotificationPress(detail.notification);
           }
         });
+
+        // Initialize FCM remote push (token, topic, foreground handler)
+        try {
+          await RemotePush.init();
+        } catch (e) {
+          console.warn('RemotePush init failed:', e);
+        }
       } catch (error) {
         console.warn('Failed to initialize notifications:', error);
       }

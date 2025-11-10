@@ -40,3 +40,30 @@
 -keepclassmembers,allowobfuscation interface * {
     @retrofit2.http.* <methods>;
 }
+
+# ========== Firebase Cloud Messaging Rules ==========
+# Keep FCM classes to prevent notification issues in release builds
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
+
+# Keep Firebase Messaging Service
+-keep class * extends com.google.firebase.messaging.FirebaseMessagingService {
+    *;
+}
+
+# Keep notification data models
+-keepclassmembers class ** {
+    @com.google.firebase.messaging.RemoteMessage$MessagePayloadKey <fields>;
+}
+
+# ========== Notifee Rules ==========
+# Keep Notifee classes for local notifications
+-keep class app.notifee.** { *; }
+-keep class com.dieam.reactnativepushnotification.** { *; }
+-dontwarn app.notifee.**
+
+# ========== React Native Firebase Rules ==========
+-keep class io.invertase.firebase.** { *; }
+-dontwarn io.invertase.firebase.**

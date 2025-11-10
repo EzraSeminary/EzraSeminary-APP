@@ -1,6 +1,14 @@
-import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance } from '@notifee/react-native';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Dynamically import messaging to avoid errors if Firebase isn't properly linked
+let messaging = null;
+try {
+  messaging = require('@react-native-firebase/messaging').default;
+} catch (error) {
+  console.warn('Firebase Messaging not available:', error.message);
+}
 
 /**
  * Remote Push Notification Service
@@ -40,6 +48,10 @@ class RemotePushService {
    * Request push notification permissions
    */
   async requestPushPermission() {
+    if (!messaging) {
+      console.warn('Firebase Messaging not available');
+      return false;
+    }
     try {
       const authStatus = await messaging().requestPermission();
       const enabled =
@@ -58,6 +70,10 @@ class RemotePushService {
    * Get FCM token for this device
    */
   async getFcmToken() {
+    if (!messaging) {
+      console.warn('Firebase Messaging not available');
+      return null;
+    }
     try {
       const enabled = await this.requestPushPermission();
       if (!enabled) {
@@ -83,8 +99,16 @@ class RemotePushService {
    */
   async saveTokenToBackend(token) {
     try {
-      // Replace with your actual server URL
-      const serverUrl = 'http://localhost:3000'; // Change to your production URL
+      // Resolve server URL:
+      // - Allow override via AsyncStorage key 'pushServerUrl'
+      // - Use emulator/simulator defaults if not set
+      const storedUrl = await AsyncStorage.getItem('pushServerUrl');
+      const defaultServerUrl = Platform.select({
+        ios: 'http://localhost:3000',
+        android: 'http://10.0.2.2:3000',
+        default: 'http://localhost:3000',
+      });
+      const serverUrl = (storedUrl && storedUrl.trim()) || defaultServerUrl;
       
       const response = await fetch(`${serverUrl}/register-token`, {
         method: 'POST',
@@ -112,6 +136,10 @@ class RemotePushService {
    * Register foreground message handler
    */
   registerForegroundHandler() {
+    if (!messaging) {
+      console.warn('Firebase Messaging not available, skipping foreground handler');
+      return;
+    }
     messaging().onMessage(async remoteMessage => {
       console.log('Foreground message received:', remoteMessage);
       
@@ -172,6 +200,10 @@ class RemotePushService {
    * Subscribe to a topic
    */
   async subscribeTopic(topic) {
+    if (!messaging) {
+      console.warn('Firebase Messaging not available');
+      return false;
+    }
     try {
       await messaging().subscribeToTopic(topic);
       console.log(`Subscribed to topic: ${topic}`);
@@ -186,6 +218,10 @@ class RemotePushService {
    * Unsubscribe from a topic
    */
   async unsubscribeTopic(topic) {
+    if (!messaging) {
+      console.warn('Firebase Messaging not available');
+      return false;
+    }
     try {
       await messaging().unsubscribeFromTopic(topic);
       console.log(`Unsubscribed from topic: ${topic}`);
@@ -239,6 +275,9 @@ class RemotePushService {
    * Check if notifications are enabled
    */
   async areNotificationsEnabled() {
+    if (!messaging) {
+      return false;
+    }
     try {
       const authStatus = await messaging().hasPermission();
       return authStatus === messaging.AuthorizationStatus.AUTHORIZED;
@@ -252,6 +291,10 @@ class RemotePushService {
    * Get current FCM token (refresh if needed)
    */
   async refreshToken() {
+    if (!messaging) {
+      console.warn('Firebase Messaging not available');
+      return null;
+    }
     try {
       const token = await messaging().getToken(true); // Force refresh
       console.log('FCM Token refreshed:', token);
