@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect, useRef} from 'react';
+import React, {useState, useCallback, useEffect, useRef, useMemo} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -15,8 +15,13 @@ import Toast from 'react-native-toast-message';
 import {useSelector, useDispatch} from 'react-redux';
 import tw from './../../tailwind';
 import {useNavigation} from '@react-navigation/native';
-import {useGetDevotionsQuery} from '../redux/api-slices/apiSlice';
-import {useGetCoursesQuery} from '../services/api';
+import {
+  useGetDevotionsQuery,
+  useGetCoursesQuery,
+  useGetDevotionPlansQuery,
+  useGetMyDevotionPlansQuery,
+  apiSlice,
+} from '../redux/api-slices/apiSlice';
 import HomeCurrentSSL from './SSLScreens/HomeCurrentSSL';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import {toEthiopian} from 'ethiopian-date';
@@ -24,6 +29,8 @@ import NetInfo from '@react-native-community/netinfo';
 import DevotionCard from '../components/DevotionCard';
 import CourseCard from '../components/CourseCard';
 import Header from '../components/Header';
+import DevotionPlansCarousel from '../components/DevotionPlansCarousel';
+import DevotionPlanProgressCard from '../components/DevotionPlanProgressCard';
 import {setDevotions} from '../redux/devotionsSlice';
 import {setCourses} from '../redux/courseSlice';
 import {scheduleVerseOfTheDayNotification} from '../utils/notifications';
@@ -100,7 +107,7 @@ const Home = () => {
     isFetching,
     refetch: refetchDevotions,
     error,
-  } = useGetDevotionsQuery({year: yearToFetch});
+  } = useGetDevotionsQuery({year: yearToFetch, limit: 1000, sort: 'desc'});
 
   const {
     data: courses = [],
@@ -108,6 +115,32 @@ const Home = () => {
     refetch: refetchCourses,
     error: courseError,
   } = useGetCoursesQuery();
+
+  const {data: devotionPlans = []} = useGetDevotionPlansQuery();
+  const {data: myDevotionPlans = []} = useGetMyDevotionPlansQuery({
+    status: 'in_progress',
+  });
+  const {data: completedPlans = []} = useGetMyDevotionPlansQuery({
+    status: 'completed',
+  });
+
+  // Calculate unstarted plans (plans that are not in progress or completed)
+  const unstartedPlans = useMemo(() => {
+    if (!devotionPlans || devotionPlans.length === 0) return [];
+    
+    const inProgressPlanIds = new Set(
+      (myDevotionPlans || []).map(p => p.planId || p.plan?._id)
+    );
+    const completedPlanIds = new Set(
+      (completedPlans || []).map(p => p.planId || p.plan?._id)
+    );
+    
+    return devotionPlans.filter(
+      plan => 
+        !inProgressPlanIds.has(plan._id) && 
+        !completedPlanIds.has(plan._id)
+    );
+  }, [devotionPlans, myDevotionPlans, completedPlans]);
 
   const [selectedDevotion, setSelectedDevotion] = useState(null);
 
@@ -284,8 +317,27 @@ const Home = () => {
 
   const devotionToDisplay = selectedDevotion || filteredDevotionsToDisplay[0];
 
+  // Debug logging
+  useEffect(() => {
+    console.log('=== HOME DEVOTION DEBUG ===');
+    console.log('devotions from API:', devotions?.length || 0);
+    console.log('cachedData.devotions:', cachedData.devotions?.length || 0);
+    console.log('persistedDevotions:', persistedDevotions?.length || 0);
+    console.log('safeDevotionsToDisplay:', safeDevotionsToDisplay?.length || 0);
+    console.log('selectedDevotion:', selectedDevotion ? 'YES' : 'NO');
+    console.log('devotionToDisplay:', devotionToDisplay ? 'YES' : 'NO');
+    console.log('==========================');
+  }, [
+    devotions,
+    cachedData,
+    persistedDevotions,
+    safeDevotionsToDisplay,
+    selectedDevotion,
+    devotionToDisplay,
+  ]);
+
   const fetchData = useCallback(
-    async (opts = {background: false}) => {
+    async (opts = {background: false, forceRefresh: false}) => {
       try {
         if (opts.background) {
           setIsBackgroundRefreshing(true);
@@ -299,6 +351,17 @@ const Home = () => {
         const netInfo = await NetInfo.fetch();
         if (!netInfo.isConnected) {
           setIsOffline(true);
+          // If force refresh and offline, show error
+          if (opts.forceRefresh) {
+            setHasError(true);
+            setIsLoading(false);
+            Toast.show({
+              type: 'error',
+              text1: 'No Internet Connection',
+              text2: 'Please connect to the internet to reload.',
+            });
+            return;
+          }
           const cached = await loadCachedData();
           if (
             cached &&
@@ -314,8 +377,22 @@ const Home = () => {
           }
         }
 
+        // If force refresh, invalidate RTK Query cache first
+        if (opts.forceRefresh) {
+          console.log('Force refresh: clearing ALL caches');
+          // Clear AsyncStorage cache
+          await AsyncStorage.removeItem(CACHE_KEY);
+          setCachedData({devotions: [], courses: [], lastCacheTime: null});
+
+          // Invalidate RTK Query cache to force fresh fetch
+          dispatch(apiSlice.util.invalidateTags(['Devotions', 'Courses']));
+
+          // Wait a bit for cache invalidation
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
         // Fetch data with timeout
-        const fetchWithTimeout = (promise, timeout = 10000) => {
+        const fetchWithTimeout = (promise, timeout = 15000) => {
           return Promise.race([
             promise,
             new Promise((_, reject) =>
@@ -324,34 +401,82 @@ const Home = () => {
           ]);
         };
 
+        console.log('Fetching devotions and courses...');
         const [devotionsData, coursesData] = await fetchWithTimeout(
           Promise.all([refetchDevotions(), refetchCourses()]),
         );
+        console.log(
+          'Fetch complete. Devotions:',
+          devotionsData?.data?.length || 0,
+          'Courses:',
+          coursesData?.data?.length || 0,
+        );
 
-        // Update Redux store
-        if (devotionsData?.data) {
+        // Update Redux store with detailed logging
+        console.log('Updating Redux store...');
+        if (devotionsData?.data && Array.isArray(devotionsData.data)) {
+          console.log(
+            'Dispatching',
+            devotionsData.data.length,
+            'devotions to Redux',
+          );
           dispatch(setDevotions(devotionsData.data));
+        } else {
+          console.warn('No devotion data to dispatch:', devotionsData);
         }
-        if (coursesData?.data) {
+
+        if (coursesData?.data && Array.isArray(coursesData.data)) {
+          console.log(
+            'Dispatching',
+            coursesData.data.length,
+            'courses to Redux',
+          );
           dispatch(setCourses(coursesData.data));
+        } else {
+          console.warn('No course data to dispatch:', coursesData);
         }
 
         // Save to cache (non-blocking)
+        console.log('Saving to cache...');
         saveCachedData(devotionsData?.data, coursesData?.data).catch(
           console.error,
         );
+
         // Prefetch images for faster subsequent loads
         prefetchImages(
           (devotionsData?.data || [])
             .map(d => d.image)
             .concat((coursesData?.data || []).map(c => c.image)),
         ).catch(() => {});
+
+        // Show success toast on force refresh
+        if (opts.forceRefresh) {
+          const devotionCount = devotionsData?.data?.length || 0;
+          const courseCount = coursesData?.data?.length || 0;
+          Toast.show({
+            type: 'success',
+            text1: 'Data Refreshed',
+            text2: `Loaded ${devotionCount} devotions and ${courseCount} courses`,
+          });
+        }
+
+        console.log('Fetch complete and state updated');
       } catch (e) {
         console.error('Fetch error:', e);
-        // Try to load cached data if network request fails
-        await loadCachedData();
-        // Don't set error if cache exists - UI will show cached data
-        setHasError(false);
+        // On force refresh, don't fall back to cache - show error
+        if (opts.forceRefresh) {
+          setHasError(true);
+          Toast.show({
+            type: 'error',
+            text1: 'Refresh Failed',
+            text2: 'Unable to fetch new data. Please try again.',
+          });
+        } else {
+          // Try to load cached data if network request fails
+          await loadCachedData();
+          // Don't set error if cache exists - UI will show cached data
+          setHasError(false);
+        }
       } finally {
         if (opts.background) {
           setIsBackgroundRefreshing(false);
@@ -366,6 +491,7 @@ const Home = () => {
       dispatch,
       loadCachedData,
       saveCachedData,
+      CACHE_KEY,
     ],
   );
 
@@ -439,50 +565,9 @@ const Home = () => {
   }, [fetchData, loadCachedData]);
 
   const onRefresh = useCallback(async () => {
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      Toast.show({
-        type: 'info',
-        text1: 'Internet Connection Required',
-        text2: 'Please connect to the internet to reload data.',
-      });
-      return;
-    }
-
-    try {
-      setIsRefreshing(true);
-      setHasError(false);
-      setIsOffline(false);
-
-      const [devotionsData, coursesData] = await Promise.all([
-        refetchDevotions(),
-        refetchCourses(),
-      ]);
-
-      // Update Redux store
-      dispatch(setDevotions(devotionsData.data));
-      dispatch(setCourses(coursesData.data));
-
-      // Save to cache
-      await saveCachedData(devotionsData.data, coursesData.data);
-
-      Toast.show({
-        type: 'success',
-        text1: 'Data Updated',
-        text2: 'Latest content has been loaded and cached.',
-      });
-    } catch (e) {
-      console.error('Refresh error:', e);
-      setHasError(true);
-      Toast.show({
-        type: 'error',
-        text1: 'Update Failed',
-        text2: 'Unable to refresh data. Please try again.',
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [refetchDevotions, refetchCourses, dispatch, saveCachedData]);
+    // Pull to refresh uses force refresh (clears cache and fetches fresh)
+    await fetchData({forceRefresh: true});
+  }, [fetchData]);
 
   if (isLoading) {
     return (
@@ -650,30 +735,67 @@ const Home = () => {
             )}
 
             {/* Today's Devotion with Enhanced Card */}
-            {devotionToDisplay && (
-              <Animated.View
-                style={{
-                  transform: [{scale: scaleAnim}],
-                }}>
-                <View style={tw`mb-4`}>
-                  <View style={tw`flex-row items-center mb-3`}>
-                    <Calendar size={24} color="#EA9215" weight="bold" />
-                    <Text
-                      style={[
-                        tw`font-nokia-bold text-lg ml-2`,
-                        darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-                      ]}>
-                      የዕለቱ የጥሞና ምንባብ
-                    </Text>
-                  </View>
+            <View style={tw`mb-4`}>
+              <View style={tw`flex-row items-center mb-3 justify-between`}>
+                <View style={tw`flex-row items-center`}>
+                  <Calendar size={24} color="#EA9215" weight="bold" />
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-lg ml-2`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                    ]}>
+                    የዕለቱ የጥሞና ምንባብ
+                  </Text>
                 </View>
-                <DevotionCard
-                  devotion={devotionToDisplay}
-                  darkMode={darkMode}
-                  navigation={navigation}
-                />
-              </Animated.View>
-            )}
+                <TouchableOpacity
+                  style={tw`px-3 py-1 rounded-full border border-accent-6`}
+                  onPress={() => fetchData({forceRefresh: true})}>
+                  <Text style={tw`font-nokia-bold text-accent-6 text-xs`}>
+                    Reload
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {devotionToDisplay ? (
+                <Animated.View
+                  style={{
+                    transform: [{scale: scaleAnim}],
+                  }}>
+                  <DevotionCard
+                    devotion={devotionToDisplay}
+                    darkMode={darkMode}
+                    navigation={navigation}
+                  />
+                </Animated.View>
+              ) : (
+                <View
+                  style={[
+                    tw`border border-accent-6 rounded-4 p-6`,
+                    darkMode ? tw`bg-secondary-8` : tw`bg-primary-5`,
+                  ]}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-center mb-3`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                    ]}>
+                    No Devotional Available
+                  </Text>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-xs text-center mb-4`,
+                      darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+                    ]}>
+                    Unable to load today's devotional. Check your connection.
+                  </Text>
+                  <TouchableOpacity
+                    style={tw`self-center px-4 py-2 rounded-full bg-accent-6`}
+                    onPress={() => fetchData({forceRefresh: true})}>
+                    <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
+                      Try Again
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
             {/* Enhanced Section Divider with Cross */}
             <View style={tw`flex-row items-center my-6`}>
               <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
@@ -760,6 +882,44 @@ const Home = () => {
               </Animated.View>
             )}
 
+            {/* Active Devotion Plan Progress - Show if user has started a plan */}
+            {myDevotionPlans && myDevotionPlans.length > 0 && (
+              <Animated.View
+                style={{
+                  transform: [{scale: scaleAnim}],
+                }}>
+                {myDevotionPlans.slice(0, 1).map(userPlan => {
+                  const plan =
+                    userPlan.plan ||
+                    devotionPlans.find(p => p._id === userPlan.planId);
+                  if (!plan) return null;
+                  return (
+                    <DevotionPlanProgressCard
+                      key={userPlan._id || userPlan.planId}
+                      plan={plan}
+                      progress={userPlan}
+                      darkMode={darkMode}
+                    />
+                  );
+                })}
+              </Animated.View>
+            )}
+
+            {/* Unstarted Devotion Plans Carousel - Show if user hasn't started or has completed plans */}
+            {(!myDevotionPlans || myDevotionPlans.length === 0) && 
+             unstartedPlans && unstartedPlans.length > 0 && (
+              <Animated.View
+                style={{
+                  transform: [{scale: scaleAnim}],
+                }}>
+                <DevotionPlansCarousel
+                  plans={unstartedPlans.slice(0, 5)}
+                  darkMode={darkMode}
+                  showSeeMore={true}
+                />
+              </Animated.View>
+            )}
+
             {/* Enhanced Section Divider with Bible */}
             <View style={tw`flex-row items-center my-6`}>
               <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
@@ -823,7 +983,7 @@ const Home = () => {
                     tw`px-4 py-2 rounded-full flex-row items-center`,
                     {backgroundColor: '#EA9215'},
                   ]}
-                  onPress={() => navigation.navigate('SSLHome')}>
+                  onPress={() => navigation.navigate('SSL', {screen: 'SSLHome'})}>
                   <Text style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
                     All SSLs
                   </Text>

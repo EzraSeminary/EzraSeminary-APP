@@ -18,11 +18,11 @@ const Header = ({darkMode, navigation, isRefreshing}) => (
       {isRefreshing ? (
         <ActivityIndicator size="small" color="#EA9215" />
       ) : (
-        <User
-          size={32}
-          weight="bold"
-          style={[tw`text-secondary-6`, darkMode ? tw`text-primary-1` : null]}
-        />
+      <User
+        size={32}
+        weight="bold"
+        style={[tw`text-secondary-6`, darkMode ? tw`text-primary-1` : null]}
+      />
       )}
     </TouchableOpacity>
   </View>

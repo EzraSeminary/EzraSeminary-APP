@@ -16,7 +16,13 @@ import handleDownload from '../components/handleDownload';
 import {handleShare} from '../components/handleShare';
 import {DownloadSimple, ShareNetwork, Share} from 'phosphor-react-native';
 import tw from './../../tailwind';
-import {useGetDevotionsQuery} from '../redux/api-slices/apiSlice';
+import Toast from 'react-native-toast-message';
+import {
+  useGetDevotionsQuery,
+  useGetDevotionPlansQuery,
+  apiSlice,
+} from '../redux/api-slices/apiSlice';
+import {useDispatch} from 'react-redux';
 import {toEthiopian} from 'ethiopian-date';
 import HTMLView from 'react-native-htmlview';
 import {useCachedImage} from '../utils/imageCache';
@@ -24,6 +30,7 @@ import ErrorScreen from '../components/ErrorScreen';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import NotificationService from '../services/NotificationService';
 import DevotionalShareModal from '../components/DevotionalShareModal';
+import DevotionPlansCarousel from '../components/DevotionPlansCarousel';
 import networkManager from '../utils/networkManager';
 
 const ethiopianMonths = [
@@ -45,13 +52,16 @@ const ethiopianMonths = [
 
 const Devotion = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
+  const dispatch = useDispatch();
   const navigation = useNavigation();
   const {
     data: devotions = [],
     isFetching,
     error,
     refetch,
-  } = useGetDevotionsQuery({year: 2018}); // Fetch only 2018 devotions
+  } = useGetDevotionsQuery({year: 2018, limit: 1000, sort: 'desc'}); // Fetch 2018 devotions
+
+  const {data: devotionPlans = []} = useGetDevotionPlansQuery();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDevotion, setSelectedDevotion] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -59,6 +69,16 @@ const Devotion = () => {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [networkError, setNetworkError] = useState(false);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('=== DEVOTION SCREEN DEBUG ===');
+    console.log('devotions:', devotions?.length || 0);
+    console.log('isFetching:', isFetching);
+    console.log('error:', error);
+    console.log('selectedDevotion:', selectedDevotion ? 'YES' : 'NO');
+    console.log('============================');
+  }, [devotions, isFetching, error, selectedDevotion]);
 
   const tailwindStyles = StyleSheet.create({
     p: {
@@ -88,17 +108,48 @@ const Devotion = () => {
     if (!networkManager.isOnline) {
       setNetworkError(true);
       setIsRefreshing(false);
+      Toast.show({
+        type: 'error',
+        text1: 'No Internet Connection',
+        text2: 'Please connect to the internet to reload.',
+      });
       return;
     }
 
     try {
-      await refetch();
+      console.log('Devotion screen: Invalidating cache and refetching...');
+      // Invalidate RTK Query cache to force fresh fetch
+      dispatch(apiSlice.util.invalidateTags(['Devotions']));
+
+      // Wait for cache invalidation
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Refetch with fresh data
+      const result = await refetch();
+      console.log(
+        'Devotion screen: Refetch complete',
+        result?.data?.length || 0,
+        'devotions',
+      );
+
+      if (result?.data?.length > 0) {
+        Toast.show({
+          type: 'success',
+          text1: 'Data Refreshed',
+          text2: `Loaded ${result.data.length} devotionals`,
+        });
+      }
     } catch (err) {
       console.error('Refresh error:', err);
+      Toast.show({
+        type: 'error',
+        text1: 'Refresh Failed',
+        text2: 'Unable to fetch devotions. Please try again.',
+      });
     } finally {
       setIsRefreshing(false);
     }
-  }, [refetch]);
+  }, [refetch, dispatch]);
 
   // Add loading timeout effect
   useEffect(() => {
@@ -468,6 +519,19 @@ const Devotion = () => {
             </View>
           </View>
           <View style={tw`border-b border-primary-7 mt-4 mb-4`} />
+
+          {/* Devotion Plans Section - Under daily devotion */}
+          {devotionPlans && devotionPlans.length > 0 && (
+            <>
+              <DevotionPlansCarousel
+                plans={devotionPlans.slice(0, 5)}
+                darkMode={darkMode}
+                showSeeMore={true}
+              />
+              <View style={tw`border-b border-primary-7 mt-4 mb-4`} />
+            </>
+          )}
+
           <View style={tw`flex flex-row justify-between items-center`}>
             <Text
               style={[

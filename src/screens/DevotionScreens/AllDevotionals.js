@@ -17,7 +17,12 @@ import {
   ArrowSquareDown,
 } from 'phosphor-react-native';
 import tw from './../../../tailwind';
-import {useGetDevotionsQuery} from './../../redux/api-slices/apiSlice';
+import {
+  useGetDevotionsQuery,
+  apiSlice,
+} from './../../redux/api-slices/apiSlice';
+import {useDispatch} from 'react-redux';
+import Toast from 'react-native-toast-message';
 import ErrorScreen from '../../components/ErrorScreen';
 import networkManager from '../../utils/networkManager';
 
@@ -40,6 +45,7 @@ const ethopianMonths = [
 
 const AllDevotionals = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
+  const dispatch = useDispatch();
   const currentUser = useSelector(state => state.auth.user);
 
   // Get current Ethiopian year
@@ -73,16 +79,37 @@ const AllDevotionals = ({navigation}) => {
       // Check network connectivity first
       if (!networkManager.isOnline) {
         setNetworkError(true);
+        Toast.show({
+          type: 'error',
+          text1: 'No Internet Connection',
+          text2: 'Please connect to reload.',
+        });
         return;
       }
 
-      await refetch();
+      console.log('AllDevotionals: Force refresh...');
+      dispatch(apiSlice.util.invalidateTags(['Devotions']));
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const result = await refetch();
+      console.log(
+        'AllDevotionals: Refresh complete',
+        result?.data?.length || 0,
+      );
+
+      if (result?.data?.length > 0) {
+        Toast.show({
+          type: 'success',
+          text1: 'Refreshed',
+          text2: `${result.data.length} devotionals loaded`,
+        });
+      }
     } catch (err) {
       console.error('Refresh error:', err);
     } finally {
       setIsRefreshing(false);
     }
-  }, [refetch]);
+  }, [refetch, dispatch]);
 
   // Add loading timeout effect
   useEffect(() => {
@@ -167,13 +194,40 @@ const AllDevotionals = ({navigation}) => {
 
     if (!networkManager.isOnline) {
       setNetworkError(true);
+      Toast.show({
+        type: 'error',
+        text1: 'No Internet Connection',
+        text2: 'Please connect to the internet.',
+      });
       return;
     }
 
     try {
-      await refetch();
+      console.log('AllDevotionals: Invalidating cache and refetching...');
+      // Invalidate RTK Query cache
+      dispatch(apiSlice.util.invalidateTags(['Devotions']));
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const result = await refetch();
+      console.log(
+        'AllDevotionals: Refetch complete',
+        result?.data?.length || 0,
+      );
+
+      if (result?.data?.length > 0) {
+        Toast.show({
+          type: 'success',
+          text1: 'Data Refreshed',
+          text2: `Loaded ${result.data.length} devotionals`,
+        });
+      }
     } catch (err) {
       console.error('Retry error:', err);
+      Toast.show({
+        type: 'error',
+        text1: 'Retry Failed',
+        text2: 'Unable to fetch devotionals.',
+      });
     }
   };
 

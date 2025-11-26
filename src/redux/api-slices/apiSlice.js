@@ -1,24 +1,44 @@
 import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
+import {Platform} from 'react-native';
 import {
   normalizeDevotionsResponse,
   normalizeCoursesResponse,
 } from '../../utils/apiResponse';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Custom base query with timeout and retry logic
-const baseQueryWithTimeout = fetchBaseQuery({
-  baseUrl: 'https://ezrabackend.online/', // Replace with your actual base URL
-  timeout: 15000, // 15 second timeout
-  prepareHeaders: async headers => {
-    const userString = await AsyncStorage.getItem('user');
-    const user = userString ? JSON.parse(userString) : null;
-    const token = user ? user.token : '';
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
+// Dynamic base URL: Android emulator uses 10.0.2.2, iOS simulator uses localhost.
+// Physical devices can override via AsyncStorage key 'apiBaseUrl'.
+// Production backend is at https://ezrabackend.online
+const DEFAULT_BASE_URL =
+  Platform.OS === 'android'
+    ? 'http://10.0.2.2:5100/'
+    : 'https://ezrabackend.online/';
+
+const dynamicBaseQuery = async (args, api, extraOptions) => {
+  let baseUrl = DEFAULT_BASE_URL;
+  try {
+    const override = await AsyncStorage.getItem('apiBaseUrl');
+    if (override && typeof override === 'string') {
+      baseUrl = override.endsWith('/') ? override : `${override}/`;
     }
-    return headers;
-  },
-});
+  } catch {}
+
+  const rawBaseQuery = fetchBaseQuery({
+    baseUrl,
+    timeout: 15000, // 15 second timeout
+    prepareHeaders: async headers => {
+      const userString = await AsyncStorage.getItem('user');
+      const user = userString ? JSON.parse(userString) : null;
+      const token = user ? user.token : '';
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+      return headers;
+    },
+  });
+
+  return rawBaseQuery(args, api, extraOptions);
+};
 
 // Base query with retry logic
 const baseQueryWithRetry = async (args, api, extraOptions) => {
@@ -27,7 +47,7 @@ const baseQueryWithRetry = async (args, api, extraOptions) => {
 
   while (attempt <= maxRetries) {
     try {
-      const result = await baseQueryWithTimeout(args, api, extraOptions);
+      const result = await dynamicBaseQuery(args, api, extraOptions);
 
       // If successful or it's a 4xx error (client error), return immediately
       if (
@@ -72,7 +92,7 @@ export const apiSlice = createApi({
   baseQuery: baseQueryWithRetry,
   // Keep unused data for 10 minutes to improve UX and reduce API calls
   keepUnusedDataFor: 600,
-  tagTypes: ['Devotions', 'Courses', 'User'],
+  tagTypes: ['Devotions', 'Courses', 'User', 'DevotionPlans'],
   endpoints: builder => ({
     login: builder.mutation({
       query: credentials => ({
@@ -148,6 +168,72 @@ export const apiSlice = createApi({
         method: 'DELETE',
       }),
     }),
+    // Devotion Plans endpoints (according to spec)
+    getDevotionPlans: builder.query({
+      query: () => '/devotionPlan',
+      transformResponse: response => {
+        // Backend returns { items: [...], total: number }
+        return response?.items || [];
+      },
+      providesTags: ['DevotionPlans'],
+    }),
+    getDevotionPlanById: builder.query({
+      query: id => `/devotionPlan/${id}`,
+      providesTags: (result, error, id) => [{type: 'DevotionPlans', id}],
+    }),
+    getDevotionPlanDevotions: builder.query({
+      query: id => `/devotionPlan/${id}/devotions`,
+      transformResponse: response => {
+        // Backend returns { items: [...], total: number }
+        return response?.items || [];
+      },
+      providesTags: (result, error, id) => [
+        {type: 'DevotionPlans', id},
+        {type: 'DevotionPlans', id: `${id}-devotions`},
+      ],
+    }),
+    getMyDevotionPlans: builder.query({
+      query: params => {
+        const status = params?.status || 'in_progress';
+        return {
+          url: '/devotionPlan/user',
+          params: {status},
+        };
+      },
+      providesTags: ['DevotionPlans'],
+    }),
+    getDevotionPlanProgress: builder.query({
+      query: id => `/devotionPlan/${id}/progress`,
+      providesTags: (result, error, id) => [
+        {type: 'DevotionPlans', id},
+        {type: 'DevotionPlans', id: `${id}-progress`},
+      ],
+    }),
+    startDevotionPlan: builder.mutation({
+      query: id => ({
+        url: `/devotionPlan/${id}/start`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['DevotionPlans'],
+    }),
+    updateDevotionPlanProgress: builder.mutation({
+      query: ({id, devotionId, completed}) => ({
+        url: `/devotionPlan/${id}/progress`,
+        method: 'PUT',
+        body: {devotionId, completed},
+      }),
+      invalidatesTags: (result, error, {id}) => [
+        {type: 'DevotionPlans', id},
+        {type: 'DevotionPlans', id: `${id}-progress`},
+      ],
+    }),
+    restartDevotionPlan: builder.mutation({
+      query: id => ({
+        url: `/devotionPlan/${id}/restart`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['DevotionPlans'],
+    }),
   }),
 });
 
@@ -161,4 +247,13 @@ export const {
   useGetCourseByIdQuery,
   useGetCurrentUserQuery,
   useUpdateUserStatusMutation,
+  useGetDevotionPlansQuery,
+  useGetDevotionPlanByIdQuery,
+  useGetDevotionPlanDevotionsQuery,
+  useGetMyDevotionPlansQuery,
+  useGetDevotionPlanProgressQuery,
+  useStartDevotionPlanMutation,
+  useUpdateDevotionPlanProgressMutation,
+  useRestartDevotionPlanMutation,
+  util: {invalidateTags},
 } = apiSlice;

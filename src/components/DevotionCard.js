@@ -5,7 +5,12 @@ import {useCachedImage} from '../utils/imageCache';
 import tw from './../../tailwind';
 
 const DevotionCard = ({devotion, darkMode, navigation}) => {
-  const verseText = devotion.verse;
+  // Safety check: return null if devotion is missing
+  if (!devotion || !devotion.verse || !devotion._id) {
+    return null;
+  }
+
+  const verseText = devotion.verse || '';
 
   // Extract the verse content and reference
   // Handle various quote types: double quotes, single quotes, and mixed quotes
@@ -38,7 +43,7 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
     verse = verseText;
   }
 
-  const cachedImage = useCachedImage(devotion.image);
+  const cachedImage = useCachedImage(devotion.image || '');
 
   return (
     <ImageBackground

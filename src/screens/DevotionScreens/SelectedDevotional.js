@@ -24,12 +24,15 @@ import ErrorScreen from '../../components/ErrorScreen';
 import PreviousDevotions from './PreviousDevotions';
 import HTMLView from 'react-native-htmlview';
 import tw from './../../../tailwind';
-import {useGetDevotionsQuery} from '../../redux/api-slices/apiSlice';
+import {useGetDevotionsQuery, apiSlice} from '../../redux/api-slices/apiSlice';
+import {useDispatch} from 'react-redux';
+import Toast from 'react-native-toast-message';
 import DevotionalShareModal from '../../components/DevotionalShareModal';
 import networkManager from '../../utils/networkManager';
 
 const SelectedDevotional = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
+  const dispatch = useDispatch();
   const currentUser = useSelector(state => state.auth.user);
   const navigation = useNavigation();
   const {devotionalId, year: navigationYear} = route.params;
@@ -52,7 +55,7 @@ const SelectedDevotional = ({route}) => {
     isFetching,
     error,
     refetch,
-  } = useGetDevotionsQuery({year: 2018}); // Fetch only 2018 devotions
+  } = useGetDevotionsQuery({year: 2018, limit: 1000, sort: 'desc'}); // Fetch 2018 devotions
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -197,13 +200,39 @@ const SelectedDevotional = ({route}) => {
 
     if (!networkManager.isOnline) {
       setNetworkError(true);
+      Toast.show({
+        type: 'error',
+        text1: 'No Internet Connection',
+        text2: 'Please connect to the internet.',
+      });
       return;
     }
 
     try {
-      await refetch();
+      console.log('SelectedDevotional: Invalidating cache and refetching...');
+      dispatch(apiSlice.util.invalidateTags(['Devotions']));
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const result = await refetch();
+      console.log(
+        'SelectedDevotional: Refetch complete',
+        result?.data?.length || 0,
+      );
+
+      if (result?.data?.length > 0) {
+        Toast.show({
+          type: 'success',
+          text1: 'Data Refreshed',
+          text2: `Loaded ${result.data.length} devotionals`,
+        });
+      }
     } catch (err) {
       console.error('Retry error:', err);
+      Toast.show({
+        type: 'error',
+        text1: 'Retry Failed',
+        text2: 'Unable to fetch devotionals.',
+      });
     }
   };
 

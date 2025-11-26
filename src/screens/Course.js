@@ -20,7 +20,7 @@ import {
   MagnifyingGlass,
 } from 'phosphor-react-native';
 import tw from './../../tailwind';
-import {useGetCoursesQuery} from './../services/api';
+import {useGetCoursesQuery} from './../redux/api-slices/apiSlice';
 import {useNavigation} from '@react-navigation/native';
 import {useSelector} from 'react-redux';
 import ErrorScreen from '../components/ErrorScreen';
