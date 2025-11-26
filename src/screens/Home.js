@@ -127,18 +127,17 @@ const Home = () => {
   // Calculate unstarted plans (plans that are not in progress or completed)
   const unstartedPlans = useMemo(() => {
     if (!devotionPlans || devotionPlans.length === 0) return [];
-    
+
     const inProgressPlanIds = new Set(
-      (myDevotionPlans || []).map(p => p.planId || p.plan?._id)
+      (myDevotionPlans || []).map(p => p.planId || p.plan?._id),
     );
     const completedPlanIds = new Set(
-      (completedPlans || []).map(p => p.planId || p.plan?._id)
+      (completedPlans || []).map(p => p.planId || p.plan?._id),
     );
-    
+
     return devotionPlans.filter(
-      plan => 
-        !inProgressPlanIds.has(plan._id) && 
-        !completedPlanIds.has(plan._id)
+      plan =>
+        !inProgressPlanIds.has(plan._id) && !completedPlanIds.has(plan._id),
     );
   }, [devotionPlans, myDevotionPlans, completedPlans]);
 
@@ -882,6 +881,48 @@ const Home = () => {
               </Animated.View>
             )}
 
+            {/* Devotion Plans Section Header */}
+            {((myDevotionPlans && myDevotionPlans.length > 0) ||
+              (unstartedPlans && unstartedPlans.length > 0)) && (
+              <Animated.View
+                style={[
+                  tw`p-4 rounded-2xl mb-4 mt-4`,
+                  {
+                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                    transform: [{scale: scaleAnim}],
+                  },
+                ]}>
+                <View style={tw`flex flex-row justify-between items-center`}>
+                  <View style={tw`flex-row items-center flex-1`}>
+                    <BookOpen size={24} color="#EA9215" weight="bold" />
+                    <Text
+                      style={[
+                        tw`font-nokia-bold text-lg ml-3`,
+                        darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                      ]}>
+                      የየዕለት ምንባብ
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      tw`px-4 py-2 rounded-full flex-row items-center`,
+                      {backgroundColor: '#EA9215'},
+                    ]}
+                    onPress={() =>
+                      navigation.navigate('Devotional', {
+                        screen: 'DevotionPlans',
+                      })
+                    }>
+                    <Text
+                      style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
+                      ሁሉም ምንባቦች
+                    </Text>
+                    <BookOpen size={14} color="#FFFFFF" weight="bold" />
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+            )}
+
             {/* Active Devotion Plan Progress - Show if user has started a plan */}
             {myDevotionPlans && myDevotionPlans.length > 0 && (
               <Animated.View
@@ -906,19 +947,20 @@ const Home = () => {
             )}
 
             {/* Unstarted Devotion Plans Carousel - Show if user hasn't started or has completed plans */}
-            {(!myDevotionPlans || myDevotionPlans.length === 0) && 
-             unstartedPlans && unstartedPlans.length > 0 && (
-              <Animated.View
-                style={{
-                  transform: [{scale: scaleAnim}],
-                }}>
-                <DevotionPlansCarousel
-                  plans={unstartedPlans.slice(0, 5)}
-                  darkMode={darkMode}
-                  showSeeMore={true}
-                />
-              </Animated.View>
-            )}
+            {(!myDevotionPlans || myDevotionPlans.length === 0) &&
+              unstartedPlans &&
+              unstartedPlans.length > 0 && (
+                <Animated.View
+                  style={{
+                    transform: [{scale: scaleAnim}],
+                  }}>
+                  <DevotionPlansCarousel
+                    plans={unstartedPlans.slice(0, 5)}
+                    darkMode={darkMode}
+                    showSeeMore={true}
+                  />
+                </Animated.View>
+              )}
 
             {/* Enhanced Section Divider with Bible */}
             <View style={tw`flex-row items-center my-6`}>
@@ -983,7 +1025,9 @@ const Home = () => {
                     tw`px-4 py-2 rounded-full flex-row items-center`,
                     {backgroundColor: '#EA9215'},
                   ]}
-                  onPress={() => navigation.navigate('SSL', {screen: 'SSLHome'})}>
+                  onPress={() =>
+                    navigation.navigate('SSL', {screen: 'SSLHome'})
+                  }>
                   <Text style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
                     All SSLs
                   </Text>
