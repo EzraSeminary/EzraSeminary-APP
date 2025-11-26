@@ -12,14 +12,23 @@ import {
 import React, {useState, useCallback, useEffect} from 'react';
 import {useSelector} from 'react-redux';
 import {useNavigation} from '@react-navigation/native';
+import {Share as RNShare} from 'react-native';
 import handleDownload from '../components/handleDownload';
 import {handleShare} from '../components/handleShare';
-import {DownloadSimple, ShareNetwork, Share} from 'phosphor-react-native';
+import {
+  DownloadSimple,
+  ShareNetwork,
+  Share,
+  Heart,
+  ChatCircle,
+} from 'phosphor-react-native';
 import tw from './../../tailwind';
 import Toast from 'react-native-toast-message';
 import {
   useGetDevotionsQuery,
   useGetDevotionPlansQuery,
+  useToggleDevotionLikeMutation,
+  useGetDevotionLikesQuery,
   apiSlice,
 } from '../redux/api-slices/apiSlice';
 import {useDispatch} from 'react-redux';
@@ -31,6 +40,7 @@ import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import NotificationService from '../services/NotificationService';
 import DevotionalShareModal from '../components/DevotionalShareModal';
 import DevotionPlansCarousel from '../components/DevotionPlansCarousel';
+import CommentsModal from '../components/CommentsModal';
 import networkManager from '../utils/networkManager';
 
 const ethiopianMonths = [
@@ -52,6 +62,7 @@ const ethiopianMonths = [
 
 const Devotion = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
+  const user = useSelector(state => state.auth.user);
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const {
@@ -69,6 +80,93 @@ const Devotion = () => {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [networkError, setNetworkError] = useState(false);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+
+  const devotionToDisplay = selectedDevotion || devotions[0] || null;
+
+  // Get cached image (must be called before conditional returns)
+  const url = devotionToDisplay?.image ? `${devotionToDisplay.image}` : '';
+  const cachedImage = useCachedImage(url);
+
+  const {data: likesData} = useGetDevotionLikesQuery(devotionToDisplay?._id, {
+    skip: !user || !devotionToDisplay?._id,
+  });
+
+  const [toggleLike, {isLoading: isTogglingLike}] =
+    useToggleDevotionLikeMutation();
+
+  // Update likes state when data changes
+  useEffect(() => {
+    if (likesData) {
+      setIsLiked(likesData.isLiked || false);
+      setLikesCount(likesData.likesCount || 0);
+    } else if (devotionToDisplay?.isLiked !== undefined) {
+      setIsLiked(devotionToDisplay.isLiked);
+      setLikesCount(devotionToDisplay.likesCount || 0);
+    }
+  }, [likesData, devotionToDisplay?.isLiked, devotionToDisplay?.likesCount]);
+
+  const handleLike = async () => {
+    if (!user || !devotionToDisplay?._id) {
+      return;
+    }
+
+    // Optimistic update
+    const previousLiked = isLiked;
+    const previousCount = likesCount;
+    setIsLiked(!isLiked);
+    setLikesCount(previousLiked ? likesCount - 1 : likesCount + 1);
+
+    try {
+      const result = await toggleLike(devotionToDisplay._id).unwrap();
+      setIsLiked(result.isLiked);
+      setLikesCount(result.likesCount);
+    } catch (error) {
+      // Revert optimistic update on error
+      setIsLiked(previousLiked);
+      setLikesCount(previousCount);
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to like',
+        text2: error?.data?.message || 'Please try again.',
+      });
+    }
+  };
+
+  const handleShareDevotion = async () => {
+    if (!user || !devotionToDisplay) {
+      return;
+    }
+
+    try {
+      const result = await RNShare.share({
+        message: `Check out this daily devotional: ${devotionToDisplay.title}\n\n${devotionToDisplay.verse}`,
+        title: devotionToDisplay.title,
+      });
+
+      if (result.action === RNShare.sharedAction) {
+        Toast.show({
+          type: 'success',
+          text1: 'Shared successfully',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to share',
+        text2: 'Please try again.',
+      });
+    }
+  };
+
+  const handleComment = () => {
+    if (!user || !devotionToDisplay?._id) {
+      return;
+    }
+    setShowCommentsModal(true);
+  };
 
   // Debug logging
   useEffect(() => {
@@ -305,9 +403,6 @@ const Devotion = () => {
   if (!devotions || devotions.length === 0) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
-  const devotionToDisplay = selectedDevotion || devotions[0];
-  const url = `${devotionToDisplay.image}`;
-  const cachedImage = useCachedImage(url);
 
   // Extract the verse content and reference
   // Handle various quote types: double quotes, single quotes, and mixed quotes
@@ -468,6 +563,49 @@ const Devotion = () => {
               የዕለቱን መንፈሳዊ ትምህርት አጋራ
             </Text>
           </TouchableOpacity>
+
+          {/* Like, Share, Comment Actions - Only show when user is logged in */}
+          {user && (
+            <View
+              style={tw`flex-row items-center justify-center gap-6 mt-4 mb-2`}>
+              <TouchableOpacity
+                style={tw`items-center`}
+                onPress={handleLike}
+                disabled={isTogglingLike || !devotionToDisplay?._id}>
+                <Heart
+                  size={28}
+                  weight={isLiked ? 'fill' : 'regular'}
+                  color={isLiked ? '#EF4444' : '#EA9215'}
+                />
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xs mt-1`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  {likesCount || 0}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={tw`items-center`}
+                onPress={handleShareDevotion}>
+                <ShareNetwork size={28} weight="regular" color="#EA9215" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={tw`items-center`}
+                onPress={handleComment}>
+                <ChatCircle size={28} weight="regular" color="#EA9215" />
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xs mt-1`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  {devotionToDisplay?.commentsCount || 0}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <View
             style={tw`border border-accent-6 rounded-4 mt-4 overflow-hidden`}>
             <Image
@@ -563,6 +701,16 @@ const Devotion = () => {
         devotional={devotionToDisplay}
         darkMode={darkMode}
       />
+
+      {/* Comments Modal */}
+      {devotionToDisplay?._id && (
+        <CommentsModal
+          visible={showCommentsModal}
+          onClose={() => setShowCommentsModal(false)}
+          devotionId={devotionToDisplay._id}
+          darkMode={darkMode}
+        />
+      )}
     </View>
   );
 };

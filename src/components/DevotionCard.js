@@ -1,10 +1,99 @@
-import React from 'react';
-import {View, Text, TouchableOpacity, ImageBackground} from 'react-native';
-import {BookOpenText} from 'phosphor-react-native';
+import React, {useState} from 'react';
+import {View, Text, TouchableOpacity, ImageBackground, Share} from 'react-native';
+import {BookOpenText, Heart, ShareNetwork, ChatCircle} from 'phosphor-react-native';
+import {useSelector} from 'react-redux';
 import {useCachedImage} from '../utils/imageCache';
 import tw from './../../tailwind';
+import {
+  useToggleDevotionLikeMutation,
+  useGetDevotionLikesQuery,
+} from '../redux/api-slices/apiSlice';
+import CommentsModal from './CommentsModal';
+import Toast from 'react-native-toast-message';
 
 const DevotionCard = ({devotion, darkMode, navigation}) => {
+  const user = useSelector(state => state.auth.user);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [isLiked, setIsLiked] = useState(devotion.isLiked || false);
+  const [likesCount, setLikesCount] = useState(devotion.likesCount || 0);
+
+  const {data: likesData} = useGetDevotionLikesQuery(devotion._id, {
+    skip: !user || !devotion._id,
+  });
+
+  const [toggleLike, {isLoading: isTogglingLike}] =
+    useToggleDevotionLikeMutation();
+
+  // Update likes state when data changes
+  React.useEffect(() => {
+    if (likesData) {
+      setIsLiked(likesData.isLiked || false);
+      setLikesCount(likesData.likesCount || 0);
+    } else if (devotion.isLiked !== undefined) {
+      setIsLiked(devotion.isLiked);
+      setLikesCount(devotion.likesCount || 0);
+    }
+  }, [likesData, devotion.isLiked, devotion.likesCount]);
+
+  const handleLike = async () => {
+    if (!user) {
+      return;
+    }
+
+    // Optimistic update
+    const previousLiked = isLiked;
+    const previousCount = likesCount;
+    setIsLiked(!isLiked);
+    setLikesCount(previousLiked ? likesCount - 1 : likesCount + 1);
+
+    try {
+      const result = await toggleLike(devotion._id).unwrap();
+      setIsLiked(result.isLiked);
+      setLikesCount(result.likesCount);
+    } catch (error) {
+      // Revert optimistic update on error
+      setIsLiked(previousLiked);
+      setLikesCount(previousCount);
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to like',
+        text2: error?.data?.message || 'Please try again.',
+      });
+    }
+  };
+
+  const handleShare = async () => {
+    if (!user) {
+      return;
+    }
+
+    try {
+      const result = await Share.share({
+        message: `Check out this daily devotional: ${devotion.title}\n\n${devotion.verse}`,
+        title: devotion.title,
+      });
+
+      if (result.action === Share.sharedAction) {
+        Toast.show({
+          type: 'success',
+          text1: 'Shared successfully',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to share',
+        text2: 'Please try again.',
+      });
+    }
+  };
+
+  const handleComment = () => {
+    if (!user) {
+      return;
+    }
+    setShowCommentsModal(true);
+  };
   // Safety check: return null if devotion is missing
   if (!devotion || !devotion.verse || !devotion._id) {
     return null;
@@ -98,6 +187,48 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
           </Text>
         </View>
       </View>
+
+      {/* Like, Share, Comment Actions - Only show when user is logged in */}
+      {user && (
+        <View style={tw`flex-row items-center justify-end gap-4 mt-4`}>
+          <TouchableOpacity
+            style={tw`flex-row items-center gap-1`}
+            onPress={handleLike}
+            disabled={isTogglingLike}>
+            <Heart
+              size={20}
+              weight={isLiked ? 'fill' : 'regular'}
+              color={isLiked ? '#EF4444' : '#FFFFFF'}
+            />
+            <Text style={tw`font-nokia-bold text-primary-2 text-sm`}>
+              {likesCount}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={tw`flex-row items-center gap-1`}
+            onPress={handleShare}>
+            <ShareNetwork size={20} weight="regular" color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={tw`flex-row items-center gap-1`}
+            onPress={handleComment}>
+            <ChatCircle size={20} weight="regular" color="#FFFFFF" />
+            <Text style={tw`font-nokia-bold text-primary-2 text-sm`}>
+              {devotion.commentsCount || 0}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Comments Modal */}
+      <CommentsModal
+        visible={showCommentsModal}
+        onClose={() => setShowCommentsModal(false)}
+        devotionId={devotion._id}
+        darkMode={darkMode}
+      />
     </ImageBackground>
   );
 };

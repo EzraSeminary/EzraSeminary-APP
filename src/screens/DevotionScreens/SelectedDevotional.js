@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Share as RNShare,
 } from 'react-native';
 import {useCachedImage} from '../../utils/imageCache';
 import {useSelector} from 'react-redux';
@@ -19,15 +20,23 @@ import {
   ShareNetwork,
   ArrowSquareLeft,
   Share,
+  Heart,
+  ChatCircle,
 } from 'phosphor-react-native';
 import ErrorScreen from '../../components/ErrorScreen';
 import PreviousDevotions from './PreviousDevotions';
 import HTMLView from 'react-native-htmlview';
 import tw from './../../../tailwind';
-import {useGetDevotionsQuery, apiSlice} from '../../redux/api-slices/apiSlice';
+import {
+  useGetDevotionsQuery,
+  useToggleDevotionLikeMutation,
+  useGetDevotionLikesQuery,
+  apiSlice,
+} from '../../redux/api-slices/apiSlice';
 import {useDispatch} from 'react-redux';
 import Toast from 'react-native-toast-message';
 import DevotionalShareModal from '../../components/DevotionalShareModal';
+import CommentsModal from '../../components/CommentsModal';
 import networkManager from '../../utils/networkManager';
 
 const SelectedDevotional = ({route}) => {
@@ -61,7 +70,88 @@ const SelectedDevotional = ({route}) => {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [networkError, setNetworkError] = useState(false);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
   const scrollViewRef = useRef();
+
+  const {data: likesData} = useGetDevotionLikesQuery(devotional?._id, {
+    skip: !currentUser || !devotional?._id,
+  });
+
+  const [toggleLike, {isLoading: isTogglingLike}] =
+    useToggleDevotionLikeMutation();
+
+  // Update likes state when data changes
+  useEffect(() => {
+    if (likesData) {
+      setIsLiked(likesData.isLiked || false);
+      setLikesCount(likesData.likesCount || 0);
+    } else if (devotional?.isLiked !== undefined) {
+      setIsLiked(devotional.isLiked);
+      setLikesCount(devotional.likesCount || 0);
+    }
+  }, [likesData, devotional?.isLiked, devotional?.likesCount]);
+
+  const handleLike = async () => {
+    if (!currentUser || !devotional?._id) {
+      return;
+    }
+
+    // Optimistic update
+    const previousLiked = isLiked;
+    const previousCount = likesCount;
+    setIsLiked(!isLiked);
+    setLikesCount(previousLiked ? likesCount - 1 : likesCount + 1);
+
+    try {
+      const result = await toggleLike(devotional._id).unwrap();
+      setIsLiked(result.isLiked);
+      setLikesCount(result.likesCount);
+    } catch (error) {
+      // Revert optimistic update on error
+      setIsLiked(previousLiked);
+      setLikesCount(previousCount);
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to like',
+        text2: error?.data?.message || 'Please try again.',
+      });
+    }
+  };
+
+  const handleShareDevotion = async () => {
+    if (!currentUser || !devotional) {
+      return;
+    }
+
+    try {
+      const result = await RNShare.share({
+        message: `Check out this daily devotional: ${devotional.title}\n\n${devotional.verse}`,
+        title: devotional.title,
+      });
+
+      if (result.action === RNShare.sharedAction) {
+        Toast.show({
+          type: 'success',
+          text1: 'Shared successfully',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to share',
+        text2: 'Please try again.',
+      });
+    }
+  };
+
+  const handleComment = () => {
+    if (!currentUser || !devotional?._id) {
+      return;
+    }
+    setShowCommentsModal(true);
+  };
   // API already returns only 2018 devotions, no need to filter
   const listForDisplay = devotionals;
 
@@ -478,6 +568,48 @@ const SelectedDevotional = ({route}) => {
               የዕለቱን መንፈሳዊ ትምህርት አጋራ
             </Text>
           </TouchableOpacity>
+
+          {/* Like, Share, Comment Actions - Only show when user is logged in */}
+          {currentUser && (
+            <View style={tw`flex-row items-center justify-center gap-6 mt-4 mb-2`}>
+              <TouchableOpacity
+                style={tw`items-center`}
+                onPress={handleLike}
+                disabled={isTogglingLike || !devotional?._id}>
+                <Heart
+                  size={28}
+                  weight={isLiked ? 'fill' : 'regular'}
+                  color={isLiked ? '#EF4444' : '#EA9215'}
+                />
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xs mt-1`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  {likesCount || 0}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={tw`items-center`}
+                onPress={handleShareDevotion}>
+                <ShareNetwork size={28} weight="regular" color="#EA9215" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={tw`items-center`}
+                onPress={handleComment}>
+                <ChatCircle size={28} weight="regular" color="#EA9215" />
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xs mt-1`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  {devotional?.commentsCount || 0}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <View
             style={tw`border border-accent-6 rounded-4 mt-4 overflow-hidden`}>
             <Image
@@ -570,6 +702,16 @@ const SelectedDevotional = ({route}) => {
         devotional={devotional}
         darkMode={darkMode}
       />
+
+      {/* Comments Modal */}
+      {devotional?._id && (
+        <CommentsModal
+          visible={showCommentsModal}
+          onClose={() => setShowCommentsModal(false)}
+          devotionId={devotional._id}
+          darkMode={darkMode}
+        />
+      )}
     </View>
   );
 };

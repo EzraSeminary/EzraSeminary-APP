@@ -92,7 +92,14 @@ export const apiSlice = createApi({
   baseQuery: baseQueryWithRetry,
   // Keep unused data for 10 minutes to improve UX and reduce API calls
   keepUnusedDataFor: 600,
-  tagTypes: ['Devotions', 'Courses', 'User', 'DevotionPlans'],
+  tagTypes: [
+    'Devotions',
+    'Courses',
+    'User',
+    'DevotionPlans',
+    'DevotionLikes',
+    'DevotionComments',
+  ],
   endpoints: builder => ({
     login: builder.mutation({
       query: credentials => ({
@@ -234,6 +241,47 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['DevotionPlans'],
     }),
+    // Devotion Likes and Comments endpoints
+    toggleDevotionLike: builder.mutation({
+      query: id => ({
+        url: `/devotion/${id}/like`,
+        method: 'POST',
+      }),
+      invalidatesTags: (result, error, id) => [
+        {type: 'DevotionLikes', id},
+        {type: 'Devotions', id},
+        'Devotions',
+      ],
+    }),
+    getDevotionLikes: builder.query({
+      query: id => `/devotion/${id}/likes`,
+      providesTags: (result, error, id) => [{type: 'DevotionLikes', id}],
+    }),
+    getDevotionComments: builder.query({
+      query: id => `/devotion/${id}/comments`,
+      providesTags: (result, error, id) => [{type: 'DevotionComments', id}],
+    }),
+    addDevotionComment: builder.mutation({
+      query: ({id, text}) => ({
+        url: `/devotion/${id}/comments`,
+        method: 'POST',
+        body: {text},
+      }),
+      invalidatesTags: (result, error, {id}) => [
+        {type: 'DevotionComments', id},
+        {type: 'Devotions', id},
+      ],
+    }),
+    deleteDevotionComment: builder.mutation({
+      query: ({id, commentId}) => ({
+        url: `/devotion/${id}/comments/${commentId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, {id}) => [
+        {type: 'DevotionComments', id},
+        {type: 'Devotions', id},
+      ],
+    }),
   }),
 });
 
@@ -255,5 +303,10 @@ export const {
   useStartDevotionPlanMutation,
   useUpdateDevotionPlanProgressMutation,
   useRestartDevotionPlanMutation,
+  useToggleDevotionLikeMutation,
+  useGetDevotionLikesQuery,
+  useGetDevotionCommentsQuery,
+  useAddDevotionCommentMutation,
+  useDeleteDevotionCommentMutation,
   util: {invalidateTags},
 } = apiSlice;
