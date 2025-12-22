@@ -27,6 +27,7 @@ const DevotionPlans = () => {
   const user = useSelector(state => state.auth.user);
   const navigation = useNavigation();
   const [tab, setTab] = useState('find'); // 'find', 'my', 'completed'
+  const [activeTab, setActiveTab] = useState('plan'); // 'devotional' or 'plan'
 
   const {data: findPlans = [], isLoading: loadingFind} =
     useGetDevotionPlansQuery();
@@ -345,7 +346,16 @@ const DevotionPlans = () => {
       <View style={tw`flex mx-auto w-11/12`}>
         {/* Header */}
         <View style={tw`flex-row items-center justify-between my-4`}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('Devotional', {
+                  screen: 'DevotionalHome',
+                });
+              }
+            }}>
             <ArrowLeft size={24} color={darkMode ? '#F9FAFB' : '#1F2937'} />
           </TouchableOpacity>
           <Text
@@ -355,7 +365,59 @@ const DevotionPlans = () => {
             ]}>
             Devotion Plans
           </Text>
-          <View style={tw`w-6`} />
+          <View style={tw`flex flex-row items-center gap-2`}>
+            {/* Sliding buttons for Devotional/Devotional Plan */}
+            <View
+              style={tw`flex-row bg-secondary-7 rounded-full p-1 ${
+                darkMode ? 'bg-secondary-8' : ''
+              }`}>
+              <TouchableOpacity
+                onPress={() => {
+                  setActiveTab('devotional');
+                  navigation.navigate('Devotional', {
+                    screen: 'DevotionalHome',
+                  });
+                }}
+                style={tw`px-3 py-1.5 rounded-full ${
+                  activeTab === 'devotional'
+                    ? 'bg-accent-6'
+                    : darkMode
+                    ? 'bg-transparent'
+                    : 'bg-transparent'
+                }`}>
+                <Text
+                  style={tw`font-nokia-bold text-xs ${
+                    activeTab === 'devotional'
+                      ? 'text-white'
+                      : darkMode
+                      ? 'text-primary-3'
+                      : 'text-secondary-6'
+                  }`}>
+                  Devotional
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setActiveTab('plan')}
+                style={tw`px-3 py-1.5 rounded-full ${
+                  activeTab === 'plan'
+                    ? 'bg-accent-6'
+                    : darkMode
+                    ? 'bg-transparent'
+                    : 'bg-transparent'
+                }`}>
+                <Text
+                  style={tw`font-nokia-bold text-xs ${
+                    activeTab === 'plan'
+                      ? 'text-white'
+                      : darkMode
+                      ? 'text-primary-3'
+                      : 'text-secondary-6'
+                  }`}>
+                  Devotional Plan
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         {/* Tabs */}

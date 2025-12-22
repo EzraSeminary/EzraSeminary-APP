@@ -73,6 +73,8 @@ const SelectedDevotional = ({route}) => {
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
+  const [sharesCount, setSharesCount] = useState(0);
+  const [commentsCount, setCommentsCount] = useState(0);
   const scrollViewRef = useRef();
 
   const {data: likesData} = useGetDevotionLikesQuery(devotional?._id, {
@@ -82,7 +84,7 @@ const SelectedDevotional = ({route}) => {
   const [toggleLike, {isLoading: isTogglingLike}] =
     useToggleDevotionLikeMutation();
 
-  // Update likes state when data changes
+  // Update likes, shares, and comments state when data changes
   useEffect(() => {
     if (likesData) {
       setIsLiked(likesData.isLiked || false);
@@ -91,7 +93,18 @@ const SelectedDevotional = ({route}) => {
       setIsLiked(devotional.isLiked);
       setLikesCount(devotional.likesCount || 0);
     }
-  }, [likesData, devotional?.isLiked, devotional?.likesCount]);
+    // Update shares and comments count from devotional data
+    if (devotional) {
+      setSharesCount(devotional.sharesCount || 0);
+      setCommentsCount(devotional.commentsCount || 0);
+    }
+  }, [
+    likesData,
+    devotional?.isLiked,
+    devotional?.likesCount,
+    devotional?.sharesCount,
+    devotional?.commentsCount,
+  ]);
 
   const handleLike = async () => {
     if (!currentUser || !devotional?._id) {
@@ -594,6 +607,13 @@ const SelectedDevotional = ({route}) => {
                 style={tw`items-center`}
                 onPress={handleShareDevotion}>
                 <ShareNetwork size={28} weight="regular" color="#EA9215" />
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xs mt-1`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  {sharesCount || 0}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -605,7 +625,7 @@ const SelectedDevotional = ({route}) => {
                     tw`font-nokia-bold text-xs mt-1`,
                     darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
                   ]}>
-                  {devotional?.commentsCount || 0}
+                  {commentsCount || 0}
                 </Text>
               </TouchableOpacity>
             </View>

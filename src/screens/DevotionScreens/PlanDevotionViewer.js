@@ -45,10 +45,14 @@ const PlanDevotionViewer = () => {
     },
   );
 
-  const {data: devotions = [], isLoading: devotionsLoading} =
-    useGetDevotionPlanDevotionsQuery(planId, {
-      skip: !planId,
-    });
+  const {
+    data: devotions = [],
+    isLoading: devotionsLoading,
+    error: devotionsError,
+    refetch: refetchDevotions,
+  } = useGetDevotionPlanDevotionsQuery(planId, {
+    skip: !planId,
+  });
 
   const {data: progressData, refetch: refetchProgress} =
     useGetDevotionPlanProgressQuery(planId, {
@@ -73,8 +77,26 @@ const PlanDevotionViewer = () => {
 
   // Sort devotions by order field
   const sortedDevotions = useMemo(() => {
+    if (!devotions || !Array.isArray(devotions)) {
+      return [];
+    }
     return [...devotions].sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [devotions]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('=== PLAN DEVOTION VIEWER DEBUG ===');
+    console.log('planId:', planId);
+    console.log('plan:', plan ? plan.title : 'NO PLAN');
+    console.log('devotions:', devotions?.length || 0);
+    console.log('devotionsLoading:', devotionsLoading);
+    console.log('devotionsError:', devotionsError);
+    console.log('sortedDevotions:', sortedDevotions?.length || 0);
+    if (devotions && devotions.length > 0) {
+      console.log('First devotion sample:', JSON.stringify(devotions[0], null, 2));
+    }
+    console.log('===================================');
+  }, [planId, plan, devotions, devotionsLoading, devotionsError, sortedDevotions]);
 
   // Find first incomplete devotion
   useEffect(() => {
@@ -200,7 +222,52 @@ const PlanDevotionViewer = () => {
     );
   }
 
-  if (!plan || sortedDevotions.length === 0) {
+  // Show error state if there's an error
+  if (devotionsError) {
+    return (
+      <SafeAreaView
+        style={darkMode ? tw`bg-secondary-9 flex-1` : tw`bg-primary-1 flex-1`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            Error Loading Devotions
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-4`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            {devotionsError?.data?.message ||
+              devotionsError?.message ||
+              'Unable to load devotions for this plan.'}
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4 mt-4`}
+            onPress={() => refetchDevotions()}>
+            <Text style={tw`font-nokia-bold text-primary-1 text-base`}>
+              Retry
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={tw`border border-accent-6 px-6 py-3 rounded-4 mt-3`}
+            onPress={() => navigation.goBack()}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-base`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              Go Back
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!plan) {
     return (
       <SafeAreaView
         style={darkMode ? tw`bg-secondary-9 flex-1` : tw`bg-primary-1 flex-1`}>
@@ -216,6 +283,48 @@ const PlanDevotionViewer = () => {
             style={tw`bg-accent-6 px-6 py-3 rounded-4 mt-4`}
             onPress={() => navigation.goBack()}>
             <Text style={tw`font-nokia-bold text-primary-1 text-base`}>
+              Go Back
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!sortedDevotions || sortedDevotions.length === 0) {
+    return (
+      <SafeAreaView
+        style={darkMode ? tw`bg-secondary-9 flex-1` : tw`bg-primary-1 flex-1`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            No Devotions Found
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-4`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            This plan doesn't have any devotions yet.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4 mt-4`}
+            onPress={() => refetchDevotions()}>
+            <Text style={tw`font-nokia-bold text-primary-1 text-base`}>
+              Retry
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={tw`border border-accent-6 px-6 py-3 rounded-4 mt-3`}
+            onPress={() => navigation.goBack()}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-base`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
               Go Back
             </Text>
           </TouchableOpacity>

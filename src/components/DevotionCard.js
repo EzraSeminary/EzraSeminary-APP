@@ -16,6 +16,10 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [isLiked, setIsLiked] = useState(devotion.isLiked || false);
   const [likesCount, setLikesCount] = useState(devotion.likesCount || 0);
+  const [sharesCount, setSharesCount] = useState(devotion.sharesCount || 0);
+  const [commentsCount, setCommentsCount] = useState(
+    devotion.commentsCount || 0,
+  );
 
   const {data: likesData} = useGetDevotionLikesQuery(devotion._id, {
     skip: !user || !devotion._id,
@@ -24,7 +28,7 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
   const [toggleLike, {isLoading: isTogglingLike}] =
     useToggleDevotionLikeMutation();
 
-  // Update likes state when data changes
+  // Update likes, shares, and comments state when data changes
   React.useEffect(() => {
     if (likesData) {
       setIsLiked(likesData.isLiked || false);
@@ -33,7 +37,16 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
       setIsLiked(devotion.isLiked);
       setLikesCount(devotion.likesCount || 0);
     }
-  }, [likesData, devotion.isLiked, devotion.likesCount]);
+    // Update shares and comments count from devotion data
+    setSharesCount(devotion.sharesCount || 0);
+    setCommentsCount(devotion.commentsCount || 0);
+  }, [
+    likesData,
+    devotion.isLiked,
+    devotion.likesCount,
+    devotion.sharesCount,
+    devotion.commentsCount,
+  ]);
 
   const handleLike = async () => {
     if (!user) {
@@ -209,6 +222,9 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
             style={tw`flex-row items-center gap-1`}
             onPress={handleShare}>
             <ShareNetwork size={20} weight="regular" color="#FFFFFF" />
+            <Text style={tw`font-nokia-bold text-primary-2 text-sm`}>
+              {sharesCount || 0}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -216,7 +232,7 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
             onPress={handleComment}>
             <ChatCircle size={20} weight="regular" color="#FFFFFF" />
             <Text style={tw`font-nokia-bold text-primary-2 text-sm`}>
-              {devotion.commentsCount || 0}
+              {commentsCount || 0}
             </Text>
           </TouchableOpacity>
         </View>

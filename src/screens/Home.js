@@ -31,6 +31,7 @@ import CourseCard from '../components/CourseCard';
 import Header from '../components/Header';
 import DevotionPlansCarousel from '../components/DevotionPlansCarousel';
 import DevotionPlanProgressCard from '../components/DevotionPlanProgressCard';
+import DevotionPlanSquareCard from '../components/DevotionPlanSquareCard';
 import {setDevotions} from '../redux/devotionsSlice';
 import {setCourses} from '../redux/courseSlice';
 import {scheduleVerseOfTheDayNotification} from '../utils/notifications';
@@ -102,12 +103,22 @@ const Home = () => {
   // Always fetch current year data for Home screen - let user select year in AllDevotionals
   const yearToFetch = currentEthiopianYear;
 
+  // Get current Ethiopian date
+  const today = new Date();
+  const [, ethMonth, ethDay] = toEthiopian(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    today.getDate(),
+  );
+  const currentEthiopianMonth = ethiopianMonths[ethMonth];
+
+  // Fetch all devotions for the year to ensure we find today's devotion
   const {
     data: devotions = [],
     isFetching,
     refetch: refetchDevotions,
     error,
-  } = useGetDevotionsQuery({year: yearToFetch, limit: 1000, sort: 'desc'});
+  } = useGetDevotionsQuery({year: yearToFetch});
 
   const {
     data: courses = [],
@@ -116,7 +127,23 @@ const Home = () => {
     error: courseError,
   } = useGetCoursesQuery();
 
-  const {data: devotionPlans = []} = useGetDevotionPlansQuery();
+  const {
+    data: devotionPlans = [],
+    isLoading: devotionPlansLoading,
+    error: devotionPlansError,
+  } = useGetDevotionPlansQuery();
+
+  // Debug logging for devotion plans
+  useEffect(() => {
+    console.log('=== HOME DEVOTION PLANS DEBUG ===');
+    console.log('devotionPlans:', devotionPlans?.length || 0);
+    console.log('devotionPlansLoading:', devotionPlansLoading);
+    console.log('devotionPlansError:', devotionPlansError);
+    if (devotionPlans && devotionPlans.length > 0) {
+      console.log('First plan:', JSON.stringify(devotionPlans[0], null, 2));
+    }
+    console.log('=================================');
+  }, [devotionPlans, devotionPlansLoading, devotionPlansError]);
   const {data: myDevotionPlans = []} = useGetMyDevotionPlansQuery({
     status: 'in_progress',
   });
@@ -259,18 +286,11 @@ const Home = () => {
 
     const devotionsToUse = getDevotionsToUse();
     if (devotionsToUse && devotionsToUse.length > 0) {
-      // API already returns only 2018 devotions, no need to filter
-      const today = new Date();
-      const ethiopianDate = toEthiopian(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        today.getDate(),
-      );
-      const [, month, day] = ethiopianDate;
-      const ethiopianMonth = ethiopianMonths[month];
+      // Find today's devotion from the current month's data
       const todaysDevotion = devotionsToUse.find(
         devotion =>
-          devotion.month === ethiopianMonth && Number(devotion.day) === day,
+          devotion.month === currentEthiopianMonth &&
+          Number(devotion.day) === ethDay,
       );
       setSelectedDevotion(todaysDevotion || devotionsToUse[0]);
     }
@@ -279,8 +299,8 @@ const Home = () => {
     isOffline,
     persistedDevotions,
     cachedData.devotions,
-    yearToFetch,
-    currentEthiopianYear,
+    currentEthiopianMonth,
+    ethDay,
   ]);
 
   const getDataToDisplay = () => {
@@ -319,20 +339,20 @@ const Home = () => {
   // Debug logging
   useEffect(() => {
     console.log('=== HOME DEVOTION DEBUG ===');
-    console.log('devotions from API:', devotions?.length || 0);
+    console.log('currentMonth:', currentEthiopianMonth);
+    console.log('ethDay:', ethDay);
+    console.log('devotions from API (current month):', devotions?.length || 0);
     console.log('cachedData.devotions:', cachedData.devotions?.length || 0);
-    console.log('persistedDevotions:', persistedDevotions?.length || 0);
-    console.log('safeDevotionsToDisplay:', safeDevotionsToDisplay?.length || 0);
     console.log('selectedDevotion:', selectedDevotion ? 'YES' : 'NO');
     console.log('devotionToDisplay:', devotionToDisplay ? 'YES' : 'NO');
     console.log('==========================');
   }, [
     devotions,
     cachedData,
-    persistedDevotions,
-    safeDevotionsToDisplay,
     selectedDevotion,
     devotionToDisplay,
+    currentEthiopianMonth,
+    ethDay,
   ]);
 
   const fetchData = useCallback(
@@ -1117,6 +1137,59 @@ const Home = () => {
                 </TouchableOpacity>
               </View>
             </Animated.View>
+
+            {/* Devotion Plans Carousel - Square Cards */}
+            {devotionPlans && devotionPlans.length > 0 && (
+              <Animated.View
+                style={[
+                  tw`mb-6`,
+                  {
+                    transform: [{scale: scaleAnim}],
+                  },
+                ]}>
+                <View style={tw`flex-row justify-between items-center mb-3`}>
+                  <View style={tw`flex-row items-center`}>
+                    <BookOpen size={24} color="#EA9215" weight="bold" />
+                    <Text
+                      style={[
+                        tw`font-nokia-bold text-lg ml-2`,
+                        darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                      ]}>
+                      የየዕለት ምንባብ
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate('Devotional', {
+                        screen: 'DevotionPlans',
+                      })
+                    }>
+                    <Text
+                      style={tw`font-nokia-bold text-accent-6 text-sm`}>
+                      ሁሉም ምንባቦች
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={tw`px-1`}>
+                  {devotionPlans.map((plan, index) => (
+                    <DevotionPlanSquareCard
+                      key={plan._id || index}
+                      plan={plan}
+                      darkMode={darkMode}
+                      onPress={plan => {
+                        navigation.navigate('Devotional', {
+                          screen: 'PlanDevotionViewer',
+                          params: {planId: plan._id},
+                        });
+                      }}
+                    />
+                  ))}
+                </ScrollView>
+              </Animated.View>
+            )}
 
             {safeDevotionsToDisplay.length > 0 && (
               <Animated.View

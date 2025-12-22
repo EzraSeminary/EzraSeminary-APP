@@ -9,7 +9,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect, useMemo} from 'react';
 import {useSelector} from 'react-redux';
 import {useNavigation} from '@react-navigation/native';
 import {Share as RNShare} from 'react-native';
@@ -21,6 +21,7 @@ import {
   Share,
   Heart,
   ChatCircle,
+  ArrowLeft,
 } from 'phosphor-react-native';
 import tw from './../../tailwind';
 import Toast from 'react-native-toast-message';
@@ -65,16 +66,27 @@ const Devotion = () => {
   const user = useSelector(state => state.auth.user);
   const dispatch = useDispatch();
   const navigation = useNavigation();
+
+  // Get current Ethiopian date
+  const today = new Date();
+  const [, ethMonth, ethDay] = toEthiopian(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    today.getDate(),
+  );
+  const currentEthiopianMonth = ethiopianMonths[ethMonth];
+  const yearToFetch = 2018; // Fixed year for now
+
+  // Fetch all devotions for the year to ensure we find today's devotion
   const {
     data: devotions = [],
     isFetching,
     error,
     refetch,
-  } = useGetDevotionsQuery({year: 2018, limit: 1000, sort: 'desc'}); // Fetch 2018 devotions
+  } = useGetDevotionsQuery({year: yearToFetch});
 
   const {data: devotionPlans = []} = useGetDevotionPlansQuery();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedDevotion, setSelectedDevotion] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -83,8 +95,33 @@ const Devotion = () => {
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
+  const [sharesCount, setSharesCount] = useState(0);
+  const [commentsCount, setCommentsCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('devotional'); // 'devotional' or 'plan'
 
-  const devotionToDisplay = selectedDevotion || devotions[0] || null;
+  // Find today's devotion from the loaded data
+  const devotionToDisplay = useMemo(() => {
+    if (devotions.length === 0) return null;
+
+    const todaysDevotion = devotions.find(
+      devotion =>
+        devotion.month === currentEthiopianMonth &&
+        Number(devotion.day) === ethDay,
+    );
+
+    // Log whether we found today's devotion or using fallback
+    if (todaysDevotion) {
+      console.log(
+        `Found today's devotion: ${currentEthiopianMonth} ${ethDay} - ${todaysDevotion.title}`,
+      );
+    } else {
+      console.log(
+        `Today's devotion NOT found for ${currentEthiopianMonth} ${ethDay}, using fallback`,
+      );
+    }
+
+    return todaysDevotion || devotions[0];
+  }, [devotions, currentEthiopianMonth, ethDay]);
 
   // Get cached image (must be called before conditional returns)
   const url = devotionToDisplay?.image ? `${devotionToDisplay.image}` : '';
@@ -97,7 +134,7 @@ const Devotion = () => {
   const [toggleLike, {isLoading: isTogglingLike}] =
     useToggleDevotionLikeMutation();
 
-  // Update likes state when data changes
+  // Update likes, shares, and comments state when data changes
   useEffect(() => {
     if (likesData) {
       setIsLiked(likesData.isLiked || false);
@@ -106,7 +143,18 @@ const Devotion = () => {
       setIsLiked(devotionToDisplay.isLiked);
       setLikesCount(devotionToDisplay.likesCount || 0);
     }
-  }, [likesData, devotionToDisplay?.isLiked, devotionToDisplay?.likesCount]);
+    // Update shares and comments count from devotion data
+    if (devotionToDisplay) {
+      setSharesCount(devotionToDisplay.sharesCount || 0);
+      setCommentsCount(devotionToDisplay.commentsCount || 0);
+    }
+  }, [
+    likesData,
+    devotionToDisplay?.isLiked,
+    devotionToDisplay?.likesCount,
+    devotionToDisplay?.sharesCount,
+    devotionToDisplay?.commentsCount,
+  ]);
 
   const handleLike = async () => {
     if (!user || !devotionToDisplay?._id) {
@@ -171,12 +219,23 @@ const Devotion = () => {
   // Debug logging
   useEffect(() => {
     console.log('=== DEVOTION SCREEN DEBUG ===');
-    console.log('devotions:', devotions?.length || 0);
+    console.log('currentMonth:', currentEthiopianMonth, 'day:', ethDay);
+    console.log('devotions loaded:', devotions?.length || 0);
     console.log('isFetching:', isFetching);
     console.log('error:', error);
-    console.log('selectedDevotion:', selectedDevotion ? 'YES' : 'NO');
+    console.log(
+      'devotionToDisplay:',
+      devotionToDisplay ? devotionToDisplay.title : 'NO',
+    );
     console.log('============================');
-  }, [devotions, isFetching, error, selectedDevotion]);
+  }, [
+    devotions,
+    isFetching,
+    error,
+    devotionToDisplay,
+    currentEthiopianMonth,
+    ethDay,
+  ]);
 
   const tailwindStyles = StyleSheet.create({
     p: {
@@ -289,27 +348,12 @@ const Devotion = () => {
     };
   }, []);
 
+  // Schedule notification when devotion changes
   useEffect(() => {
-    if (devotions.length > 0) {
-      // API already returns only 2018 devotions, no need to filter
-      const today = new Date();
-      const [, month, day] = toEthiopian(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        today.getDate(),
-      );
-      const ethiopianMonth = ethiopianMonths[month];
-      const todaysDevotion = devotions.find(
-        devotion =>
-          devotion.month === ethiopianMonth && Number(devotion.day) === day,
-      );
-      const currentDevotion = todaysDevotion || devotions[0];
-      setSelectedDevotion(currentDevotion);
-
-      // Schedule notification for current devotion if notifications are enabled
-      scheduleNotificationForCurrentDevotion(currentDevotion);
+    if (devotionToDisplay) {
+      scheduleNotificationForCurrentDevotion(devotionToDisplay);
     }
-  }, [devotions]);
+  }, [devotionToDisplay]);
 
   const scheduleNotificationForCurrentDevotion = async devotion => {
     try {
@@ -460,19 +504,88 @@ const Devotion = () => {
           }
           removeClippedSubviews={true}>
           <View style={tw`flex flex-row justify-between items-center my-4`}>
-            <View style={tw`border-b border-accent-6`}>
-              <Text
-                style={[
-                  tw`font-nokia-bold text-xl text-secondary-6 text-center`,
-                  darkMode ? tw`text-primary-1` : null,
-                ]}>
-                Devotional
-              </Text>
-            </View>
             <View style={tw`flex flex-row items-center gap-3`}>
-              <TouchableOpacity onPress={() => setShareModalVisible(true)}>
-                <Share size={32} weight="regular" color="#EA9215" />
+              <TouchableOpacity
+                onPress={() => {
+                  // Navigate back to DevotionalHome
+                  if (navigation.canGoBack()) {
+                    navigation.goBack();
+                  } else {
+                    navigation.navigate('Devotional', {
+                      screen: 'DevotionalHome',
+                    });
+                  }
+                }}>
+                <ArrowLeft size={28} weight="bold" color="#EA9215" />
               </TouchableOpacity>
+              <View style={tw`border-b border-accent-6`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xl text-secondary-6 text-center`,
+                    darkMode ? tw`text-primary-1` : null,
+                  ]}>
+                  Devotional
+                </Text>
+              </View>
+            </View>
+            <View style={tw`flex flex-row items-center gap-2`}>
+              {/* Sliding buttons for Devotional/Devotional Plan */}
+              <View
+                style={tw`flex-row bg-secondary-7 rounded-full p-1 ${
+                  darkMode ? 'bg-secondary-8' : ''
+                }`}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setActiveTab('devotional');
+                    // Navigate to DevotionalHome if not already there
+                    navigation.navigate('Devotional', {
+                      screen: 'DevotionalHome',
+                    });
+                  }}
+                  style={tw`px-4 py-2 rounded-full ${
+                    activeTab === 'devotional'
+                      ? 'bg-accent-6'
+                      : darkMode
+                      ? 'bg-transparent'
+                      : 'bg-transparent'
+                  }`}>
+                  <Text
+                    style={tw`font-nokia-bold text-sm ${
+                      activeTab === 'devotional'
+                        ? 'text-white'
+                        : darkMode
+                        ? 'text-primary-3'
+                        : 'text-secondary-6'
+                    }`}>
+                    Devotional
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setActiveTab('plan');
+                    navigation.navigate('Devotional', {
+                      screen: 'DevotionPlans',
+                    });
+                  }}
+                  style={tw`px-4 py-2 rounded-full ${
+                    activeTab === 'plan'
+                      ? 'bg-accent-6'
+                      : darkMode
+                      ? 'bg-transparent'
+                      : 'bg-transparent'
+                  }`}>
+                  <Text
+                    style={tw`font-nokia-bold text-sm ${
+                      activeTab === 'plan'
+                        ? 'text-white'
+                        : darkMode
+                        ? 'text-primary-3'
+                        : 'text-secondary-6'
+                    }`}>
+                    Devotional Plan
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
           <View style={tw`flex flex-row mt-6 justify-between`}>
@@ -590,6 +703,13 @@ const Devotion = () => {
                 style={tw`items-center`}
                 onPress={handleShareDevotion}>
                 <ShareNetwork size={28} weight="regular" color="#EA9215" />
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xs mt-1`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  {sharesCount || 0}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -601,7 +721,7 @@ const Devotion = () => {
                     tw`font-nokia-bold text-xs mt-1`,
                     darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
                   ]}>
-                  {devotionToDisplay?.commentsCount || 0}
+                  {commentsCount || 0}
                 </Text>
               </TouchableOpacity>
             </View>

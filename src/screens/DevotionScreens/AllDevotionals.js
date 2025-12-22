@@ -27,7 +27,7 @@ import ErrorScreen from '../../components/ErrorScreen';
 import networkManager from '../../utils/networkManager';
 
 // Utility function for Ethiopian month names
-const ethopianMonths = [
+const ethiopianMonths = [
   'መስከረም',
   'ጥቅምት',
   'ህዳር',
@@ -46,25 +46,18 @@ const ethopianMonths = [
 const AllDevotionals = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const dispatch = useDispatch();
-  const currentUser = useSelector(state => state.auth.user);
 
-  // Get current Ethiopian year
-  const getCurrentEthiopianYear = () => {
-    // For now, we'll use 2018 as the current Ethiopian year
-    // This should be updated based on the actual current Ethiopian year
-    return 2018;
-  };
-
-  // Always show 2018 devotions only (those with year field = 2018)
+  // Always show 2018 devotions only
   const yearToFetch = 2018;
 
-  // Only fetch devotional metadata (titles, months) initially
+  // Fetch devotions with a reasonable limit
   const {
     data: originalDevotionals = [],
     isFetching,
     refetch,
     error,
-  } = useGetDevotionsQuery({year: 2018, limit: 365}); // Fetch all 2018 devotions
+  } = useGetDevotionsQuery({year: yearToFetch, limit: 400});
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedMonth, setExpandedMonth] = useState(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
@@ -152,16 +145,18 @@ const AllDevotionals = ({navigation}) => {
   }, []);
 
   // Function to get the index of an Ethiopian month
-  const getEthiopianMonthIndex = monthName => ethopianMonths.indexOf(monthName);
+  const getEthiopianMonthIndex = monthName =>
+    ethiopianMonths.indexOf(monthName);
 
   // Organize devotionals by month and sort days within each month
   const sortedDevotionals = useMemo(() => {
-    // API already returns only 2018 devotions, no need to filter
     const listForDisplay = originalDevotionals;
 
     const devotionalsByMonth = listForDisplay.reduce((acc, devotion) => {
       const monthName = devotion.month;
-      if (!acc[monthName]) acc[monthName] = [];
+      if (!acc[monthName]) {
+        acc[monthName] = [];
+      }
       acc[monthName].push(devotion);
       return acc;
     }, {});
@@ -182,10 +177,6 @@ const AllDevotionals = ({navigation}) => {
 
   const toggleMonth = month => {
     setExpandedMonth(expandedMonth === month ? null : month);
-    // Optional: Could implement lazy loading here for individual months
-    // if (expandedMonth !== month) {
-    //   // Fetch detailed data for this month only
-    // }
   };
 
   const handleRetry = async () => {
@@ -309,10 +300,13 @@ const AllDevotionals = ({navigation}) => {
           onPress={() => navigation.goBack()}>
           <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
         </TouchableOpacity>
-        <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
-        <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
-          Loading
-        </Text>
+        <View style={tw`flex-1 justify-center items-center`}>
+          <ActivityIndicator size="large" color="#EA9215" />
+          <Text
+            style={tw`font-nokia-bold text-lg text-accent-6 text-center mt-4`}>
+            Loading Devotionals...
+          </Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -356,23 +350,49 @@ const AllDevotionals = ({navigation}) => {
             />
           </View>
 
+          {/* Info about number of devotionals */}
+          <View style={tw`mb-4 px-2`}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-xs text-center`,
+                darkMode ? tw`text-primary-4` : tw`text-secondary-4`,
+              ]}>
+              {originalDevotionals.length} devotionals loaded • Tap a month to
+              expand
+            </Text>
+          </View>
+
           {sortedDevotionals.sortedMonths.map(month => (
             <View key={month} style={tw`my-2`}>
               <TouchableOpacity
                 style={tw`flex flex-row justify-between items-center border-b border-accent-6 pb-2`}
                 onPress={() => toggleMonth(month)}>
-                <Text
-                  style={[
-                    tw`font-nokia-bold text-lg text-secondary-6`,
-                    darkMode ? tw`text-primary-1` : null,
-                  ]}>
-                  {month}
-                </Text>
+                <View style={tw`flex-row items-center`}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-lg text-secondary-6`,
+                      darkMode ? tw`text-primary-1` : null,
+                    ]}>
+                    {month}
+                  </Text>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-sm ml-2`,
+                      darkMode ? tw`text-primary-4` : tw`text-secondary-4`,
+                    ]}>
+                    ({sortedDevotionals.devotionalsByMonth[month]?.length || 0})
+                  </Text>
+                </View>
                 <ArrowSquareDown
                   size={24}
                   weight={expandedMonth === month ? 'fill' : 'regular'}
                   color="#EA9215"
-                  style={tw`mr-2`}
+                  style={[
+                    tw`mr-2`,
+                    expandedMonth === month && {
+                      transform: [{rotate: '180deg'}],
+                    },
+                  ]}
                 />
               </TouchableOpacity>
               {expandedMonth === month && (
@@ -380,7 +400,7 @@ const AllDevotionals = ({navigation}) => {
                   {sortedDevotionals.devotionalsByMonth[month].map(
                     (item, index) => (
                       <TouchableOpacity
-                        key={index}
+                        key={item._id || index}
                         style={tw`w-[47.5%] h-35 mb-4 rounded-2 overflow-hidden`}
                         onPress={() =>
                           navigation.navigate('SelectedDevotional', {
@@ -423,6 +443,9 @@ const AllDevotionals = ({navigation}) => {
               )}
             </View>
           ))}
+
+          {/* Bottom padding */}
+          <View style={tw`h-20`} />
         </ScrollView>
       </SafeAreaView>
     </View>

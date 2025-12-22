@@ -27,24 +27,50 @@ const PreviousDevotions = ({devotions, darkMode, currentYear}) => {
   ];
 
   const previousDevotions = useMemo(() => {
+    if (!devotions || devotions.length === 0) return [];
+
     const today = new Date();
-    const [year, month, day] = toEthiopian(
+    const [, month, day] = toEthiopian(
       today.getFullYear(),
       today.getMonth() + 1,
       today.getDate(),
     );
     const ethiopianMonth = ethiopianMonths[month];
+    const monthIndex = ethiopianMonths.indexOf(ethiopianMonth);
 
-    // Filter devotions by year if provided, otherwise use current year
-    const yearToFilter = currentYear || year;
+    // Get devotions from the current month (before today) and previous months
+    // This ensures we always have some devotions to show
+    const filtered = devotions.filter(devotion => {
+      const devMonthIndex = ethiopianMonths.indexOf(devotion.month);
+      const devDay = Number(devotion.day);
 
-    return devotions
-      .filter(devotion => {
-        return devotion.month === ethiopianMonth && Number(devotion.day) < day;
+      // Skip today's devotion
+      if (devotion.month === ethiopianMonth && devDay === day) {
+        return false;
+      }
+
+      // Include previous months and earlier days in current month
+      if (devMonthIndex < monthIndex) {
+        return true;
+      }
+      if (devMonthIndex === monthIndex && devDay < day) {
+        return true;
+      }
+      return false;
+    });
+
+    // Sort by month (desc) then by day (desc) to get most recent first
+    return filtered
+      .sort((a, b) => {
+        const aMonthIdx = ethiopianMonths.indexOf(a.month);
+        const bMonthIdx = ethiopianMonths.indexOf(b.month);
+        if (aMonthIdx !== bMonthIdx) {
+          return bMonthIdx - aMonthIdx;
+        }
+        return Number(b.day) - Number(a.day);
       })
-      .sort((a, b) => Number(b.day) - Number(a.day))
       .slice(0, 4);
-  }, [devotions, currentYear]);
+  }, [devotions]);
 
   const CachedImageBg = ({uri, children}) => {
     const cached = useCachedImage(uri);

@@ -190,9 +190,23 @@ export const apiSlice = createApi({
     }),
     getDevotionPlanDevotions: builder.query({
       query: id => `/devotionPlan/${id}/devotions`,
-      transformResponse: response => {
-        // Backend returns { items: [...], total: number }
-        return response?.items || [];
+      transformResponse: (response, meta, arg) => {
+        console.log('=== getDevotionPlanDevotions Response ===');
+        console.log('Response:', JSON.stringify(response, null, 2));
+        console.log('Response type:', typeof response);
+        console.log('Is array:', Array.isArray(response));
+        // Backend returns { items: [...], total: number, itemCount: number }
+        // Or might return array directly
+        if (Array.isArray(response)) {
+          console.log('Response is array, returning as-is');
+          return response;
+        }
+        if (response?.items && Array.isArray(response.items)) {
+          console.log('Response has items array, extracting items');
+          return response.items;
+        }
+        console.log('No valid response format, returning empty array');
+        return [];
       },
       providesTags: (result, error, id) => [
         {type: 'DevotionPlans', id},
@@ -282,6 +296,35 @@ export const apiSlice = createApi({
         {type: 'Devotions', id},
       ],
     }),
+    // Lazy loading endpoints for devotions by month
+    getMonthsByYear: builder.query({
+      query: year => `/devotion/year/${year}/months`,
+      // Cache months list for 1 hour since it rarely changes
+      keepUnusedDataFor: 3600,
+      providesTags: (result, error, year) => [{type: 'Devotions', id: `months-${year}`}],
+    }),
+    getDevotionsByYearAndMonth: builder.query({
+      query: ({year, month}) => `/devotion/year/${year}/month/${encodeURIComponent(month)}`,
+      transformResponse: response => {
+        // Backend returns array of devotions for the month
+        if (Array.isArray(response)) {
+          return response;
+        }
+        return [];
+      },
+      // Cache month's devotions for 30 minutes
+      keepUnusedDataFor: 1800,
+      providesTags: (result, error, {year, month}) => [
+        {type: 'Devotions', id: `${year}-${month}`},
+      ],
+    }),
+    // Get available years for devotions
+    getAvailableYears: builder.query({
+      query: () => '/devotion/years',
+      // Cache years list for 1 hour
+      keepUnusedDataFor: 3600,
+      providesTags: [{type: 'Devotions', id: 'years'}],
+    }),
   }),
 });
 
@@ -308,5 +351,9 @@ export const {
   useGetDevotionCommentsQuery,
   useAddDevotionCommentMutation,
   useDeleteDevotionCommentMutation,
+  // Lazy loading hooks for devotions by month
+  useGetMonthsByYearQuery,
+  useGetDevotionsByYearAndMonthQuery,
+  useGetAvailableYearsQuery,
   util: {invalidateTags},
 } = apiSlice;
