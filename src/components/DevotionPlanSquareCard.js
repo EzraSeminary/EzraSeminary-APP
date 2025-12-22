@@ -1,5 +1,6 @@
 import React from 'react';
 import {View, Text, Image, TouchableOpacity, ImageBackground} from 'react-native';
+import {ArrowRight} from 'phosphor-react-native';
 import {useCachedImage} from '../utils/imageCache';
 import tw from './../../tailwind';
 
@@ -38,9 +39,12 @@ const DevotionPlanSquareCard = ({plan, darkMode, onPress}) => {
             {plan.title || 'Untitled Plan'}
           </Text>
           {plan.numItems && (
-            <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
-              {plan.numItems} {plan.numItems === 1 ? 'day' : 'days'}
-            </Text>
+            <View style={tw`flex-row items-center justify-between`}>
+              <ArrowRight size={16} color="#EA9215" weight="bold" />
+              <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>
+                {plan.numItems} {plan.numItems === 1 ? 'day' : 'days'}
+              </Text>
+            </View>
           )}
         </View>
       </ImageBackground>

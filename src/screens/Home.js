@@ -29,8 +29,6 @@ import NetInfo from '@react-native-community/netinfo';
 import DevotionCard from '../components/DevotionCard';
 import CourseCard from '../components/CourseCard';
 import Header from '../components/Header';
-import DevotionPlansCarousel from '../components/DevotionPlansCarousel';
-import DevotionPlanProgressCard from '../components/DevotionPlanProgressCard';
 import DevotionPlanSquareCard from '../components/DevotionPlanSquareCard';
 import {setDevotions} from '../redux/devotionsSlice';
 import {setCourses} from '../redux/courseSlice';
@@ -901,86 +899,6 @@ const Home = () => {
               </Animated.View>
             )}
 
-            {/* Devotion Plans Section Header */}
-            {((myDevotionPlans && myDevotionPlans.length > 0) ||
-              (unstartedPlans && unstartedPlans.length > 0)) && (
-              <Animated.View
-                style={[
-                  tw`p-4 rounded-2xl mb-4 mt-4`,
-                  {
-                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
-                    transform: [{scale: scaleAnim}],
-                  },
-                ]}>
-                <View style={tw`flex flex-row justify-between items-center`}>
-                  <View style={tw`flex-row items-center flex-1`}>
-                    <BookOpen size={24} color="#EA9215" weight="bold" />
-                    <Text
-                      style={[
-                        tw`font-nokia-bold text-lg ml-3`,
-                        darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-                      ]}>
-                      የየዕለት ምንባብ
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[
-                      tw`px-4 py-2 rounded-full flex-row items-center`,
-                      {backgroundColor: '#EA9215'},
-                    ]}
-                    onPress={() =>
-                      navigation.navigate('Devotional', {
-                        screen: 'DevotionPlans',
-                      })
-                    }>
-                    <Text
-                      style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
-                      ሁሉም ምንባቦች
-                    </Text>
-                    <BookOpen size={14} color="#FFFFFF" weight="bold" />
-                  </TouchableOpacity>
-                </View>
-              </Animated.View>
-            )}
-
-            {/* Active Devotion Plan Progress - Show if user has started a plan */}
-            {myDevotionPlans && myDevotionPlans.length > 0 && (
-              <Animated.View
-                style={{
-                  transform: [{scale: scaleAnim}],
-                }}>
-                {myDevotionPlans.slice(0, 1).map(userPlan => {
-                  const plan =
-                    userPlan.plan ||
-                    devotionPlans.find(p => p._id === userPlan.planId);
-                  if (!plan) return null;
-                  return (
-                    <DevotionPlanProgressCard
-                      key={userPlan._id || userPlan.planId}
-                      plan={plan}
-                      progress={userPlan}
-                      darkMode={darkMode}
-                    />
-                  );
-                })}
-              </Animated.View>
-            )}
-
-            {/* Unstarted Devotion Plans Carousel - Show if user hasn't started or has completed plans */}
-            {(!myDevotionPlans || myDevotionPlans.length === 0) &&
-              unstartedPlans &&
-              unstartedPlans.length > 0 && (
-                <Animated.View
-                  style={{
-                    transform: [{scale: scaleAnim}],
-                  }}>
-                  <DevotionPlansCarousel
-                    plans={unstartedPlans.slice(0, 5)}
-                    darkMode={darkMode}
-                    showSeeMore={true}
-                  />
-                </Animated.View>
-              )}
 
             {/* Enhanced Section Divider with Bible */}
             <View style={tw`flex-row items-center my-6`}>
@@ -1138,58 +1056,145 @@ const Home = () => {
               </View>
             </Animated.View>
 
-            {/* Devotion Plans Carousel - Square Cards */}
-            {devotionPlans && devotionPlans.length > 0 && (
+            {/* Enhanced Section Divider */}
+            <View style={tw`flex-row items-center my-6`}>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
               <Animated.View
                 style={[
-                  tw`mb-6`,
+                  tw`p-3 rounded-full`,
                   {
-                    transform: [{scale: scaleAnim}],
+                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                    opacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.6, 1, 0.6],
+                    }),
+                    transform: [
+                      {
+                        scale: sparkleAnim.interpolate({
+                          inputRange: [0, 0.25, 0.5, 0.75, 1],
+                          outputRange: [1, 1.1, 1.2, 1.1, 1],
+                        }),
+                      },
+                    ],
+                    shadowColor: '#374151',
+                    shadowOffset: {width: 0, height: 0},
+                    shadowOpacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.25, 5],
+                      outputRange: [0.2, 0.4, 0.2],
+                    }),
+                    shadowRadius: sparkleAnim.interpolate({
+                      inputRange: [0, 0.2, 1],
+                      outputRange: [4, 12, 4],
+                    }),
+                    elevation: 10,
                   },
                 ]}>
-                <View style={tw`flex-row justify-between items-center mb-3`}>
-                  <View style={tw`flex-row items-center`}>
-                    <BookOpen size={24} color="#EA9215" weight="bold" />
-                    <Text
-                      style={[
-                        tw`font-nokia-bold text-lg ml-2`,
-                        darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-                      ]}>
-                      የየዕለት ምንባብ
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() =>
-                      navigation.navigate('Devotional', {
-                        screen: 'DevotionPlans',
-                      })
-                    }>
-                    <Text
-                      style={tw`font-nokia-bold text-accent-6 text-sm`}>
-                      ሁሉም ምንባቦች
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={tw`px-1`}>
-                  {devotionPlans.map((plan, index) => (
-                    <DevotionPlanSquareCard
-                      key={plan._id || index}
-                      plan={plan}
-                      darkMode={darkMode}
-                      onPress={plan => {
-                        navigation.navigate('Devotional', {
-                          screen: 'PlanDevotionViewer',
-                          params: {planId: plan._id},
-                        });
-                      }}
-                    />
-                  ))}
-                </ScrollView>
+                <Cross size={18} color="#EA9215" weight="bold" />
               </Animated.View>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
+            </View>
+
+            {/* Devotion Plans Section - በእቅድ ያንብቡ */}
+            {devotionPlans && devotionPlans.length > 0 && (
+              <>
+                <Animated.View
+                  style={[
+                    tw`p-4 rounded-2xl mb-4`,
+                    {
+                      backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                      transform: [{scale: scaleAnim}],
+                    },
+                  ]}>
+                  <View style={tw`flex flex-row justify-between items-center`}>
+                    <View style={tw`flex-row items-center flex-1`}>
+                      <BookOpen size={24} color="#EA9215" weight="bold" />
+                      <Text
+                        style={[
+                          tw`font-nokia-bold text-lg ml-3`,
+                          darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                        ]}>
+                        በእቅድ ያንብቡ
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        tw`px-4 py-2 rounded-full flex-row items-center`,
+                        {backgroundColor: '#EA9215'},
+                      ]}
+                      onPress={() =>
+                        navigation.navigate('Devotional', {
+                          screen: 'DevotionPlans',
+                        })
+                      }>
+                      <Text style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
+                        All Plans
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </Animated.View>
+                <Animated.View
+                  style={{
+                    transform: [{scale: scaleAnim}],
+                  }}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={tw`px-1 pb-2`}>
+                    {devotionPlans.map((plan, index) => (
+                      <DevotionPlanSquareCard
+                        key={plan._id || index}
+                        plan={plan}
+                        darkMode={darkMode}
+                        onPress={plan => {
+                          navigation.navigate('Devotional', {
+                            screen: 'PlanDevotionViewer',
+                            params: {planId: plan._id},
+                          });
+                        }}
+                      />
+                    ))}
+                  </ScrollView>
+                </Animated.View>
+              </>
             )}
+
+            {/* Enhanced Section Divider */}
+            <View style={tw`flex-row items-center my-6`}>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
+              <Animated.View
+                style={[
+                  tw`p-3 rounded-full`,
+                  {
+                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                    opacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.6, 1, 0.6],
+                    }),
+                    transform: [
+                      {
+                        scale: sparkleAnim.interpolate({
+                          inputRange: [0, 0.25, 0.5, 0.75, 1],
+                          outputRange: [1, 1.1, 1.2, 1.1, 1],
+                        }),
+                      },
+                    ],
+                    shadowColor: '#374151',
+                    shadowOffset: {width: 0, height: 0},
+                    shadowOpacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.25, 5],
+                      outputRange: [0.2, 0.4, 0.2],
+                    }),
+                    shadowRadius: sparkleAnim.interpolate({
+                      inputRange: [0, 0.2, 1],
+                      outputRange: [4, 12, 4],
+                    }),
+                    elevation: 10,
+                  },
+                ]}>
+                <Cross size={18} color="#EA9215" weight="bold" />
+              </Animated.View>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
+            </View>
 
             {safeDevotionsToDisplay.length > 0 && (
               <Animated.View
