@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ImageBackground,
   ActivityIndicator,
-  RefreshControl,
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import {
@@ -17,14 +16,9 @@ import {
   ArrowSquareDown,
 } from 'phosphor-react-native';
 import tw from './../../../tailwind';
-import {
-  useGetDevotionsQuery,
-  apiSlice,
-} from './../../redux/api-slices/apiSlice';
-import {useDispatch} from 'react-redux';
+import {useGetDevotionsByYearAndMonthQuery} from './../../redux/api-slices/apiSlice';
 import Toast from 'react-native-toast-message';
-import ErrorScreen from '../../components/ErrorScreen';
-import networkManager from '../../utils/networkManager';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Utility function for Ethiopian month names
 const ethiopianMonths = [
@@ -43,292 +37,220 @@ const ethiopianMonths = [
   'ጳጉሜ',
 ];
 
+// Cache key prefix for storing month data
+const CACHE_PREFIX = 'devotion_month_';
+const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+
+// Helper function to get thumbnail URL for smaller images (reduces bandwidth)
+const getThumbnailUrl = imageUrl => {
+  if (!imageUrl) return imageUrl;
+  // If using ImageKit, add transformation parameters for smaller images
+  // This reduces bandwidth usage significantly
+  if (imageUrl.includes('ik.imagekit.io')) {
+    // Add ImageKit transformation: width 300px, height 200px, maintain aspect ratio, quality 80
+    const separator = imageUrl.includes('?') ? '&' : '?';
+    return `${imageUrl}${separator}tr=w-300,h-200,q-80`;
+  }
+  // For other image services, return original URL
+  return imageUrl;
+};
+
 const AllDevotionals = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
-  const dispatch = useDispatch();
 
   // Always show 2018 devotions only
   const yearToFetch = 2018;
+  const HOME_CACHE_KEY = 'home_data_cache';
 
-  // Fetch devotions with a reasonable limit
-  const {
-    data: originalDevotionals = [],
-    isFetching,
-    refetch,
-    error,
-  } = useGetDevotionsQuery({year: yearToFetch, limit: 400});
-
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedMonth, setExpandedMonth] = useState(null);
-  const [loadingTimeout, setLoadingTimeout] = useState(false);
-  const [networkError, setNetworkError] = useState(false);
+  const [loadedMonths, setLoadedMonths] = useState({}); // Store loaded month data
+  const [loadingMonths, setLoadingMonths] = useState({}); // Track which months are loading
+  const [allDevotions, setAllDevotions] = useState([]); // Store all devotions from cache
 
-  const onRefresh = useCallback(async () => {
-    try {
-      setIsRefreshing(true);
-      setLoadingTimeout(false);
-      setNetworkError(false);
+  // Load all devotions from Home cache on mount
+  useEffect(() => {
+    const loadFromHomeCache = async () => {
+      try {
+        const cachedString = await AsyncStorage.getItem(HOME_CACHE_KEY);
+        if (cachedString) {
+          const cached = JSON.parse(cachedString);
+          if (cached.devotions && cached.devotions.length > 0) {
+            // Filter for 2018 devotions only
+            const devotions2018 = cached.devotions.filter(
+              d => d.year === yearToFetch || !d.year, // Include if year is 2018 or not specified
+            );
+            setAllDevotions(devotions2018);
+            console.log(
+              `Loaded ${devotions2018.length} devotions from Home cache`,
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Error loading from Home cache:', error);
+      }
+    };
 
-      // Check network connectivity first
-      if (!networkManager.isOnline) {
-        setNetworkError(true);
-        Toast.show({
-          type: 'error',
-          text1: 'No Internet Connection',
-          text2: 'Please connect to reload.',
-        });
+    loadFromHomeCache();
+  }, [yearToFetch]);
+
+  // Function to get devotions for a specific month from cached data
+  const getMonthDevotionsFromCache = month => {
+    if (!allDevotions || allDevotions.length === 0) return [];
+    return allDevotions
+      .filter(devotion => devotion.month === month)
+      .sort((a, b) => Number(a.day) - Number(b.day));
+  };
+
+  // Function to load month data
+  const loadMonthData = useCallback(
+    async month => {
+      // Check if already loaded
+      if (loadedMonths[month]) {
         return;
       }
 
-      console.log('AllDevotionals: Force refresh...');
-      dispatch(apiSlice.util.invalidateTags(['Devotions']));
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const result = await refetch();
-      console.log(
-        'AllDevotionals: Refresh complete',
-        result?.data?.length || 0,
-      );
-
-      if (result?.data?.length > 0) {
-        Toast.show({
-          type: 'success',
-          text1: 'Refreshed',
-          text2: `${result.data.length} devotionals loaded`,
-        });
+      // Try to get from cached allDevotions first
+      let cachedMonthData = getMonthDevotionsFromCache(month);
+      
+      // If not found in allDevotions, try to reload from Home cache
+      if (cachedMonthData.length === 0) {
+        try {
+          const cachedString = await AsyncStorage.getItem(HOME_CACHE_KEY);
+          if (cachedString) {
+            const cached = JSON.parse(cachedString);
+            if (cached.devotions && cached.devotions.length > 0) {
+              const devotions2018 = cached.devotions.filter(
+                d => d.year === yearToFetch || !d.year,
+              );
+              setAllDevotions(devotions2018);
+              cachedMonthData = devotions2018
+                .filter(d => d.month === month)
+                .sort((a, b) => Number(a.day) - Number(b.day));
+            }
+          }
+        } catch (error) {
+          console.error('Error reloading cache:', error);
+        }
       }
-    } catch (err) {
-      console.error('Refresh error:', err);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [refetch, dispatch]);
 
-  // Add loading timeout effect
-  useEffect(() => {
-    let timeoutId;
-    if (isFetching && !error && !originalDevotionals.length) {
-      timeoutId = setTimeout(() => {
-        setLoadingTimeout(true);
-      }, 15000); // 15 second timeout
-    } else {
-      setLoadingTimeout(false);
-    }
-
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
+      // Set the loaded data (even if empty)
+      setLoadedMonths(prev => ({
+        ...prev,
+        [month]: cachedMonthData,
+      }));
+      
+      if (cachedMonthData.length > 0) {
+        console.log(`Loaded ${cachedMonthData.length} devotions for ${month} from cache`);
       }
-    };
-  }, [isFetching, error, originalDevotionals.length]);
+    },
+    [loadedMonths, allDevotions, yearToFetch],
+  );
 
-  // Check network connectivity on mount and set up listener
-  useEffect(() => {
-    // Initial check
-    if (!networkManager.isOnline) {
-      setNetworkError(true);
-    }
+  // Use all Ethiopian months (already sorted in the array)
+  const sortedMonths = ethiopianMonths;
 
-    // Set up network state listener
-    const unsubscribe = networkManager.addListener(networkState => {
-      if (!networkState.isOnline) {
-        setNetworkError(true);
+  // Handle month toggle
+  const toggleMonth = useCallback(
+    async month => {
+      if (expandedMonth === month) {
+        setExpandedMonth(null);
       } else {
-        setNetworkError(false);
+        setExpandedMonth(month);
+        // Load data when month is expanded
+        await loadMonthData(month);
       }
-    });
+    },
+    [expandedMonth, loadMonthData],
+  );
 
-    // Cleanup listener on unmount
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+  // Component to display month data
+  const MonthDevotions = ({month}) => {
+    // Get data from loadedMonths (which is populated from cache or API)
+    const monthDevotions = loadedMonths[month] || [];
 
-  // Function to get the index of an Ethiopian month
-  const getEthiopianMonthIndex = monthName =>
-    ethiopianMonths.indexOf(monthName);
-
-  // Organize devotionals by month and sort days within each month
-  const sortedDevotionals = useMemo(() => {
-    const listForDisplay = originalDevotionals;
-
-    const devotionalsByMonth = listForDisplay.reduce((acc, devotion) => {
-      const monthName = devotion.month;
-      if (!acc[monthName]) {
-        acc[monthName] = [];
-      }
-      acc[monthName].push(devotion);
-      return acc;
-    }, {});
-
-    // Sort devotionals by Ethiopian month order and day within each month
-    const sortedMonths = Object.keys(devotionalsByMonth).sort((a, b) => {
-      return getEthiopianMonthIndex(a) - getEthiopianMonthIndex(b);
-    });
-
-    sortedMonths.forEach(month => {
-      devotionalsByMonth[month] = devotionalsByMonth[month].sort(
-        (a, b) => a.day - b.day,
-      );
-    });
-
-    return {sortedMonths, devotionalsByMonth};
-  }, [originalDevotionals]);
-
-  const toggleMonth = month => {
-    setExpandedMonth(expandedMonth === month ? null : month);
-  };
-
-  const handleRetry = async () => {
-    setLoadingTimeout(false);
-    setNetworkError(false);
-
-    if (!networkManager.isOnline) {
-      setNetworkError(true);
-      Toast.show({
-        type: 'error',
-        text1: 'No Internet Connection',
-        text2: 'Please connect to the internet.',
-      });
-      return;
-    }
-
-    try {
-      console.log('AllDevotionals: Invalidating cache and refetching...');
-      // Invalidate RTK Query cache
-      dispatch(apiSlice.util.invalidateTags(['Devotions']));
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const result = await refetch();
-      console.log(
-        'AllDevotionals: Refetch complete',
-        result?.data?.length || 0,
-      );
-
-      if (result?.data?.length > 0) {
-        Toast.show({
-          type: 'success',
-          text1: 'Data Refreshed',
-          text2: `Loaded ${result.data.length} devotionals`,
-        });
-      }
-    } catch (err) {
-      console.error('Retry error:', err);
-      Toast.show({
-        type: 'error',
-        text1: 'Retry Failed',
-        text2: 'Unable to fetch devotionals.',
-      });
-    }
-  };
-
-  // Handle different error states
-  if (networkError && !originalDevotionals.length) {
-    return (
-      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
-        <View style={tw`flex-1 justify-center items-center px-6`}>
-          <TouchableOpacity
-            style={tw`absolute top-12 left-6`}
-            onPress={() => navigation.goBack()}>
-            <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
-          </TouchableOpacity>
-          <Text
-            style={[
-              tw`font-nokia-bold text-xl text-center mb-4`,
-              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-            ]}>
-            No Internet Connection
-          </Text>
-          <Text
-            style={[
-              tw`font-nokia-bold text-sm text-center mb-6`,
-              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
-            ]}>
-            Please check your internet connection and try again.
-          </Text>
-          <TouchableOpacity
-            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
-            onPress={handleRetry}>
-            <Text style={tw`font-nokia-bold text-white text-base`}>
-              Try Again
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (loadingTimeout && !originalDevotionals.length) {
-    return (
-      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
-        <View style={tw`flex-1 justify-center items-center px-6`}>
-          <TouchableOpacity
-            style={tw`absolute top-12 left-6`}
-            onPress={() => navigation.goBack()}>
-            <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
-          </TouchableOpacity>
-          <ActivityIndicator size="large" color="#EA9215" style={tw`mb-4`} />
-          <Text
-            style={[
-              tw`font-nokia-bold text-xl text-center mb-4`,
-              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-            ]}>
-            Still loading...
-          </Text>
-          <Text
-            style={[
-              tw`font-nokia-bold text-sm text-center mb-6`,
-              darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
-            ]}>
-            This is taking longer than expected. Please check your connection.
-          </Text>
-          <TouchableOpacity
-            style={tw`bg-accent-6 px-6 py-3 rounded-4`}
-            onPress={handleRetry}>
-            <Text style={tw`font-nokia-bold text-white text-base`}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (isFetching && !originalDevotionals.length) {
-    return (
-      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-full flex-1` : null}>
-        <TouchableOpacity
-          style={tw`absolute top-12 left-6 z-10`}
-          onPress={() => navigation.goBack()}>
-          <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
-        </TouchableOpacity>
-        <View style={tw`flex-1 justify-center items-center`}>
+    // Show loading state only if we're actually loading from API
+    if (loadingMonths[month]) {
+      return (
+        <View style={tw`flex-1 justify-center items-center py-8`}>
           <ActivityIndicator size="large" color="#EA9215" />
           <Text
-            style={tw`font-nokia-bold text-lg text-accent-6 text-center mt-4`}>
-            Loading Devotionals...
+            style={[
+              tw`font-nokia-bold text-sm mt-2`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            Loading {month}...
           </Text>
         </View>
-      </SafeAreaView>
-    );
-  }
+      );
+    }
 
-  if (error && !originalDevotionals.length) {
-    return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
-  }
+    if (monthDevotions.length === 0) {
+      return (
+        <View style={tw`flex-1 justify-center items-center py-8`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            No devotionals found for {month}
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={tw`flex flex-row flex-wrap justify-between mt-4`}>
+        {monthDevotions.map((item, index) => (
+          <TouchableOpacity
+            key={item._id || index}
+            style={tw`w-[47.5%] h-35 mb-4 rounded-2 overflow-hidden`}
+            onPress={() =>
+              navigation.navigate('SelectedDevotional', {
+                devotionalId: item._id,
+                year: yearToFetch,
+              })
+            }>
+            <ImageBackground
+              source={{uri: getThumbnailUrl(item.image)}}
+              style={tw`w-full h-full justify-end`}
+              imageStyle={tw`rounded-lg`}>
+              <View
+                style={[
+                  tw`absolute inset-0 bg-accent-10 bg-opacity-60 rounded-lg`,
+                  darkMode ? tw`bg-accent-11 bg-opacity-70` : null,
+                ]}>
+                <ArrowSquareUpRight
+                  size={32}
+                  weight="fill"
+                  style={tw`text-white self-end m-2`}
+                  color="#F8F8F8"
+                />
+                <View style={tw`flex absolute bottom-0 left-0 my-2`}>
+                  <Text
+                    style={tw`font-nokia-bold text-white text-lg mx-2`}
+                    numberOfLines={2}>
+                    {item.title}
+                  </Text>
+                  <Text
+                    style={tw`font-nokia-bold text-white text-sm mx-2 text-accent-2`}>
+                    {item.month} {item.day}
+                  </Text>
+                </View>
+              </View>
+            </ImageBackground>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
 
   return (
     <View style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
       <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          style={tw`h-100%`}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={onRefresh}
-              colors={['#EA9215']}
-              tintColor="#EA9215"
-            />
-          }>
+          style={tw`h-100%`}>
           <View style={tw`flex flex-row justify-between my-4`}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
@@ -350,19 +272,18 @@ const AllDevotionals = ({navigation}) => {
             />
           </View>
 
-          {/* Info about number of devotionals */}
+          {/* Info */}
           <View style={tw`mb-4 px-2`}>
             <Text
               style={[
                 tw`font-nokia-bold text-xs text-center`,
                 darkMode ? tw`text-primary-4` : tw`text-secondary-4`,
               ]}>
-              {originalDevotionals.length} devotionals loaded • Tap a month to
-              expand
+              Tap a month to load devotionals • Data is cached for faster access
             </Text>
           </View>
 
-          {sortedDevotionals.sortedMonths.map(month => (
+          {sortedMonths.map(month => (
             <View key={month} style={tw`my-2`}>
               <TouchableOpacity
                 style={tw`flex flex-row justify-between items-center border-b border-accent-6 pb-2`}
@@ -375,13 +296,15 @@ const AllDevotionals = ({navigation}) => {
                     ]}>
                     {month}
                   </Text>
-                  <Text
-                    style={[
-                      tw`font-nokia-bold text-sm ml-2`,
-                      darkMode ? tw`text-primary-4` : tw`text-secondary-4`,
-                    ]}>
-                    ({sortedDevotionals.devotionalsByMonth[month]?.length || 0})
-                  </Text>
+                  {loadedMonths[month] && (
+                    <Text
+                      style={[
+                        tw`font-nokia-bold text-sm ml-2`,
+                        darkMode ? tw`text-primary-4` : tw`text-secondary-4`,
+                      ]}>
+                      ({loadedMonths[month].length})
+                    </Text>
+                  )}
                 </View>
                 <ArrowSquareDown
                   size={24}
@@ -396,50 +319,7 @@ const AllDevotionals = ({navigation}) => {
                 />
               </TouchableOpacity>
               {expandedMonth === month && (
-                <View style={tw`flex flex-row flex-wrap justify-between mt-4`}>
-                  {sortedDevotionals.devotionalsByMonth[month].map(
-                    (item, index) => (
-                      <TouchableOpacity
-                        key={item._id || index}
-                        style={tw`w-[47.5%] h-35 mb-4 rounded-2 overflow-hidden`}
-                        onPress={() =>
-                          navigation.navigate('SelectedDevotional', {
-                            devotionalId: item._id,
-                            year: yearToFetch,
-                          })
-                        }>
-                        <ImageBackground
-                          source={{uri: `${item.image}`}}
-                          style={tw`w-full h-full justify-end`}
-                          imageStyle={tw`rounded-lg`}>
-                          <View
-                            style={[
-                              tw`absolute inset-0 bg-accent-10 bg-opacity-60 rounded-lg`,
-                              darkMode ? tw`bg-accent-11 bg-opacity-70` : null,
-                            ]}>
-                            <ArrowSquareUpRight
-                              size={32}
-                              weight="fill"
-                              style={tw`text-white self-end m-2`}
-                              color="#F8F8F8"
-                            />
-                            <View
-                              style={tw`flex absolute bottom-0 left-0 my-2`}>
-                              <Text
-                                style={tw`font-nokia-bold text-white text-lg mx-2`}>
-                                {item.title}
-                              </Text>
-                              <Text
-                                style={tw`font-nokia-bold text-white text-sm mx-2 text-accent-2`}>
-                                {item.month} {item.day}
-                              </Text>
-                            </View>
-                          </View>
-                        </ImageBackground>
-                      </TouchableOpacity>
-                    ),
-                  )}
-                </View>
+                <MonthDevotions month={month} />
               )}
             </View>
           ))}

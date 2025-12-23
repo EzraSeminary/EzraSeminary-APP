@@ -30,6 +30,7 @@ import {
   useGetDevotionPlansQuery,
   useToggleDevotionLikeMutation,
   useGetDevotionLikesQuery,
+  useGetDevotionCommentsQuery,
   apiSlice,
 } from '../redux/api-slices/apiSlice';
 import {useDispatch} from 'react-redux';
@@ -131,6 +132,13 @@ const Devotion = () => {
     skip: !user || !devotionToDisplay?._id,
   });
 
+  const {data: commentsData} = useGetDevotionCommentsQuery(
+    devotionToDisplay?._id,
+    {
+      skip: !devotionToDisplay?._id,
+    },
+  );
+
   const [toggleLike, {isLoading: isTogglingLike}] =
     useToggleDevotionLikeMutation();
 
@@ -139,17 +147,26 @@ const Devotion = () => {
     if (likesData) {
       setIsLiked(likesData.isLiked || false);
       setLikesCount(likesData.likesCount || 0);
-    } else if (devotionToDisplay?.isLiked !== undefined) {
-      setIsLiked(devotionToDisplay.isLiked);
+    } else if (devotionToDisplay) {
+      // When user is not logged in or likesData is not available, use devotion data
+      setIsLiked(devotionToDisplay.isLiked || false);
       setLikesCount(devotionToDisplay.likesCount || 0);
     }
-    // Update shares and comments count from devotion data
+    // Update shares count from devotion data
     if (devotionToDisplay) {
       setSharesCount(devotionToDisplay.sharesCount || 0);
+    }
+    // Update comments count from API query result
+    if (commentsData) {
+      setCommentsCount(commentsData.count || 0);
+    } else if (devotionToDisplay) {
+      // Fallback to devotion data if API query is not available
       setCommentsCount(devotionToDisplay.commentsCount || 0);
     }
   }, [
     likesData,
+    commentsData,
+    devotionToDisplay,
     devotionToDisplay?.isLiked,
     devotionToDisplay?.likesCount,
     devotionToDisplay?.sharesCount,
@@ -184,7 +201,7 @@ const Devotion = () => {
   };
 
   const handleShareDevotion = async () => {
-    if (!user || !devotionToDisplay) {
+    if (!devotionToDisplay) {
       return;
     }
 
@@ -195,6 +212,9 @@ const Devotion = () => {
       });
 
       if (result.action === RNShare.sharedAction) {
+        // Optimistic update for shares count
+        setSharesCount(prevCount => prevCount + 1);
+
         Toast.show({
           type: 'success',
           text1: 'Shared successfully',
@@ -529,14 +549,8 @@ const Devotion = () => {
             <TouchableOpacity
               style={tw`absolute left-0`}
               onPress={() => {
-                // Navigate back to DevotionalHome
-                if (navigation.canGoBack()) {
-                  navigation.goBack();
-                } else {
-                  navigation.navigate('Devotional', {
-                    screen: 'DevotionalHome',
-                  });
-                }
+                // Navigate to Home tab
+                navigation.getParent()?.navigate('Home');
               }}>
               <ArrowLeft size={28} weight="bold" color="#EA9215" />
             </TouchableOpacity>

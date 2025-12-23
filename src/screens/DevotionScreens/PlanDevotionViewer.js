@@ -368,7 +368,12 @@ const PlanDevotionViewer = () => {
           </Text>
           <TouchableOpacity
             style={tw`bg-accent-6 px-6 py-3 rounded-4 mt-4`}
-            onPress={() => navigation.goBack()}>
+            onPress={() => {
+              // Navigate to DevotionalHome
+              navigation.navigate('Devotional', {
+                screen: 'DevotionalHome',
+              });
+            }}>
             <Text style={tw`font-nokia-bold text-primary-1 text-base`}>
               Go Back
             </Text>
@@ -427,7 +432,12 @@ const PlanDevotionViewer = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={tw`border border-accent-6 px-6 py-3 rounded-4 mt-3`}
-            onPress={() => navigation.goBack()}>
+            onPress={() => {
+              // Navigate to DevotionalHome
+              navigation.navigate('Devotional', {
+                screen: 'DevotionalHome',
+              });
+            }}>
             <Text
               style={[
                 tw`font-nokia-bold text-base`,
@@ -472,7 +482,12 @@ const PlanDevotionViewer = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={tw`border border-accent-6 px-6 py-3 rounded-4 mt-3`}
-            onPress={() => navigation.goBack()}>
+            onPress={() => {
+              // Navigate to DevotionalHome
+              navigation.navigate('Devotional', {
+                screen: 'DevotionalHome',
+              });
+            }}>
             <Text
               style={[
                 tw`font-nokia-bold text-base`,
@@ -516,7 +531,12 @@ const PlanDevotionViewer = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={tw`border border-accent-6 px-6 py-3 rounded-4 mt-3`}
-            onPress={() => navigation.goBack()}>
+            onPress={() => {
+              // Navigate to DevotionalHome
+              navigation.navigate('Devotional', {
+                screen: 'DevotionalHome',
+              });
+            }}>
             <Text
               style={[
                 tw`font-nokia-bold text-base`,
@@ -558,7 +578,12 @@ const PlanDevotionViewer = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={tw`border border-accent-6 px-6 py-3 rounded-4 mt-3`}
-            onPress={() => navigation.goBack()}>
+            onPress={() => {
+              // Navigate to DevotionalHome
+              navigation.navigate('Devotional', {
+                screen: 'DevotionalHome',
+              });
+            }}>
             <Text
               style={[
                 tw`font-nokia-bold text-base`,
@@ -618,7 +643,13 @@ const PlanDevotionViewer = () => {
         <View style={tw`flex mx-auto w-11/12`}>
           {/* Header */}
           <View style={tw`flex-row items-center justify-between my-4`}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
+            <TouchableOpacity
+              onPress={() => {
+                // Navigate to DevotionalHome
+                navigation.navigate('Devotional', {
+                  screen: 'DevotionalHome',
+                });
+              }}>
               <ArrowLeft size={24} color={darkMode ? '#F9FAFB' : '#1F2937'} />
             </TouchableOpacity>
             <Text
