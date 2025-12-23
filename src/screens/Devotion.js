@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import React, {useState, useCallback, useEffect, useMemo} from 'react';
 import {useSelector} from 'react-redux';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {Share as RNShare} from 'react-native';
 import handleDownload from '../components/handleDownload';
 import {handleShare} from '../components/handleShare';
@@ -215,6 +215,27 @@ const Devotion = () => {
     }
     setShowCommentsModal(true);
   };
+
+  // Reset navigation when screen is focused (when tab is pressed)
+  useFocusEffect(
+    useCallback(() => {
+      // Get parent navigator state
+      const parentState = navigation.getParent()?.getState();
+      if (parentState) {
+        const devotionalRoute = parentState.routes.find(
+          r => r.name === 'Devotional',
+        );
+        const devotionalState = devotionalRoute?.state;
+        // If we're not on DevotionalHome, reset to it
+        if (devotionalState?.index > 0) {
+          navigation.reset({
+            index: 0,
+            routes: [{name: 'DevotionalHome'}],
+          });
+        }
+      }
+    }, [navigation]),
+  );
 
   // Debug logging
   useEffect(() => {

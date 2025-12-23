@@ -15,6 +15,23 @@ const DevotionalStack = () => {
         name="DevotionalHome"
         component={Devotion}
         options={{headerShown: false}}
+        listeners={({navigation, route}) => ({
+          tabPress: e => {
+            // Reset to DevotionalHome when tab is pressed
+            const state = navigation.getState();
+            if (state) {
+              const devotionalState = state.routes.find(
+                r => r.name === 'Devotional',
+              );
+              if (devotionalState?.state?.index > 0) {
+                navigation.reset({
+                  index: 0,
+                  routes: [{name: 'DevotionalHome'}],
+                });
+              }
+            }
+          },
+        })}
       />
       <Stack.Screen
         name="AllDevotionals"

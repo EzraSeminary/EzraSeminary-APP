@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useMemo, useRef} from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Image,
   ActivityIndicator,
   Modal,
+  StyleSheet,
+  Animated,
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import {useNavigation, useRoute} from '@react-navigation/native';
@@ -16,7 +18,6 @@ import {
   ArrowRight,
   CheckCircle,
   Circle,
-  Play,
 } from 'phosphor-react-native';
 import tw from './../../../tailwind';
 import Toast from 'react-native-toast-message';
@@ -29,6 +30,137 @@ import {
 } from '../../redux/api-slices/apiSlice';
 import {useCachedImage} from '../../utils/imageCache';
 
+// Completion Modal Component with Animation
+const CompletionModal = ({
+  visible,
+  onClose,
+  onRestart,
+  onBackToPlans,
+  totalDays,
+  planTitle,
+  darkMode,
+}) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      // Reset animations
+      scaleAnim.setValue(0);
+      rotateAnim.setValue(0);
+      fadeAnim.setValue(0);
+
+      // Start animations
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, scaleAnim, rotateAnim, fadeAnim]);
+
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}>
+      <View
+        style={[
+          tw`flex-1 justify-center items-center`,
+          {backgroundColor: 'rgba(0, 0, 0, 0.7)'},
+        ]}>
+        <Animated.View
+          style={[
+            tw`bg-primary-1 rounded-4 p-8 mx-6`,
+            darkMode ? tw`bg-secondary-8` : null,
+            {
+              transform: [{scale: scaleAnim}],
+              opacity: fadeAnim,
+            },
+          ]}>
+          <View style={tw`items-center mb-6`}>
+            <Animated.View
+              style={{
+                transform: [{rotate}],
+              }}>
+              <Text style={tw`text-6xl`}>🎉</Text>
+            </Animated.View>
+          </View>
+          <Text
+            style={[
+              tw`font-nokia-bold text-3xl text-center mb-3`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            Congratulations!
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-lg text-center mb-2`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            You've completed all {totalDays} days of
+          </Text>
+          {planTitle && (
+            <Text
+              style={[
+                tw`font-nokia-bold text-xl text-center mb-6 text-accent-6`,
+              ]}>
+              {planTitle}
+            </Text>
+          )}
+          <Text
+            style={[
+              tw`font-nokia-bold text-base text-center mb-6`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            Keep up the great work! Start another plan to continue your
+            spiritual journey.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-4 rounded-4 mb-3`}
+            onPress={onRestart}>
+            <Text
+              style={tw`font-nokia-bold text-primary-1 text-base text-center`}>
+              Restart Plan
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={tw`border border-accent-6 px-6 py-4 rounded-4`}
+            onPress={onBackToPlans}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-base text-center`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              Back to Plans
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+};
+
 const PlanDevotionViewer = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const navigation = useNavigation();
@@ -38,12 +170,14 @@ const PlanDevotionViewer = () => {
   const [currentDevotionIndex, setCurrentDevotionIndex] = useState(0);
   const [completionModalVisible, setCompletionModalVisible] = useState(false);
 
-  const {data: plan, isLoading: planLoading} = useGetDevotionPlanByIdQuery(
-    planId,
-    {
-      skip: !planId,
-    },
-  );
+  const {
+    data: plan,
+    isLoading: planLoading,
+    error: planError,
+    refetch: refetchPlan,
+  } = useGetDevotionPlanByIdQuery(planId, {
+    skip: !planId,
+  });
 
   const {
     data: devotions = [],
@@ -65,7 +199,10 @@ const PlanDevotionViewer = () => {
   // Progress structure: { progress: { completed, total, percent }, userPlan: { itemsCompleted, ... } }
   const progress = progressData?.progress || {};
   const userPlan = progressData?.userPlan || {};
-  const itemsCompleted = userPlan.itemsCompleted || [];
+  const itemsCompleted = useMemo(
+    () => userPlan.itemsCompleted || [],
+    [userPlan.itemsCompleted],
+  );
   const totalDays = plan?.numItems || devotions.length || progress.total || 0;
   const completedCount = itemsCompleted.length || progress.completed || 0;
   const progressPercent =
@@ -87,16 +224,32 @@ const PlanDevotionViewer = () => {
   useEffect(() => {
     console.log('=== PLAN DEVOTION VIEWER DEBUG ===');
     console.log('planId:', planId);
+    console.log('route.params:', route.params);
     console.log('plan:', plan ? plan.title : 'NO PLAN');
+    console.log('planLoading:', planLoading);
+    console.log('planError:', planError);
     console.log('devotions:', devotions?.length || 0);
     console.log('devotionsLoading:', devotionsLoading);
     console.log('devotionsError:', devotionsError);
     console.log('sortedDevotions:', sortedDevotions?.length || 0);
     if (devotions && devotions.length > 0) {
-      console.log('First devotion sample:', JSON.stringify(devotions[0], null, 2));
+      console.log(
+        'First devotion sample:',
+        JSON.stringify(devotions[0], null, 2),
+      );
     }
     console.log('===================================');
-  }, [planId, plan, devotions, devotionsLoading, devotionsError, sortedDevotions]);
+  }, [
+    planId,
+    plan,
+    planLoading,
+    planError,
+    devotions,
+    devotionsLoading,
+    devotionsError,
+    sortedDevotions,
+    route.params,
+  ]);
 
   // Find first incomplete devotion
   useEffect(() => {
@@ -121,7 +274,9 @@ const PlanDevotionViewer = () => {
   const cachedImage = useCachedImage(devotionImageUrl || '');
 
   const handleMarkComplete = async () => {
-    if (!currentDevotion || !planId) return;
+    if (!currentDevotion || !planId) {
+      return;
+    }
 
     try {
       await updateProgress({
@@ -149,25 +304,10 @@ const PlanDevotionViewer = () => {
           setCompletionModalVisible(true);
         }, 500);
       } else {
-        // Auto-advance to next incomplete devotion
+        // Navigate to home after marking complete
         setTimeout(() => {
-          const nextIncompleteIndex = sortedDevotions.findIndex(
-            (d, idx) =>
-              idx > currentDevotionIndex &&
-              !updatedItemsCompleted.includes(d._id),
-          );
-          if (nextIncompleteIndex !== -1) {
-            setCurrentDevotionIndex(nextIncompleteIndex);
-          } else {
-            // Find any incomplete devotion
-            const anyIncomplete = sortedDevotions.findIndex(
-              d => !updatedItemsCompleted.includes(d._id),
-            );
-            if (anyIncomplete !== -1) {
-              setCurrentDevotionIndex(anyIncomplete);
-            }
-          }
-        }, 500);
+          navigation.getParent()?.navigate('Home');
+        }, 1000);
       }
     } catch (error) {
       Toast.show({
@@ -192,17 +332,47 @@ const PlanDevotionViewer = () => {
 
   const handleRestart = () => {
     setCompletionModalVisible(false);
-    navigation.navigate('Devotional', {
-      screen: 'DevotionPlans',
-    });
+    // Navigate to Home tab
+    navigation.getParent()?.navigate('Home');
   };
 
   const handleBackToPlans = () => {
     setCompletionModalVisible(false);
-    navigation.navigate('Devotional', {
-      screen: 'DevotionPlans',
-    });
+    // Navigate to Home tab
+    navigation.getParent()?.navigate('Home');
   };
+
+  // Check if planId is missing
+  if (!planId) {
+    return (
+      <SafeAreaView
+        style={darkMode ? tw`bg-secondary-9 flex-1` : tw`bg-primary-1 flex-1`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            Plan ID Missing
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-4`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            No plan ID was provided. Please go back and try again.
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4 mt-4`}
+            onPress={() => navigation.goBack()}>
+            <Text style={tw`font-nokia-bold text-primary-1 text-base`}>
+              Go Back
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (planLoading || devotionsLoading) {
     return (
@@ -222,7 +392,52 @@ const PlanDevotionViewer = () => {
     );
   }
 
-  // Show error state if there's an error
+  // Show error state if there's a plan error
+  if (planError) {
+    return (
+      <SafeAreaView
+        style={darkMode ? tw`bg-secondary-9 flex-1` : tw`bg-primary-1 flex-1`}>
+        <View style={tw`flex-1 justify-center items-center px-6`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl text-center mb-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            Error Loading Plan
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-4`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            {planError?.data?.message ||
+              planError?.message ||
+              'Unable to load the devotion plan.'}
+          </Text>
+          <TouchableOpacity
+            style={tw`bg-accent-6 px-6 py-3 rounded-4 mt-4`}
+            onPress={() => refetchPlan()}>
+            <Text style={tw`font-nokia-bold text-primary-1 text-base`}>
+              Retry
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={tw`border border-accent-6 px-6 py-3 rounded-4 mt-3`}
+            onPress={() => navigation.goBack()}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-base`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              Go Back
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error state if there's an error loading devotions
   if (devotionsError) {
     return (
       <SafeAreaView
@@ -267,7 +482,9 @@ const PlanDevotionViewer = () => {
     );
   }
 
-  if (!plan) {
+  // Only show "Plan Not Found" if we're not loading and there's no error but no plan data
+  // This means the API returned successfully but with no data
+  if (!planLoading && !planError && !plan) {
     return (
       <SafeAreaView
         style={darkMode ? tw`bg-secondary-9 flex-1` : tw`bg-primary-1 flex-1`}>
@@ -279,10 +496,28 @@ const PlanDevotionViewer = () => {
             ]}>
             Plan Not Found
           </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center mb-4`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            The plan with ID "{planId}" could not be found.
+          </Text>
           <TouchableOpacity
             style={tw`bg-accent-6 px-6 py-3 rounded-4 mt-4`}
-            onPress={() => navigation.goBack()}>
+            onPress={() => refetchPlan()}>
             <Text style={tw`font-nokia-bold text-primary-1 text-base`}>
+              Retry
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={tw`border border-accent-6 px-6 py-3 rounded-4 mt-3`}
+            onPress={() => navigation.goBack()}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-base`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
               Go Back
             </Text>
           </TouchableOpacity>
@@ -333,15 +568,46 @@ const PlanDevotionViewer = () => {
     );
   }
 
-  const tailwindStyles = {
+  const tailwindStyles = StyleSheet.create({
     p: {
       ...(darkMode
         ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
         : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
-      marginVertical: 8,
+      marginVertical: -15,
     },
-    a: tw`text-accent-6 font-nokia-bold text-sm underline`,
-  };
+    a: {
+      ...tw`text-accent-6 font-nokia-bold text-sm underline`,
+    },
+    h1: darkMode
+      ? tw`text-primary-1 font-nokia-bold text-justify text-2xl leading-snug`
+      : tw`text-secondary-6 font-nokia-bold text-justify text-2xl leading-snug`,
+    h2: darkMode
+      ? tw`text-primary-1 font-nokia-bold text-justify text-xl leading-snug`
+      : tw`text-secondary-6 font-nokia-bold text-justify text-xl leading-snug`,
+    h3: darkMode
+      ? tw`text-primary-1 font-nokia-bold text-justify text-lg leading-snug`
+      : tw`text-secondary-6 font-nokia-bold text-justify text-lg leading-snug`,
+    ol: {
+      ...(darkMode
+        ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
+        : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
+      marginVertical: -15,
+      paddingLeft: 20,
+    },
+    ul: {
+      ...(darkMode
+        ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
+        : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
+      marginVertical: -15,
+      paddingLeft: 20,
+    },
+    li: {
+      ...(darkMode
+        ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
+        : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
+      marginVertical: -5,
+    },
+  });
 
   return (
     <SafeAreaView
@@ -374,7 +640,8 @@ const PlanDevotionViewer = () => {
                   tw`font-nokia-bold text-sm`,
                   darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
                 ]}>
-                {completedCount} of {totalDays} days ({Math.round(progressPercent)}%)
+                {completedCount} of {totalDays} days (
+                {Math.round(progressPercent)}%)
               </Text>
             </View>
             <View
@@ -383,10 +650,7 @@ const PlanDevotionViewer = () => {
                 darkMode ? tw`bg-secondary-8` : tw`bg-primary-5`,
               ]}>
               <View
-                style={[
-                  tw`h-full bg-accent-6`,
-                  {width: `${progressPercent}%`},
-                ]}
+                style={[tw`h-full bg-accent-6`, {width: `${progressPercent}%`}]}
               />
             </View>
           </View>
@@ -407,8 +671,7 @@ const PlanDevotionViewer = () => {
             {isCompleted && (
               <View style={tw`flex-row items-center`}>
                 <CheckCircle size={20} color="#10B981" weight="fill" />
-                <Text
-                  style={tw`font-nokia-bold text-green-500 text-sm ml-1`}>
+                <Text style={tw`font-nokia-bold text-green-500 text-sm ml-1`}>
                   Completed
                 </Text>
               </View>
@@ -463,15 +726,23 @@ const PlanDevotionViewer = () => {
 
               {/* Body Paragraphs */}
               {currentDevotion.body && currentDevotion.body.length > 0 && (
-                <View style={tw`mb-4`}>
-                  {currentDevotion.body.map((paragraph, idx) => (
+                <View style={tw`mt-8`}>
+                  {Array.isArray(currentDevotion.body) ? (
+                    currentDevotion.body.map((paragraph, idx) => (
+                      <HTMLView
+                        key={idx}
+                        value={paragraph}
+                        stylesheet={tailwindStyles}
+                        linebreak={false}
+                      />
+                    ))
+                  ) : (
                     <HTMLView
-                      key={idx}
-                      value={paragraph}
+                      value={currentDevotion.body}
                       stylesheet={tailwindStyles}
                       linebreak={false}
                     />
-                  ))}
+                  )}
                 </View>
               )}
 
@@ -491,7 +762,8 @@ const PlanDevotionViewer = () => {
 
               {/* Image */}
               {devotionImageUrl && (
-                <View style={tw`border border-accent-6 rounded-4 mt-4 mb-4 overflow-hidden`}>
+                <View
+                  style={tw`border border-accent-6 rounded-4 mt-4 mb-4 overflow-hidden`}>
                   <Image
                     source={{uri: cachedImage}}
                     style={tw`w-full h-96`}
@@ -512,8 +784,7 @@ const PlanDevotionViewer = () => {
                   onPress={handlePrevious}
                   disabled={currentDevotionIndex === 0}>
                   <ArrowLeft size={20} color="#FFFFFF" weight="bold" />
-                  <Text
-                    style={tw`font-nokia-bold text-primary-1 text-sm ml-2`}>
+                  <Text style={tw`font-nokia-bold text-primary-1 text-sm ml-2`}>
                     Previous
                   </Text>
                 </TouchableOpacity>
@@ -526,9 +797,10 @@ const PlanDevotionViewer = () => {
                       : tw`bg-accent-6`,
                   ]}
                   onPress={handleNext}
-                  disabled={currentDevotionIndex === sortedDevotions.length - 1}>
-                  <Text
-                    style={tw`font-nokia-bold text-primary-1 text-sm mr-2`}>
+                  disabled={
+                    currentDevotionIndex === sortedDevotions.length - 1
+                  }>
+                  <Text style={tw`font-nokia-bold text-primary-1 text-sm mr-2`}>
                     Next
                   </Text>
                   <ArrowRight size={20} color="#FFFFFF" weight="bold" />
@@ -569,61 +841,18 @@ const PlanDevotionViewer = () => {
         </View>
       </ScrollView>
 
-      {/* Completion Modal */}
-      <Modal
+      {/* Completion Modal with Animation */}
+      <CompletionModal
         visible={completionModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setCompletionModalVisible(false)}>
-        <View
-          style={[
-            tw`flex-1 justify-center items-center`,
-            {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
-          ]}>
-          <View
-            style={[
-              tw`bg-primary-1 rounded-4 p-6 mx-6`,
-              darkMode ? tw`bg-secondary-8` : null,
-            ]}>
-            <Text
-              style={[
-                tw`font-nokia-bold text-2xl text-center mb-2`,
-                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-              ]}>
-              🎉 Congratulations! 🎉
-            </Text>
-            <Text
-              style={[
-                tw`font-nokia-bold text-base text-center mb-4`,
-                darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
-              ]}>
-              You've completed all {totalDays} days of this devotion plan!
-            </Text>
-            <TouchableOpacity
-              style={tw`bg-accent-6 px-6 py-3 rounded-4 mb-3`}
-              onPress={handleRestart}>
-              <Text
-                style={tw`font-nokia-bold text-primary-1 text-base text-center`}>
-                Restart Plan
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={tw`border border-accent-6 px-6 py-3 rounded-4`}
-              onPress={handleBackToPlans}>
-              <Text
-                style={[
-                  tw`font-nokia-bold text-base text-center`,
-                  darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-                ]}>
-                Back to Plans
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setCompletionModalVisible(false)}
+        onRestart={handleRestart}
+        onBackToPlans={handleBackToPlans}
+        totalDays={totalDays}
+        planTitle={plan?.title}
+        darkMode={darkMode}
+      />
     </SafeAreaView>
   );
 };
 
 export default PlanDevotionViewer;
-

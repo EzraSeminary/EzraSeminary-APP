@@ -59,7 +59,27 @@ const MainTabNavigator = () => {
       <Tab.Screen name="Course" component={CourseStack} />
       <Tab.Screen name="SSL" component={SSLStack} />
       <Tab.Screen name="InVerse" component={InVerseStack} />
-      <Tab.Screen name="Devotional" component={DevotionalStack} />
+      <Tab.Screen
+        name="Devotional"
+        component={DevotionalStack}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            // Get the current state
+            const state = navigation.getState();
+            const devotionalRoute = state?.routes?.find(
+              r => r.name === 'Devotional',
+            );
+            const devotionalState = devotionalRoute?.state;
+            // If we're not on DevotionalHome, reset to it
+            if (devotionalState?.index > 0) {
+              e.preventDefault();
+              navigation.navigate('Devotional', {
+                screen: 'DevotionalHome',
+              });
+            }
+          },
+        })}
+      />
       <Tab.Screen name="Setting" component={Setting} />
     </Tab.Navigator>
   );

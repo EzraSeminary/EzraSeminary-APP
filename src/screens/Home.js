@@ -899,7 +899,6 @@ const Home = () => {
               </Animated.View>
             )}
 
-
             {/* Enhanced Section Divider with Bible */}
             <View style={tw`flex-row items-center my-6`}>
               <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
@@ -980,6 +979,119 @@ const Home = () => {
               <HomeCurrentSSL />
             </Animated.View>
 
+            {/* Enhanced Section Divider */}
+            <View style={tw`flex-row items-center my-6`}>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
+              <Animated.View
+                style={[
+                  tw`p-3 rounded-full`,
+                  {
+                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                    opacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.6, 1, 0.6],
+                    }),
+                    transform: [
+                      {
+                        scale: sparkleAnim.interpolate({
+                          inputRange: [0, 0.25, 0.5, 0.75, 1],
+                          outputRange: [1, 1.1, 1.2, 1.1, 1],
+                        }),
+                      },
+                    ],
+                    shadowColor: '#374151',
+                    shadowOffset: {width: 0, height: 0},
+                    shadowOpacity: sparkleAnim.interpolate({
+                      inputRange: [0, 0.25, 5],
+                      outputRange: [0.2, 0.4, 0.2],
+                    }),
+                    shadowRadius: sparkleAnim.interpolate({
+                      inputRange: [0, 0.2, 1],
+                      outputRange: [4, 12, 4],
+                    }),
+                    elevation: 10,
+                  },
+                ]}>
+                <Cross size={18} color="#EA9215" weight="bold" />
+              </Animated.View>
+              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
+            </View>
+
+            {/* Devotion Plans Section - በእቅድ ያንብቡ */}
+            {devotionPlans && devotionPlans.length > 0 && (
+              <>
+                <Animated.View
+                  style={[
+                    tw`p-4 rounded-2xl mb-4`,
+                    {
+                      backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                      transform: [{scale: scaleAnim}],
+                    },
+                  ]}>
+                  <View style={tw`flex flex-row justify-between items-center`}>
+                    <View style={tw`flex-row items-center flex-1`}>
+                      <BookOpen size={24} color="#EA9215" weight="bold" />
+                      <Text
+                        style={[
+                          tw`font-nokia-bold text-lg ml-3`,
+                          darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                        ]}>
+                        በእቅድ ያንብቡ
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        tw`px-4 py-2 rounded-full flex-row items-center`,
+                        {backgroundColor: '#EA9215'},
+                      ]}
+                      onPress={() =>
+                        navigation.navigate('Devotional', {
+                          screen: 'DevotionPlans',
+                        })
+                      }>
+                      <Text
+                        style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
+                        All Plans
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </Animated.View>
+                <Animated.View
+                  style={{
+                    transform: [{scale: scaleAnim}],
+                  }}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={tw`px-1 pb-2`}>
+                    {devotionPlans.map((plan, index) => {
+                      const isStarted =
+                        myDevotionPlans.some(
+                          p => (p.planId || p.plan?._id) === plan._id,
+                        ) ||
+                        completedPlans.some(
+                          p => (p.planId || p.plan?._id) === plan._id,
+                        );
+                      return (
+                        <DevotionPlanSquareCard
+                          key={plan._id || index}
+                          plan={plan}
+                          darkMode={darkMode}
+                          isStarted={isStarted}
+                          onPress={plan => {
+                            navigation.navigate('Devotional', {
+                              screen: 'PlanDevotionViewer',
+                              params: {planId: plan._id},
+                            });
+                          }}
+                        />
+                      );
+                    })}
+                  </ScrollView>
+                </Animated.View>
+              </>
+            )}
+
             {/* Enhanced Section Divider with Cross & Light */}
             <View style={tw`flex-row items-center my-6`}>
               <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
@@ -1055,146 +1167,6 @@ const Home = () => {
                 </TouchableOpacity>
               </View>
             </Animated.View>
-
-            {/* Enhanced Section Divider */}
-            <View style={tw`flex-row items-center my-6`}>
-              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
-              <Animated.View
-                style={[
-                  tw`p-3 rounded-full`,
-                  {
-                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
-                    opacity: sparkleAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.6, 1, 0.6],
-                    }),
-                    transform: [
-                      {
-                        scale: sparkleAnim.interpolate({
-                          inputRange: [0, 0.25, 0.5, 0.75, 1],
-                          outputRange: [1, 1.1, 1.2, 1.1, 1],
-                        }),
-                      },
-                    ],
-                    shadowColor: '#374151',
-                    shadowOffset: {width: 0, height: 0},
-                    shadowOpacity: sparkleAnim.interpolate({
-                      inputRange: [0, 0.25, 5],
-                      outputRange: [0.2, 0.4, 0.2],
-                    }),
-                    shadowRadius: sparkleAnim.interpolate({
-                      inputRange: [0, 0.2, 1],
-                      outputRange: [4, 12, 4],
-                    }),
-                    elevation: 10,
-                  },
-                ]}>
-                <Cross size={18} color="#EA9215" weight="bold" />
-              </Animated.View>
-              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
-            </View>
-
-            {/* Devotion Plans Section - በእቅድ ያንብቡ */}
-            {devotionPlans && devotionPlans.length > 0 && (
-              <>
-                <Animated.View
-                  style={[
-                    tw`p-4 rounded-2xl mb-4`,
-                    {
-                      backgroundColor: darkMode ? '#374151' : '#F9FAFB',
-                      transform: [{scale: scaleAnim}],
-                    },
-                  ]}>
-                  <View style={tw`flex flex-row justify-between items-center`}>
-                    <View style={tw`flex-row items-center flex-1`}>
-                      <BookOpen size={24} color="#EA9215" weight="bold" />
-                      <Text
-                        style={[
-                          tw`font-nokia-bold text-lg ml-3`,
-                          darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-                        ]}>
-                        በእቅድ ያንብቡ
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[
-                        tw`px-4 py-2 rounded-full flex-row items-center`,
-                        {backgroundColor: '#EA9215'},
-                      ]}
-                      onPress={() =>
-                        navigation.navigate('Devotional', {
-                          screen: 'DevotionPlans',
-                        })
-                      }>
-                      <Text style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
-                        All Plans
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </Animated.View>
-                <Animated.View
-                  style={{
-                    transform: [{scale: scaleAnim}],
-                  }}>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={tw`px-1 pb-2`}>
-                    {devotionPlans.map((plan, index) => (
-                      <DevotionPlanSquareCard
-                        key={plan._id || index}
-                        plan={plan}
-                        darkMode={darkMode}
-                        onPress={plan => {
-                          navigation.navigate('Devotional', {
-                            screen: 'PlanDevotionViewer',
-                            params: {planId: plan._id},
-                          });
-                        }}
-                      />
-                    ))}
-                  </ScrollView>
-                </Animated.View>
-              </>
-            )}
-
-            {/* Enhanced Section Divider */}
-            <View style={tw`flex-row items-center my-6`}>
-              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
-              <Animated.View
-                style={[
-                  tw`p-3 rounded-full`,
-                  {
-                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
-                    opacity: sparkleAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.6, 1, 0.6],
-                    }),
-                    transform: [
-                      {
-                        scale: sparkleAnim.interpolate({
-                          inputRange: [0, 0.25, 0.5, 0.75, 1],
-                          outputRange: [1, 1.1, 1.2, 1.1, 1],
-                        }),
-                      },
-                    ],
-                    shadowColor: '#374151',
-                    shadowOffset: {width: 0, height: 0},
-                    shadowOpacity: sparkleAnim.interpolate({
-                      inputRange: [0, 0.25, 5],
-                      outputRange: [0.2, 0.4, 0.2],
-                    }),
-                    shadowRadius: sparkleAnim.interpolate({
-                      inputRange: [0, 0.2, 1],
-                      outputRange: [4, 12, 4],
-                    }),
-                    elevation: 10,
-                  },
-                ]}>
-                <Cross size={18} color="#EA9215" weight="bold" />
-              </Animated.View>
-              <View style={tw`flex-1 h-px bg-primary-7 opacity-30`} />
-            </View>
 
             {safeDevotionsToDisplay.length > 0 && (
               <Animated.View
