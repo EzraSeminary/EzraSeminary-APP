@@ -524,89 +524,78 @@ const Devotion = () => {
             />
           }
           removeClippedSubviews={true}>
-          <View style={tw`flex flex-row justify-between items-center my-4`}>
-            <View style={tw`flex flex-row items-center gap-3`}>
+          <View
+            style={tw`flex flex-row items-center justify-center my-4 relative`}>
+            <TouchableOpacity
+              style={tw`absolute left-0`}
+              onPress={() => {
+                // Navigate back to DevotionalHome
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate('Devotional', {
+                    screen: 'DevotionalHome',
+                  });
+                }
+              }}>
+              <ArrowLeft size={28} weight="bold" color="#EA9215" />
+            </TouchableOpacity>
+            {/* Sliding buttons for Devotional/Devotional Plan */}
+            <View
+              style={tw`flex-row bg-secondary-7 rounded-full p-1 ${
+                darkMode ? 'bg-secondary-8' : ''
+              }`}>
               <TouchableOpacity
                 onPress={() => {
-                  // Navigate back to DevotionalHome
-                  if (navigation.canGoBack()) {
-                    navigation.goBack();
-                  } else {
-                    navigation.navigate('Devotional', {
-                      screen: 'DevotionalHome',
-                    });
-                  }
-                }}>
-                <ArrowLeft size={28} weight="bold" color="#EA9215" />
-              </TouchableOpacity>
-              <View style={tw`border-b border-accent-6`}>
+                  setActiveTab('devotional');
+                  // Navigate to DevotionalHome if not already there
+                  navigation.navigate('Devotional', {
+                    screen: 'DevotionalHome',
+                  });
+                }}
+                style={tw`px-4 py-2 rounded-full ${
+                  activeTab === 'devotional'
+                    ? 'bg-accent-6'
+                    : darkMode
+                    ? 'bg-transparent'
+                    : 'bg-transparent'
+                }`}>
                 <Text
-                  style={[
-                    tw`font-nokia-bold text-xl text-secondary-6 text-center`,
-                    darkMode ? tw`text-primary-1` : null,
-                  ]}>
+                  style={tw`font-nokia-bold text-sm ${
+                    activeTab === 'devotional'
+                      ? 'text-white'
+                      : darkMode
+                      ? 'text-primary-3'
+                      : 'text-secondary-6'
+                  }`}>
                   Devotional
                 </Text>
-              </View>
-            </View>
-            <View style={tw`flex flex-row items-center gap-2`}>
-              {/* Sliding buttons for Devotional/Devotional Plan */}
-              <View
-                style={tw`flex-row bg-secondary-7 rounded-full p-1 ${
-                  darkMode ? 'bg-secondary-8' : ''
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setActiveTab('plan');
+                  navigation.navigate('Devotional', {
+                    screen: 'DevotionPlans',
+                  });
+                }}
+                style={tw`px-4 py-2 rounded-full ${
+                  activeTab === 'plan'
+                    ? 'bg-accent-6'
+                    : darkMode
+                    ? 'bg-transparent'
+                    : 'bg-transparent'
                 }`}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setActiveTab('devotional');
-                    // Navigate to DevotionalHome if not already there
-                    navigation.navigate('Devotional', {
-                      screen: 'DevotionalHome',
-                    });
-                  }}
-                  style={tw`px-4 py-2 rounded-full ${
-                    activeTab === 'devotional'
-                      ? 'bg-accent-6'
-                      : darkMode
-                      ? 'bg-transparent'
-                      : 'bg-transparent'
-                  }`}>
-                  <Text
-                    style={tw`font-nokia-bold text-sm ${
-                      activeTab === 'devotional'
-                        ? 'text-white'
-                        : darkMode
-                        ? 'text-primary-3'
-                        : 'text-secondary-6'
-                    }`}>
-                    Devotional
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    setActiveTab('plan');
-                    navigation.navigate('Devotional', {
-                      screen: 'DevotionPlans',
-                    });
-                  }}
-                  style={tw`px-4 py-2 rounded-full ${
+                <Text
+                  style={tw`font-nokia-bold text-sm ${
                     activeTab === 'plan'
-                      ? 'bg-accent-6'
+                      ? 'text-white'
                       : darkMode
-                      ? 'bg-transparent'
-                      : 'bg-transparent'
+                      ? 'text-primary-3'
+                      : 'text-secondary-6'
                   }`}>
-                  <Text
-                    style={tw`font-nokia-bold text-sm ${
-                      activeTab === 'plan'
-                        ? 'text-white'
-                        : darkMode
-                        ? 'text-primary-3'
-                        : 'text-secondary-6'
-                    }`}>
-                    Devotional Plan
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  Devotional Plan
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
           <View style={tw`flex flex-row mt-6 justify-between`}>

@@ -242,11 +242,19 @@ const DevotionPlans = () => {
         );
       }
 
+      // Check which plans are completed
+      const completedPlanIds = new Set(
+        (completedPlans || []).map(p => p.planId || p.plan?._id),
+      );
+
       return (
         <FlatList
           data={findPlans}
           keyExtractor={item => item._id}
-          renderItem={({item}) => renderPlanCard({item})}
+          renderItem={({item}) => {
+            const isCompleted = completedPlanIds.has(item._id);
+            return renderPlanCard({item, isCompleted});
+          }}
           contentContainerStyle={tw`pb-4`}
           showsVerticalScrollIndicator={false}
         />

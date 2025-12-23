@@ -246,6 +246,7 @@ export const apiSlice = createApi({
       invalidatesTags: (result, error, {id}) => [
         {type: 'DevotionPlans', id},
         {type: 'DevotionPlans', id: `${id}-progress`},
+        'DevotionPlans', // Invalidate all DevotionPlans queries to refresh getMyDevotionPlans
       ],
     }),
     restartDevotionPlan: builder.mutation({

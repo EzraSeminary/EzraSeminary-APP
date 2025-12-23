@@ -69,7 +69,7 @@ const PreviousDevotions = ({devotions, darkMode, currentYear}) => {
         }
         return Number(b.day) - Number(a.day);
       })
-      .slice(0, 4);
+      .slice(0, 6); // Show 6 cards (3 rows of 2 columns)
   }, [devotions]);
 
   const CachedImageBg = ({uri, children}) => {

@@ -480,18 +480,6 @@ const SelectedDevotional = ({route}) => {
               }>
               <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
             </TouchableOpacity>
-            <Text
-              style={[
-                tw`font-nokia-bold text-xl text-secondary-6`,
-                darkMode ? tw`text-primary-1` : null,
-              ]}>
-              Devotional
-            </Text>
-            <View style={tw`flex flex-row items-center gap-3`}>
-              <TouchableOpacity onPress={() => setShareModalVisible(true)}>
-                <Share size={32} weight="bold" color="#EA9215" />
-              </TouchableOpacity>
-            </View>
           </View>
           <View style={tw`flex flex-row mt-6 justify-between`}>
             <View style={tw`w-70%`}>
@@ -584,7 +572,8 @@ const SelectedDevotional = ({route}) => {
 
           {/* Like, Share, Comment Actions - Only show when user is logged in */}
           {currentUser && (
-            <View style={tw`flex-row items-center justify-center gap-6 mt-4 mb-2`}>
+            <View
+              style={tw`flex-row items-center justify-center gap-6 mt-4 mb-2`}>
               <TouchableOpacity
                 style={tw`items-center`}
                 onPress={handleLike}

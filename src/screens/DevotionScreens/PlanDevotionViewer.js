@@ -11,7 +11,7 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
-import {useSelector} from 'react-redux';
+import {useSelector, useDispatch} from 'react-redux';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {
   ArrowLeft,
@@ -27,6 +27,7 @@ import {
   useGetDevotionPlanDevotionsQuery,
   useGetDevotionPlanProgressQuery,
   useUpdateDevotionPlanProgressMutation,
+  apiSlice,
 } from '../../redux/api-slices/apiSlice';
 import {useCachedImage} from '../../utils/imageCache';
 
@@ -163,6 +164,7 @@ const CompletionModal = ({
 
 const PlanDevotionViewer = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
+  const dispatch = useDispatch();
   const navigation = useNavigation();
   const route = useRoute();
   const {planId} = route.params || {};
@@ -300,6 +302,9 @@ const PlanDevotionViewer = () => {
 
       // Check if all devotions are complete
       if (newCompletedCount >= totalDays) {
+        // Invalidate DevotionPlans cache to refresh completed plans list
+        dispatch(apiSlice.util.invalidateTags(['DevotionPlans']));
+
         setTimeout(() => {
           setCompletionModalVisible(true);
         }, 500);
