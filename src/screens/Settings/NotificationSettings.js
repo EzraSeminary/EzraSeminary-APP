@@ -151,15 +151,34 @@ const NotificationSettings = () => {
     }
   };
 
-  const handleTestNotification = () => {
+  const handleTestNotification = async () => {
     const currentDevotion = getCurrentDevotion();
     if (currentDevotion) {
-      NotificationService.showTestNotification(currentDevotion);
-      Alert.alert(
-        'Test Notification Sent',
-        'Check your notification panel to see how the daily verse notification will appear.',
-        [{text: 'OK'}],
-      );
+      try {
+        const success = await NotificationService.showTestNotification(
+          currentDevotion,
+        );
+        if (success) {
+          Alert.alert(
+            'Test Notification Sent',
+            'Check your notification panel to see how the daily verse notification will appear.',
+            [{text: 'OK'}],
+          );
+        } else {
+          Alert.alert(
+            'Permission Required',
+            'Please enable notifications in your device settings to receive test notifications.',
+            [{text: 'OK'}],
+          );
+        }
+      } catch (error) {
+        console.error('Error sending test notification:', error);
+        Alert.alert(
+          'Error',
+          'Failed to send test notification. Please try again.',
+          [{text: 'OK'}],
+        );
+      }
     } else {
       Alert.alert(
         'No Devotion Available',

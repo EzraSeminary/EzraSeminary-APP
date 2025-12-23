@@ -128,10 +128,8 @@ const App = () => {
   useEffect(() => {
     const initializeNotifications = async () => {
       try {
-        // Request permissions safely
-        if (Platform.OS === 'android') {
-          await NotificationService.requestPermissions();
-        }
+        // Request permissions safely for both Android and iOS
+        await NotificationService.requestPermissions();
 
         // Handle notification events
         notifee.onForegroundEvent(({type, detail}) => {

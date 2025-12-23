@@ -15,12 +15,10 @@ class NotificationService {
 
   async configure() {
     try {
-      // Request permissions
-      if (Platform.OS === 'android') {
-        await this.requestPermissions();
-      }
+      // Request permissions for both Android and iOS
+      await this.requestPermissions();
 
-      // Create channels
+      // Create channels (Android only)
       await this.createChannels();
 
       // Listen for notification events
@@ -99,16 +97,68 @@ class NotificationService {
         return false;
       }
     } else {
-      return await notifee.requestPermission();
+      // iOS: Request notification permissions
+      try {
+        const settings = await notifee.requestPermission({
+          alert: true,
+          badge: true,
+          sound: true,
+        });
+        console.log('iOS notification permission status:', settings);
+        // 1 = AUTHORIZED, 2 = PROVISIONAL, 0 = DENIED, -1 = NOT_DETERMINED
+        const isAuthorized =
+          settings.authorizationStatus === 1 || settings.authorizationStatus === 2;
+        if (!isAuthorized) {
+          console.log(
+            'iOS notification permission denied. Status:',
+            settings.authorizationStatus,
+          );
+        }
+        return isAuthorized;
+      } catch (err) {
+        console.warn('iOS permission request failed:', err);
+        return false;
+      }
+    }
+  }
+
+  // Check current notification permission status
+  async checkPermissionStatus() {
+    try {
+      if (Platform.OS === 'ios') {
+        const settings = await notifee.getNotificationSettings();
+        console.log('iOS notification settings:', settings);
+        return (
+          settings.authorizationStatus === 1 || settings.authorizationStatus === 2
+        );
+      } else {
+        // For Android, check if permission is granted
+        if (Platform.Version >= 33) {
+          const granted = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          );
+          return granted;
+        }
+        return true; // For older Android versions, assume granted
+      }
+    } catch (error) {
+      console.error('Error checking permission status:', error);
+      return false;
     }
   }
 
   // Show immediate notification for testing
   async showTestNotification(devotion) {
     try {
-      await notifee.displayNotification({
+      const hasPermission = await this.requestPermissions();
+      if (!hasPermission) {
+        console.log('Notification permissions not granted for test notification');
+        return false;
+      }
+
+      const notificationConfig = {
         title: '📖 Daily Verse (Test)',
-        body: devotion.verse,
+        body: devotion.verse || 'Daily devotional verse',
         data: {
           type: 'daily-verse',
         },
@@ -121,10 +171,23 @@ class NotificationService {
           sound: 'default',
           vibration: true,
         },
-      });
-      console.log('Test notification sent');
+        ios: {
+          sound: 'default',
+          badge: true,
+          foregroundPresentationOptions: {
+            alert: true,
+            badge: true,
+            sound: true,
+          },
+        },
+      };
+
+      await notifee.displayNotification(notificationConfig);
+      console.log('Test notification sent successfully');
+      return true;
     } catch (error) {
       console.error('Error showing test notification:', error);
+      return false;
     }
   }
 
@@ -160,34 +223,63 @@ class NotificationService {
         notificationDate.getTime() - now.getTime(),
       );
 
-      // Check if we can use exact alarms
-      const canScheduleExactAlarms =
-        Platform.Version >= 31 ? await notifee.canScheduleExactAlarms() : true;
+      // Check if we can use exact alarms (Android only)
+      let canScheduleExactAlarms = true;
+      if (Platform.OS === 'android' && Platform.Version >= 31) {
+        canScheduleExactAlarms = await notifee.canScheduleExactAlarms();
+      }
 
       // Schedule notification
+      const notificationConfig = {
+        title: '📖 Daily Verse',
+        body: devotion.verse || 'Daily devotional verse',
+        subtitle: devotion.title || 'Daily Devotion',
+        data: {
+          type: 'daily-verse',
+          devotionId: devotion._id,
+        },
+        android: {
+          channelId: 'daily-verse',
+          pressAction: {
+            id: 'default',
+          },
+          importance: AndroidImportance.HIGH,
+          sound: 'default',
+          vibration: true,
+        },
+        ios: {
+          sound: 'default',
+          badge: true,
+          foregroundPresentationOptions: {
+            alert: true,
+            badge: true,
+            sound: true,
+          },
+          categoryId: 'daily-verse',
+        },
+      };
+
+      const triggerConfig = {
+        type: TriggerType.TIMESTAMP,
+        timestamp: notificationDate.getTime(),
+        repeatFrequency: RepeatFrequency.DAILY,
+      };
+
+      // Only add alarmManager for Android
+      if (Platform.OS === 'android') {
+        triggerConfig.alarmManager =
+          canScheduleExactAlarms && Platform.Version < 35; // Disable for API 35
+      }
+
+      console.log('Creating trigger notification for iOS:', {
+        timestamp: notificationDate.getTime(),
+        date: notificationDate.toISOString(),
+        platform: Platform.OS,
+      });
+
       const notificationId = await notifee.createTriggerNotification(
-        {
-          title: '📖 Daily Verse',
-          body: devotion.verse,
-          data: {
-            type: 'daily-verse',
-          },
-          android: {
-            channelId: 'daily-verse',
-            pressAction: {
-              id: 'default',
-            },
-            importance: AndroidImportance.HIGH,
-            sound: 'default',
-            vibration: true,
-          },
-        },
-        {
-          type: TriggerType.TIMESTAMP,
-          timestamp: notificationDate.getTime(),
-          repeatFrequency: RepeatFrequency.DAILY,
-          alarmManager: canScheduleExactAlarms && Platform.Version < 35, // Disable for API 35
-        },
+        notificationConfig,
+        triggerConfig,
       );
 
       console.log(
