@@ -8,7 +8,6 @@ import {
   Image,
   ActivityIndicator,
   Modal,
-  StyleSheet,
   Animated,
 } from 'react-native';
 import {useSelector, useDispatch} from 'react-redux';
@@ -573,46 +572,42 @@ const PlanDevotionViewer = () => {
     );
   }
 
-  const tailwindStyles = StyleSheet.create({
-    p: {
-      ...(darkMode
-        ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
-        : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
-      marginVertical: -15,
-    },
-    a: {
-      ...tw`text-accent-6 font-nokia-bold text-sm underline`,
-    },
-    h1: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify text-2xl leading-snug`
-      : tw`text-secondary-6 font-nokia-bold text-justify text-2xl leading-snug`,
-    h2: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify text-xl leading-snug`
-      : tw`text-secondary-6 font-nokia-bold text-justify text-xl leading-snug`,
-    h3: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify text-lg leading-snug`
-      : tw`text-secondary-6 font-nokia-bold text-justify text-lg leading-snug`,
-    ol: {
-      ...(darkMode
-        ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
-        : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
-      marginVertical: -15,
-      paddingLeft: 20,
-    },
-    ul: {
-      ...(darkMode
-        ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
-        : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
-      marginVertical: -15,
-      paddingLeft: 20,
-    },
-    li: {
-      ...(darkMode
-        ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
-        : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
-      marginVertical: -5,
-    },
-  });
+  // HTMLView requires a plain object, not StyleSheet.create()
+  const tailwindStyles = {
+    p: [
+      tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
+      darkMode ? tw`text-primary-1` : null,
+      {marginVertical: -15},
+    ],
+    a: tw`text-accent-6 font-nokia-bold text-sm underline`,
+    h1: [
+      tw`text-secondary-6 font-nokia-bold text-justify text-2xl leading-snug`,
+      darkMode ? tw`text-primary-1` : null,
+    ],
+    h2: [
+      tw`text-secondary-6 font-nokia-bold text-justify text-xl leading-snug`,
+      darkMode ? tw`text-primary-1` : null,
+    ],
+    h3: [
+      tw`text-secondary-6 font-nokia-bold text-justify text-lg leading-snug`,
+      darkMode ? tw`text-primary-1` : null,
+    ],
+    ol: [
+      tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
+      darkMode ? tw`text-primary-1` : null,
+      {marginVertical: -15, paddingLeft: 20},
+    ],
+    ul: [
+      tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
+      darkMode ? tw`text-primary-1` : null,
+      {marginVertical: -15, paddingLeft: 20},
+    ],
+    li: [
+      tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
+      darkMode ? tw`text-primary-1` : null,
+      {marginVertical: -5},
+    ],
+  };
 
   return (
     <SafeAreaView
@@ -731,16 +726,34 @@ const PlanDevotionViewer = () => {
 
               {/* Body Paragraphs */}
               {currentDevotion.body && currentDevotion.body.length > 0 && (
-                <View style={tw`mt-8`}>
+                <View style={tw`my-8`}>
                   {Array.isArray(currentDevotion.body) ? (
-                    currentDevotion.body.map((paragraph, idx) => (
-                      <HTMLView
-                        key={idx}
-                        value={paragraph}
-                        stylesheet={tailwindStyles}
-                        linebreak={false}
-                      />
-                    ))
+                    currentDevotion.body.map((paragraph, idx) => {
+                      // Convert plain text with \r\n to HTML format
+                      let htmlContent = paragraph || '';
+
+                      // Check if content is already HTML (contains HTML tags)
+                      const isHTML = /<[a-z][\s\S]*>/i.test(htmlContent);
+
+                      if (!isHTML) {
+                        // Convert \r\n to <br/> tags
+                        htmlContent = htmlContent.replace(/\r\n/g, '<br/>');
+                        htmlContent = htmlContent.replace(/\n/g, '<br/>');
+                        htmlContent = htmlContent.replace(/\r/g, '<br/>');
+
+                        // Wrap in <p> tags so stylesheet can apply
+                        htmlContent = `<p>${htmlContent}</p>`;
+                      }
+
+                      return (
+                        <HTMLView
+                          key={idx}
+                          value={htmlContent}
+                          stylesheet={tailwindStyles}
+                          linebreak={false}
+                        />
+                      );
+                    })
                   ) : (
                     <HTMLView
                       value={currentDevotion.body}
