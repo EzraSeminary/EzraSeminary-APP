@@ -130,6 +130,9 @@ const SSLWeek = ({route}) => {
   // notes for each <code> block
   const [activeNoteId, setActiveNoteId] = useState(null);
   const [notes, setNotes] = useState({});
+  const [cachedSSLWeek, setCachedSSLWeek] = useState(null);
+  const [cachedSSLQuarter, setCachedSSLQuarter] = useState(null);
+  const [isUsingCache, setIsUsingCache] = useState(false);
 
   const {
     data: SSLQuarter,
