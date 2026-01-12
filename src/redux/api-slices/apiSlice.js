@@ -189,11 +189,37 @@ export const apiSlice = createApi({
       invalidatesTags: ['DevotionPlans'],
     }),
     updateDevotionPlanProgress: builder.mutation({
-      query: ({id, devotionId, completed}) => ({
-        url: `/devotionPlan/${id}/progress`,
-        method: 'PUT',
-        body: {devotionId, completed},
-      }),
+      query: ({id, devotionId, completed}) => {
+        console.log('=== UPDATE PROGRESS MUTATION ===');
+        console.log('planId:', id);
+        console.log('devotionId:', devotionId);
+        console.log('completed:', completed);
+        console.log('================================');
+        return {
+          url: `/devotionPlan/${id}/progress`,
+          method: 'PUT',
+          body: {
+            devotionId: String(devotionId), // Ensure devotionId is a string
+            completed: Boolean(completed), // Ensure completed is a boolean
+          },
+        };
+      },
+      transformResponse: (response, meta, arg) => {
+        console.log('=== UPDATE PROGRESS RESPONSE ===');
+        console.log('Response:', JSON.stringify(response, null, 2));
+        console.log('Response type:', typeof response);
+        console.log('Status:', meta?.response?.status);
+        console.log('================================');
+        return response;
+      },
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('=== UPDATE PROGRESS ERROR RESPONSE ===');
+        console.error('Error response:', JSON.stringify(response, null, 2));
+        console.error('Status:', meta?.response?.status);
+        console.error('Status text:', meta?.response?.statusText);
+        console.error('=====================================');
+        return response;
+      },
       invalidatesTags: (result, error, {id}) => [
         {type: 'DevotionPlans', id},
         {type: 'DevotionPlans', id: `${id}-progress`},

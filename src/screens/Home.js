@@ -20,6 +20,7 @@ import {
   useGetCoursesQuery,
   useGetDevotionPlansQuery,
   useGetMyDevotionPlansQuery,
+  useStartDevotionPlanMutation,
   apiSlice,
 } from '../redux/api-slices/apiSlice';
 import HomeCurrentSSL from './SSLScreens/HomeCurrentSSL';
@@ -30,6 +31,7 @@ import DevotionCard from '../components/DevotionCard';
 import CourseCard from '../components/CourseCard';
 import Header from '../components/Header';
 import DevotionPlanSquareCard from '../components/DevotionPlanSquareCard';
+import StartDevotionPlanModal from '../components/StartDevotionPlanModal';
 import {setDevotions} from '../redux/devotionsSlice';
 import {setCourses} from '../redux/courseSlice';
 import {scheduleVerseOfTheDayNotification} from '../utils/notifications';
@@ -149,6 +151,13 @@ const Home = () => {
   const {data: completedPlans = []} = useGetMyDevotionPlansQuery({
     status: 'completed',
   });
+
+  const [startDevotionPlan, {isLoading: isStartingPlan}] =
+    useStartDevotionPlanMutation();
+
+  // State for start plan modal
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showStartPlanModal, setShowStartPlanModal] = useState(false);
 
   // Calculate unstarted plans (plans that are not in progress or completed)
   const unstartedPlans = useMemo(() => {
@@ -1171,10 +1180,17 @@ const Home = () => {
                           darkMode={darkMode}
                           isStarted={isStarted}
                           onPress={plan => {
-                            navigation.navigate('Devotional', {
-                              screen: 'PlanDevotionViewer',
-                              params: {planId: plan._id},
-                            });
+                            if (isStarted) {
+                              // If plan is already started, navigate directly
+                              navigation.navigate('Devotional', {
+                                screen: 'PlanDevotionViewer',
+                                params: {planId: plan._id},
+                              });
+                            } else {
+                              // If plan is not started, show modal
+                              setSelectedPlan(plan);
+                              setShowStartPlanModal(true);
+                            }
                           }}
                         />
                       );
@@ -1275,6 +1291,55 @@ const Home = () => {
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Start Devotion Plan Modal */}
+      <StartDevotionPlanModal
+        visible={showStartPlanModal}
+        onClose={() => {
+          setShowStartPlanModal(false);
+          setSelectedPlan(null);
+        }}
+        plan={selectedPlan}
+        darkMode={darkMode}
+        isStarting={isStartingPlan}
+        onStartPlan={async () => {
+          if (!selectedPlan?._id) {
+            return;
+          }
+
+          try {
+            await startDevotionPlan(selectedPlan._id).unwrap();
+
+            Toast.show({
+              type: 'success',
+              text1: 'Plan Started! 🎉',
+              text2: 'Your devotion plan journey begins now.',
+            });
+
+            // Close modal and navigate to plan viewer
+            setShowStartPlanModal(false);
+            const planId = selectedPlan._id;
+            setSelectedPlan(null);
+
+            // Small delay to ensure state updates
+            setTimeout(() => {
+              navigation.navigate('Devotional', {
+                screen: 'PlanDevotionViewer',
+                params: {planId},
+              });
+            }, 300);
+          } catch (error) {
+            Toast.show({
+              type: 'error',
+              text1: 'Failed to Start Plan',
+              text2:
+                error?.data?.message ||
+                error?.message ||
+                'Please try again.',
+            });
+          }
+        }}
+      />
     </View>
   );
 };

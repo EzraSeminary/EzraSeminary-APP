@@ -276,15 +276,28 @@ const PlanDevotionViewer = () => {
 
   const handleMarkComplete = async () => {
     if (!currentDevotion || !planId) {
+      console.error('handleMarkComplete: Missing currentDevotion or planId', {
+        currentDevotion: currentDevotion?._id,
+        planId,
+      });
       return;
     }
 
+    console.log('=== MARK COMPLETE DEBUG ===');
+    console.log('planId:', planId);
+    console.log('devotionId:', currentDevotion._id);
+    console.log('devotionNumber:', devotionNumber);
+    console.log('totalDays:', totalDays);
+    console.log('===========================');
+
     try {
-      await updateProgress({
+      const result = await updateProgress({
         id: planId,
         devotionId: currentDevotion._id,
         completed: true,
       }).unwrap();
+
+      console.log('Update progress result:', result);
 
       Toast.show({
         type: 'success',
@@ -292,12 +305,19 @@ const PlanDevotionViewer = () => {
         text2: `Day ${devotionNumber} of ${totalDays} completed`,
       });
 
-      const result = await refetchProgress();
-      const updatedProgressData = result?.data || progressData;
+      // Refetch progress to get updated data
+      const resultProgress = await refetchProgress();
+      const updatedProgressData = resultProgress?.data || progressData;
       const updatedUserPlan = updatedProgressData?.userPlan || userPlan;
       const updatedItemsCompleted =
         updatedUserPlan.itemsCompleted || itemsCompleted;
       const newCompletedCount = updatedItemsCompleted.length;
+
+      console.log('Updated progress data:', {
+        newCompletedCount,
+        totalDays,
+        updatedItemsCompleted,
+      });
 
       // Check if all devotions are complete
       if (newCompletedCount >= totalDays) {
@@ -314,10 +334,22 @@ const PlanDevotionViewer = () => {
         }, 1000);
       }
     } catch (error) {
+      console.error('=== UPDATE PROGRESS ERROR ===');
+      console.error('Error object:', error);
+      console.error('Error message:', error?.message);
+      console.error('Error data:', error?.data);
+      console.error('Error status:', error?.status);
+      console.error('Full error:', JSON.stringify(error, null, 2));
+      console.error('============================');
+
       Toast.show({
         type: 'error',
         text1: 'Failed to Update Progress',
-        text2: error?.data?.message || 'Please try again.',
+        text2:
+          error?.data?.message ||
+          error?.message ||
+          error?.error ||
+          'Please try again.',
       });
     }
   };

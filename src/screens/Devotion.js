@@ -31,6 +31,7 @@ import {
   useGetDevotionsQuery,
   useGetDevotionPlansQuery,
   useGetMyDevotionPlansQuery,
+  useStartDevotionPlanMutation,
   useToggleDevotionLikeMutation,
   useGetDevotionLikesQuery,
   useGetDevotionCommentsQuery,
@@ -45,6 +46,7 @@ import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import NotificationService from '../services/NotificationService';
 import DevotionalShareModal from '../components/DevotionalShareModal';
 import DevotionPlanSquareCard from '../components/DevotionPlanSquareCard';
+import StartDevotionPlanModal from '../components/StartDevotionPlanModal';
 import CommentsModal from '../components/CommentsModal';
 import networkManager from '../utils/networkManager';
 
@@ -89,13 +91,35 @@ const Devotion = () => {
     refetch,
   } = useGetDevotionsQuery({year: yearToFetch});
 
-  const {data: devotionPlans = []} = useGetDevotionPlansQuery();
-  const {data: myDevotionPlans = []} = useGetMyDevotionPlansQuery({
-    status: 'in_progress',
-  });
-  const {data: completedPlans = []} = useGetMyDevotionPlansQuery({
-    status: 'completed',
-  });
+  const {
+    data: devotionPlans = [],
+    isLoading: devotionPlansLoading,
+    error: devotionPlansError,
+  } = useGetDevotionPlansQuery();
+  const {data: myDevotionPlans = []} = useGetMyDevotionPlansQuery(
+    {
+      status: 'in_progress',
+    },
+    {
+      skip: !user, // Skip if user is not logged in
+    },
+  );
+  const {data: completedPlans = []} = useGetMyDevotionPlansQuery(
+    {
+      status: 'completed',
+    },
+    {
+      skip: !user, // Skip if user is not logged in
+    },
+  );
+
+  const [startDevotionPlan, {isLoading: isStartingPlan}] =
+    useStartDevotionPlanMutation();
+
+  // State for start plan modal
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showStartPlanModal, setShowStartPlanModal] = useState(false);
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const [isDownloading, setIsDownloading] = useState(false);
@@ -278,6 +302,12 @@ const Devotion = () => {
       'devotionToDisplay:',
       devotionToDisplay ? devotionToDisplay.title : 'NO',
     );
+    console.log('devotionPlans:', devotionPlans?.length || 0);
+    console.log('devotionPlansLoading:', devotionPlansLoading);
+    console.log('devotionPlansError:', devotionPlansError);
+    console.log('myDevotionPlans:', myDevotionPlans?.length || 0);
+    console.log('completedPlans:', completedPlans?.length || 0);
+    console.log('user:', user ? 'logged in' : 'not logged in');
     console.log('============================');
   }, [
     devotions,
@@ -286,6 +316,12 @@ const Devotion = () => {
     devotionToDisplay,
     currentEthiopianMonth,
     ethDay,
+    devotionPlans,
+    devotionPlansLoading,
+    devotionPlansError,
+    myDevotionPlans,
+    completedPlans,
+    user,
   ]);
 
   const tailwindStyles = StyleSheet.create({
@@ -897,10 +933,17 @@ const Devotion = () => {
                         darkMode={darkMode}
                         isStarted={isStarted}
                         onPress={plan => {
-                          navigation.navigate('Devotional', {
-                            screen: 'PlanDevotionViewer',
-                            params: {planId: plan._id},
-                          });
+                          if (isStarted) {
+                            // If plan is already started, navigate directly
+                            navigation.navigate('Devotional', {
+                              screen: 'PlanDevotionViewer',
+                              params: {planId: plan._id},
+                            });
+                          } else {
+                            // If plan is not started, show modal
+                            setSelectedPlan(plan);
+                            setShowStartPlanModal(true);
+                          }
                         }}
                       />
                     );
@@ -952,6 +995,55 @@ const Devotion = () => {
           darkMode={darkMode}
         />
       )}
+
+      {/* Start Devotion Plan Modal */}
+      <StartDevotionPlanModal
+        visible={showStartPlanModal}
+        onClose={() => {
+          setShowStartPlanModal(false);
+          setSelectedPlan(null);
+        }}
+        plan={selectedPlan}
+        darkMode={darkMode}
+        isStarting={isStartingPlan}
+        onStartPlan={async () => {
+          if (!selectedPlan?._id) {
+            return;
+          }
+
+          try {
+            await startDevotionPlan(selectedPlan._id).unwrap();
+
+            Toast.show({
+              type: 'success',
+              text1: 'Plan Started! 🎉',
+              text2: 'Your devotion plan journey begins now.',
+            });
+
+            // Close modal and navigate to plan viewer
+            setShowStartPlanModal(false);
+            const planId = selectedPlan._id;
+            setSelectedPlan(null);
+
+            // Small delay to ensure state updates
+            setTimeout(() => {
+              navigation.navigate('Devotional', {
+                screen: 'PlanDevotionViewer',
+                params: {planId},
+              });
+            }, 300);
+          } catch (error) {
+            Toast.show({
+              type: 'error',
+              text1: 'Failed to Start Plan',
+              text2:
+                error?.data?.message ||
+                error?.message ||
+                'Please try again.',
+            });
+          }
+        }}
+      />
     </View>
   );
 };
