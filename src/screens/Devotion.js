@@ -8,8 +8,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
-import React, {useState, useCallback, useEffect, useMemo} from 'react';
+import React, {useState, useCallback, useEffect, useMemo, useRef} from 'react';
 import {useSelector} from 'react-redux';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {Share as RNShare} from 'react-native';
@@ -22,12 +23,14 @@ import {
   Heart,
   ChatCircle,
   ArrowLeft,
+  BookOpen,
 } from 'phosphor-react-native';
 import tw from './../../tailwind';
 import Toast from 'react-native-toast-message';
 import {
   useGetDevotionsQuery,
   useGetDevotionPlansQuery,
+  useGetMyDevotionPlansQuery,
   useToggleDevotionLikeMutation,
   useGetDevotionLikesQuery,
   useGetDevotionCommentsQuery,
@@ -41,7 +44,7 @@ import ErrorScreen from '../components/ErrorScreen';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import NotificationService from '../services/NotificationService';
 import DevotionalShareModal from '../components/DevotionalShareModal';
-import DevotionPlansCarousel from '../components/DevotionPlansCarousel';
+import DevotionPlanSquareCard from '../components/DevotionPlanSquareCard';
 import CommentsModal from '../components/CommentsModal';
 import networkManager from '../utils/networkManager';
 
@@ -87,7 +90,14 @@ const Devotion = () => {
   } = useGetDevotionsQuery({year: yearToFetch});
 
   const {data: devotionPlans = []} = useGetDevotionPlansQuery();
+  const {data: myDevotionPlans = []} = useGetMyDevotionPlansQuery({
+    status: 'in_progress',
+  });
+  const {data: completedPlans = []} = useGetMyDevotionPlansQuery({
+    status: 'completed',
+  });
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -396,6 +406,16 @@ const Devotion = () => {
     }
   }, [devotionToDisplay]);
 
+  // Initialize animation
+  useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      tension: 50,
+      friction: 7,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
   const scheduleNotificationForCurrentDevotion = async devotion => {
     try {
       const settings = await NotificationService.getDailyNotificationSettings();
@@ -556,9 +576,12 @@ const Devotion = () => {
             </TouchableOpacity>
             {/* Sliding buttons for Devotional/Devotional Plan */}
             <View
-              style={tw`flex-row bg-secondary-7 rounded-full p-1 ${
-                darkMode ? 'bg-secondary-8' : ''
-              }`}>
+              style={[
+                tw`flex-row rounded-full p-1`,
+                {
+                  backgroundColor: darkMode ? '#374151' : '#E5E7EB',
+                },
+              ]}>
               <TouchableOpacity
                 onPress={() => {
                   setActiveTab('devotional');
@@ -567,21 +590,27 @@ const Devotion = () => {
                     screen: 'DevotionalHome',
                   });
                 }}
-                style={tw`px-4 py-2 rounded-full ${
-                  activeTab === 'devotional'
-                    ? 'bg-accent-6'
-                    : darkMode
-                    ? 'bg-transparent'
-                    : 'bg-transparent'
-                }`}>
+                style={[
+                  tw`px-4 py-2 rounded-full`,
+                  {
+                    backgroundColor:
+                      activeTab === 'devotional'
+                        ? '#EA9215'
+                        : 'transparent',
+                  },
+                ]}>
                 <Text
-                  style={tw`font-nokia-bold text-sm ${
-                    activeTab === 'devotional'
-                      ? 'text-white'
-                      : darkMode
-                      ? 'text-primary-3'
-                      : 'text-secondary-6'
-                  }`}>
+                  style={[
+                    tw`font-nokia-bold text-sm`,
+                    {
+                      color:
+                        activeTab === 'devotional'
+                          ? '#FFFFFF'
+                          : darkMode
+                          ? '#D1D5DB'
+                          : '#4B5563',
+                    },
+                  ]}>
                   Devotional
                 </Text>
               </TouchableOpacity>
@@ -592,21 +621,25 @@ const Devotion = () => {
                     screen: 'DevotionPlans',
                   });
                 }}
-                style={tw`px-4 py-2 rounded-full ${
-                  activeTab === 'plan'
-                    ? 'bg-accent-6'
-                    : darkMode
-                    ? 'bg-transparent'
-                    : 'bg-transparent'
-                }`}>
+                style={[
+                  tw`px-4 py-2 rounded-full`,
+                  {
+                    backgroundColor:
+                      activeTab === 'plan' ? '#EA9215' : 'transparent',
+                  },
+                ]}>
                 <Text
-                  style={tw`font-nokia-bold text-sm ${
-                    activeTab === 'plan'
-                      ? 'text-white'
-                      : darkMode
-                      ? 'text-primary-3'
-                      : 'text-secondary-6'
-                  }`}>
+                  style={[
+                    tw`font-nokia-bold text-sm`,
+                    {
+                      color:
+                        activeTab === 'plan'
+                          ? '#FFFFFF'
+                          : darkMode
+                          ? '#D1D5DB'
+                          : '#4B5563',
+                    },
+                  ]}>
                   Devotional Plan
                 </Text>
               </TouchableOpacity>
@@ -802,14 +835,78 @@ const Devotion = () => {
           </View>
           <View style={tw`border-b border-primary-7 mt-4 mb-4`} />
 
-          {/* Devotion Plans Section - Under daily devotion */}
+          {/* Devotion Plans Section - በእቅድ ያንብቡ */}
           {devotionPlans && devotionPlans.length > 0 && (
             <>
-              <DevotionPlansCarousel
-                plans={devotionPlans.slice(0, 5)}
-                darkMode={darkMode}
-                showSeeMore={true}
-              />
+              <Animated.View
+                style={[
+                  tw`p-4 rounded-2xl mb-4`,
+                  {
+                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                    transform: [{scale: scaleAnim}],
+                  },
+                ]}>
+                <View style={tw`flex flex-row justify-between items-center`}>
+                  <View style={tw`flex-row items-center flex-1`}>
+                    <BookOpen size={24} color="#EA9215" weight="bold" />
+                    <Text
+                      style={[
+                        tw`font-nokia-bold text-lg ml-3`,
+                        darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                      ]}>
+                      በእቅድ ያንብቡ
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      tw`px-4 py-2 rounded-full flex-row items-center`,
+                      {backgroundColor: '#EA9215'},
+                    ]}
+                    onPress={() =>
+                      navigation.navigate('Devotional', {
+                        screen: 'DevotionPlans',
+                      })
+                    }>
+                    <Text
+                      style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
+                      All Plans
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+              <Animated.View
+                style={{
+                  transform: [{scale: scaleAnim}],
+                }}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={tw`px-1 pb-2`}>
+                  {devotionPlans.slice(0, 5).map((plan, index) => {
+                    const isStarted =
+                      myDevotionPlans.some(
+                        p => (p.planId || p.plan?._id) === plan._id,
+                      ) ||
+                      completedPlans.some(
+                        p => (p.planId || p.plan?._id) === plan._id,
+                      );
+                    return (
+                      <DevotionPlanSquareCard
+                        key={plan._id || index}
+                        plan={plan}
+                        darkMode={darkMode}
+                        isStarted={isStarted}
+                        onPress={plan => {
+                          navigation.navigate('Devotional', {
+                            screen: 'PlanDevotionViewer',
+                            params: {planId: plan._id},
+                          });
+                        }}
+                      />
+                    );
+                  })}
+                </ScrollView>
+              </Animated.View>
               <View style={tw`border-b border-primary-7 mt-4 mb-4`} />
             </>
           )}

@@ -6,13 +6,11 @@ import {
 } from '../../utils/apiResponse';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Dynamic base URL: Android emulator uses 10.0.2.2, iOS simulator uses localhost.
-// Physical devices can override via AsyncStorage key 'apiBaseUrl'.
-// Production backend is at https://ezrabackend.online
-const DEFAULT_BASE_URL =
-  Platform.OS === 'android'
-    ? 'http://10.0.2.2:5100/'
-    : 'https://ezrabackend.online/';
+// Dynamic base URL: Production backend is at https://ezrabackend.online
+// For emulator/simulator testing, override via AsyncStorage key 'apiBaseUrl'
+// Android emulator: 'http://10.0.2.2:5100/'
+// iOS simulator: 'http://localhost:5100/'
+const DEFAULT_BASE_URL = 'https://ezrabackend.online/';
 
 const dynamicBaseQuery = async (args, api, extraOptions) => {
   let baseUrl = DEFAULT_BASE_URL;
@@ -25,7 +23,7 @@ const dynamicBaseQuery = async (args, api, extraOptions) => {
 
   const rawBaseQuery = fetchBaseQuery({
     baseUrl,
-    timeout: 15000, // 15 second timeout
+    timeout: 60000, // 60 second timeout to prevent AbortError
     prepareHeaders: async headers => {
       const userString = await AsyncStorage.getItem('user');
       const user = userString ? JSON.parse(userString) : null;
@@ -40,56 +38,9 @@ const dynamicBaseQuery = async (args, api, extraOptions) => {
   return rawBaseQuery(args, api, extraOptions);
 };
 
-// Base query with retry logic
-const baseQueryWithRetry = async (args, api, extraOptions) => {
-  const maxRetries = 2;
-  let attempt = 0;
-
-  while (attempt <= maxRetries) {
-    try {
-      const result = await dynamicBaseQuery(args, api, extraOptions);
-
-      // If successful or it's a 4xx error (client error), return immediately
-      if (
-        !result.error ||
-        (result.error.status >= 400 && result.error.status < 500)
-      ) {
-        return result;
-      }
-
-      // For 5xx errors or network errors, retry
-      if (attempt < maxRetries) {
-        attempt++;
-        // Wait before retrying (exponential backoff)
-        await new Promise(resolve =>
-          setTimeout(resolve, Math.pow(2, attempt) * 1000),
-        );
-        continue;
-      }
-
-      return result;
-    } catch (error) {
-      if (attempt < maxRetries) {
-        attempt++;
-        await new Promise(resolve =>
-          setTimeout(resolve, Math.pow(2, attempt) * 1000),
-        );
-        continue;
-      }
-
-      return {
-        error: {
-          status: 'FETCH_ERROR',
-          error: error.message || 'Network request failed',
-        },
-      };
-    }
-  }
-};
-
 export const apiSlice = createApi({
   reducerPath: 'api',
-  baseQuery: baseQueryWithRetry,
+  baseQuery: dynamicBaseQuery,
   // Keep unused data for 10 minutes to improve UX and reduce API calls
   keepUnusedDataFor: 600,
   tagTypes: [
@@ -302,10 +253,13 @@ export const apiSlice = createApi({
       query: year => `/devotion/year/${year}/months`,
       // Cache months list for 1 hour since it rarely changes
       keepUnusedDataFor: 3600,
-      providesTags: (result, error, year) => [{type: 'Devotions', id: `months-${year}`}],
+      providesTags: (result, error, year) => [
+        {type: 'Devotions', id: `months-${year}`},
+      ],
     }),
     getDevotionsByYearAndMonth: builder.query({
-      query: ({year, month}) => `/devotion/year/${year}/month/${encodeURIComponent(month)}`,
+      query: ({year, month}) =>
+        `/devotion/year/${year}/month/${encodeURIComponent(month)}`,
       transformResponse: response => {
         // Backend returns array of devotions for the month
         if (Array.isArray(response)) {

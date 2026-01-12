@@ -159,8 +159,10 @@ class NotificationService {
       const notificationConfig = {
         title: '📖 Daily Verse (Test)',
         body: devotion.verse || 'Daily devotional verse',
+        subtitle: devotion.title || 'Daily Devotion',
         data: {
           type: 'daily-verse',
+          ...(devotion._id && {devotionId: String(devotion._id)}),
         },
         android: {
           channelId: 'daily-verse',
@@ -236,7 +238,7 @@ class NotificationService {
         subtitle: devotion.title || 'Daily Devotion',
         data: {
           type: 'daily-verse',
-          devotionId: devotion._id,
+          ...(devotion._id && {devotionId: String(devotion._id)}),
         },
         android: {
           channelId: 'daily-verse',

@@ -114,8 +114,9 @@ const Home = () => {
   const {
     data: devotions = [],
     isFetching,
+    isLoading: devotionsLoading,
     refetch: refetchDevotions,
-    error,
+    error: devotionsError,
   } = useGetDevotionsQuery({year: yearToFetch});
 
   const {
@@ -408,8 +409,8 @@ const Home = () => {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        // Fetch data with timeout
-        const fetchWithTimeout = (promise, timeout = 15000) => {
+        // Fetch data with timeout - longer timeout for Android
+        const fetchWithTimeout = (promise, timeout = 30000) => {
           return Promise.race([
             promise,
             new Promise((_, reject) =>
@@ -419,9 +420,88 @@ const Home = () => {
         };
 
         console.log('Fetching devotions and courses...');
-        const [devotionsData, coursesData] = await fetchWithTimeout(
-          Promise.all([refetchDevotions(), refetchCourses()]),
-        );
+        // Fetch devotions and courses separately to handle timeouts better
+        let devotionsData = null;
+        let coursesData = null;
+
+        try {
+          // Don't wrap in fetchWithTimeout - let RTK Query handle its own timeout
+          devotionsData = await refetchDevotions();
+
+          console.log('Devotions refetch result:', {
+            data: devotionsData?.data?.length || 0,
+            error: devotionsData?.error,
+            isError: devotionsData?.isError,
+          });
+
+          // Check if the fetch failed (error or no data)
+          if (
+            devotionsData?.isError ||
+            devotionsData?.error ||
+            !devotionsData?.data
+          ) {
+            throw new Error(devotionsData?.error?.message || 'Fetch failed');
+          }
+        } catch (e) {
+          console.warn('Devotions fetch failed:', e.message || e);
+          // Try to use cached data if fetch fails
+          if (cachedData.devotions?.length > 0) {
+            console.log(
+              'Using cached devotions data:',
+              cachedData.devotions.length,
+            );
+            devotionsData = {data: cachedData.devotions};
+          } else if (persistedDevotions?.length > 0) {
+            console.log(
+              'Using persisted devotions data:',
+              persistedDevotions.length,
+            );
+            devotionsData = {data: persistedDevotions};
+          } else {
+            console.warn(
+              'No devotions data available from cache or persistence',
+            );
+            devotionsData = null;
+          }
+        }
+
+        try {
+          // Don't wrap in fetchWithTimeout - let RTK Query handle its own timeout
+          coursesData = await refetchCourses();
+
+          console.log('Courses refetch result:', {
+            data: coursesData?.data?.length || 0,
+            error: coursesData?.error,
+            isError: coursesData?.isError,
+          });
+
+          // Check if the fetch failed (error or no data)
+          if (
+            coursesData?.isError ||
+            coursesData?.error ||
+            !coursesData?.data
+          ) {
+            throw new Error(coursesData?.error?.message || 'Fetch failed');
+          }
+        } catch (e) {
+          console.warn('Courses fetch failed:', e.message || e);
+          // Try to use cached data if fetch fails
+          if (cachedData.courses?.length > 0) {
+            console.log(
+              'Using cached courses data:',
+              cachedData.courses.length,
+            );
+            coursesData = {data: cachedData.courses};
+          } else if (persistedCourses?.length > 0) {
+            console.log(
+              'Using persisted courses data:',
+              persistedCourses.length,
+            );
+            coursesData = {data: persistedCourses};
+          } else {
+            coursesData = null;
+          }
+        }
         console.log(
           'Fetch complete. Devotions:',
           devotionsData?.data?.length || 0,
@@ -440,6 +520,11 @@ const Home = () => {
           dispatch(setDevotions(devotionsData.data));
         } else {
           console.warn('No devotion data to dispatch:', devotionsData);
+          // If no new data but we have cached data, use that
+          if (cachedData.devotions?.length > 0) {
+            console.log('Using cached devotions data');
+            dispatch(setDevotions(cachedData.devotions));
+          }
         }
 
         if (coursesData?.data && Array.isArray(coursesData.data)) {
@@ -451,13 +536,20 @@ const Home = () => {
           dispatch(setCourses(coursesData.data));
         } else {
           console.warn('No course data to dispatch:', coursesData);
+          // If no new data but we have cached data, use that
+          if (cachedData.courses?.length > 0) {
+            console.log('Using cached courses data');
+            dispatch(setCourses(cachedData.courses));
+          }
         }
 
-        // Save to cache (non-blocking)
-        console.log('Saving to cache...');
-        saveCachedData(devotionsData?.data, coursesData?.data).catch(
-          console.error,
-        );
+        // Save to cache (non-blocking) - only if we got new data
+        if (devotionsData?.data || coursesData?.data) {
+          console.log('Saving to cache...');
+          saveCachedData(devotionsData?.data, coursesData?.data).catch(
+            console.error,
+          );
+        }
 
         // Prefetch images for faster subsequent loads
         prefetchImages(

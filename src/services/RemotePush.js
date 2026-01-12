@@ -99,31 +99,55 @@ class RemotePushService {
    */
   async saveTokenToBackend(token) {
     try {
-      // Resolve server URL:
-      // - Allow override via AsyncStorage key 'pushServerUrl'
-      // - Use emulator/simulator defaults if not set
-      const storedUrl = await AsyncStorage.getItem('pushServerUrl');
-      const defaultServerUrl = Platform.select({
-        ios: 'http://localhost:3000',
-        android: 'http://10.0.2.2:3000',
-        default: 'http://localhost:3000',
-      });
-      const serverUrl = (storedUrl && storedUrl.trim()) || defaultServerUrl;
+      // Use the same backend URL as the main API
+      // Allow override via AsyncStorage key 'apiBaseUrl' for testing
+      let serverUrl = 'https://ezrabackend.online';
+      try {
+        const override = await AsyncStorage.getItem('apiBaseUrl');
+        if (override && typeof override === 'string') {
+          serverUrl = override.endsWith('/') ? override.slice(0, -1) : override;
+        }
+      } catch (e) {
+        // Use default if AsyncStorage fails
+      }
+
+      // Get auth token if user is logged in
+      let authToken = '';
+      try {
+        const userString = await AsyncStorage.getItem('user');
+        if (userString) {
+          const user = JSON.parse(userString);
+          authToken = user?.token || '';
+        }
+      } catch (e) {
+        // Continue without auth token if not available
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
       
-      const response = await fetch(`${serverUrl}/register-token`, {
+      const response = await fetch(`${serverUrl}/users/fcm-token`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ token }),
       });
       
       if (response.ok) {
         const result = await response.json();
-        console.log('Token registered with server:', result.message);
+        console.log('Token registered with server:', result.message || 'Success');
         return true;
       } else {
-        console.warn('Failed to register token with server:', response.status);
+        const errorText = await response.text();
+        console.warn(
+          'Failed to register token with server:',
+          response.status,
+          errorText,
+        );
         return false;
       }
     } catch (error) {

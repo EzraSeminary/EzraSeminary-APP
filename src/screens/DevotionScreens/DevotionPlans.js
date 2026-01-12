@@ -376,9 +376,12 @@ const DevotionPlans = () => {
           <View style={tw`flex flex-row items-center gap-2`}>
             {/* Sliding buttons for Devotional/Devotional Plan */}
             <View
-              style={tw`flex-row bg-secondary-7 rounded-full p-1 ${
-                darkMode ? 'bg-secondary-8' : ''
-              }`}>
+              style={[
+                tw`flex-row rounded-full p-1`,
+                {
+                  backgroundColor: darkMode ? '#374151' : '#E5E7EB',
+                },
+              ]}>
               <TouchableOpacity
                 onPress={() => {
                   setActiveTab('devotional');
@@ -386,41 +389,51 @@ const DevotionPlans = () => {
                     screen: 'DevotionalHome',
                   });
                 }}
-                style={tw`px-3 py-1.5 rounded-full ${
-                  activeTab === 'devotional'
-                    ? 'bg-accent-6'
-                    : darkMode
-                    ? 'bg-transparent'
-                    : 'bg-transparent'
-                }`}>
+                style={[
+                  tw`px-3 py-1.5 rounded-full`,
+                  {
+                    backgroundColor:
+                      activeTab === 'devotional'
+                        ? '#EA9215'
+                        : 'transparent',
+                  },
+                ]}>
                 <Text
-                  style={tw`font-nokia-bold text-xs ${
-                    activeTab === 'devotional'
-                      ? 'text-white'
-                      : darkMode
-                      ? 'text-primary-3'
-                      : 'text-secondary-6'
-                  }`}>
+                  style={[
+                    tw`font-nokia-bold text-xs`,
+                    {
+                      color:
+                        activeTab === 'devotional'
+                          ? '#FFFFFF'
+                          : darkMode
+                          ? '#D1D5DB'
+                          : '#4B5563',
+                    },
+                  ]}>
                   Devotional
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setActiveTab('plan')}
-                style={tw`px-3 py-1.5 rounded-full ${
-                  activeTab === 'plan'
-                    ? 'bg-accent-6'
-                    : darkMode
-                    ? 'bg-transparent'
-                    : 'bg-transparent'
-                }`}>
+                style={[
+                  tw`px-3 py-1.5 rounded-full`,
+                  {
+                    backgroundColor:
+                      activeTab === 'plan' ? '#EA9215' : 'transparent',
+                  },
+                ]}>
                 <Text
-                  style={tw`font-nokia-bold text-xs ${
-                    activeTab === 'plan'
-                      ? 'text-white'
-                      : darkMode
-                      ? 'text-primary-3'
-                      : 'text-secondary-6'
-                  }`}>
+                  style={[
+                    tw`font-nokia-bold text-xs`,
+                    {
+                      color:
+                        activeTab === 'plan'
+                          ? '#FFFFFF'
+                          : darkMode
+                          ? '#D1D5DB'
+                          : '#4B5563',
+                    },
+                  ]}>
                   Devotional Plan
                 </Text>
               </TouchableOpacity>
