@@ -31,8 +31,11 @@ const DevotionPlans = () => {
 
   const {data: findPlans = [], isLoading: loadingFind} =
     useGetDevotionPlansQuery();
-  const {data: myPlans = [], isLoading: loadingMy, refetch: refetchMy} =
-    useGetMyDevotionPlansQuery({status: 'in_progress'});
+  const {
+    data: myPlans = [],
+    isLoading: loadingMy,
+    refetch: refetchMy,
+  } = useGetMyDevotionPlansQuery({status: 'in_progress'});
   const {data: completedPlans = [], isLoading: loadingCompleted} =
     useGetMyDevotionPlansQuery({status: 'completed'});
 
@@ -93,7 +96,11 @@ const DevotionPlans = () => {
     }
   };
 
-  const renderPlanCard = ({item, withProgress = false, isCompleted = false}) => {
+  const renderPlanCard = ({
+    item,
+    withProgress = false,
+    isCompleted = false,
+  }) => {
     const plan = item.plan || item;
     const progress = item.progress;
 
@@ -131,8 +138,7 @@ const DevotionPlans = () => {
               {plan.description}
             </Text>
           )}
-          <Text
-            style={tw`font-nokia-bold text-accent-6 text-sm mb-2`}>
+          <Text style={tw`font-nokia-bold text-accent-6 text-sm mb-2`}>
             {plan.numItems || 0} days
           </Text>
 
@@ -393,9 +399,7 @@ const DevotionPlans = () => {
                   tw`px-3 py-1.5 rounded-full`,
                   {
                     backgroundColor:
-                      activeTab === 'devotional'
-                        ? '#EA9215'
-                        : 'transparent',
+                      activeTab === 'devotional' ? '#EA9215' : 'transparent',
                   },
                 ]}>
                 <Text
@@ -446,9 +450,7 @@ const DevotionPlans = () => {
           <TouchableOpacity
             style={[
               tw`flex-1 px-4 py-2 rounded-full`,
-              tab === 'find'
-                ? tw`bg-accent-6`
-                : tw`border border-accent-6`,
+              tab === 'find' ? tw`bg-accent-6` : tw`border border-accent-6`,
             ]}
             onPress={() => setTab('find')}>
             <Text
