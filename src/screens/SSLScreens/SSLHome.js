@@ -36,6 +36,11 @@ import ErrorScreen from '../../components/ErrorScreen';
 import {format} from 'date-fns';
 import DateConverter from './DateConverter';
 import networkManager from '../../utils/networkManager';
+import {saveSSLLessonToCache} from '../../utils/sslCache';
+import {
+  saveHomeScreenToCache,
+  getCachedHomeScreen,
+} from '../../utils/homeScreenCache';
 
 const SSLHome = ({onReload}) => {
   const currentDate = new Date().toISOString().slice(0, 10);
@@ -47,6 +52,8 @@ const SSLHome = ({onReload}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [reloadingLesson, setReloadingLesson] = useState(false);
   const [invalidateSSLCache] = useInvalidateSSLCacheMutation();
+  const [cachedHomeData, setCachedHomeData] = useState(null);
+  const [isUsingCache, setIsUsingCache] = useState(false);
   const {data: ssl, error, isLoading, refetch} = useGetSSLsQuery();
 
   const {
@@ -80,6 +87,55 @@ const SSLHome = ({onReload}) => {
       setBackgroundImage(lessonDetails.lesson.cover);
     }
   }, [lessonDetails]);
+
+  // Cache home screen data when loaded with internet
+  useEffect(() => {
+    if (
+      networkManager.isOnline &&
+      ssl &&
+      ssl.length > 0 &&
+      lessonDetails &&
+      quarterDetails
+    ) {
+      const homeData = {
+        ssl,
+        lessonDetails,
+        quarterDetails,
+        videoLink,
+      };
+      saveHomeScreenToCache('SSLHome', homeData);
+    }
+  }, [ssl, lessonDetails, quarterDetails, videoLink]);
+
+  // Load from cache when offline or API fails
+  useEffect(() => {
+    const loadFromCache = async () => {
+      if ((!networkManager.isOnline || error) && (!ssl || ssl.length === 0)) {
+        try {
+          const cached = await getCachedHomeScreen('SSLHome');
+          if (cached) {
+            setCachedHomeData(cached);
+            setIsUsingCache(true);
+            console.log('📦 Using cached SSLHome data (offline/error)');
+          }
+        } catch (error) {
+          console.error('Error loading cached SSLHome data:', error);
+        }
+      } else if (ssl && ssl.length > 0 && isUsingCache) {
+        setIsUsingCache(false);
+        setCachedHomeData(null);
+      }
+    };
+
+    loadFromCache();
+  }, [error, ssl, isUsingCache]);
+
+  // Use cached data if available
+  const displaySSL = ssl && ssl.length > 0 ? ssl : cachedHomeData?.ssl || [];
+  const displayLessonDetails =
+    lessonDetails || cachedHomeData?.lessonDetails || null;
+  const displayQuarterDetails =
+    quarterDetails || cachedHomeData?.quarterDetails || null;
 
   const onRefresh = useCallback(async () => {
     try {
@@ -208,7 +264,7 @@ const SSLHome = ({onReload}) => {
     setSearchTerm(text);
   };
 
-  const filteredData = ssl?.filter(item =>
+  const filteredData = displaySSL?.filter(item =>
     item.title.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
@@ -237,7 +293,7 @@ const SSLHome = ({onReload}) => {
   };
 
   // Handle different error states
-  if (networkError && (!ssl || ssl.length === 0)) {
+  if (networkError && (!ssl || ssl.length === 0) && !cachedHomeData) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
         <View style={tw`flex-1 justify-center items-center px-6`}>
@@ -370,6 +426,22 @@ const SSLHome = ({onReload}) => {
       // Continue navigation even if prefetch fails
     }
 
+    // Cache lesson and quarter data before navigation
+    // The full lesson content will be cached when SSLWeek loads
+    if (quarterDetails && lessonDetails && quarter && week) {
+      try {
+        // Save with available lesson index data - full lesson content will be cached in SSLWeek
+        await saveSSLLessonToCache(
+          quarter,
+          week,
+          lessonDetails || null,
+          quarterDetails,
+        );
+      } catch (error) {
+        console.error('Error caching SSL lesson data:', error);
+      }
+    }
+
     navigation.navigate('SSLWeek', {
       ssl: quarter,
       weekId: week,
@@ -413,6 +485,23 @@ const SSLHome = ({onReload}) => {
   if (lessonError) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
+        {isUsingCache && (
+          <View
+            style={[
+              tw`px-4 py-2 border-b`,
+              darkMode
+                ? tw`bg-secondary-8 border-secondary-7`
+                : tw`bg-primary-5 border-primary-4`,
+            ]}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-xs text-center`,
+                darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+              ]}>
+              📦 Showing cached content (offline mode)
+            </Text>
+          </View>
+        )}
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={

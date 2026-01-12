@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,10 @@ import Toast from 'react-native-toast-message';
 import DevotionalShareModal from '../../components/DevotionalShareModal';
 import CommentsModal from '../../components/CommentsModal';
 import networkManager from '../../utils/networkManager';
+import {
+  saveDevotionToCache,
+  getCachedDevotion,
+} from '../../utils/devotionCache';
 
 const SelectedDevotional = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -75,6 +79,8 @@ const SelectedDevotional = ({route}) => {
   const [likesCount, setLikesCount] = useState(0);
   const [sharesCount, setSharesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
+  const [cachedDevotional, setCachedDevotional] = useState(null);
+  const [isUsingCache, setIsUsingCache] = useState(false);
   const scrollViewRef = useRef();
 
   const {data: likesData} = useGetDevotionLikesQuery(devotional?._id, {
@@ -168,8 +174,48 @@ const SelectedDevotional = ({route}) => {
   // API already returns only 2018 devotions, no need to filter
   const listForDisplay = devotionals;
 
-  const devotional =
-    listForDisplay.find(item => item._id === devotionalId) || {};
+  const devotional = useMemo(
+    () =>
+      listForDisplay.find(item => item._id === devotionalId) ||
+      cachedDevotional ||
+      {},
+    [listForDisplay, devotionalId, cachedDevotional],
+  );
+
+  // Load from cache when offline or API fails
+  useEffect(() => {
+    const loadFromCache = async () => {
+      if (
+        (!networkManager.isOnline || error) &&
+        devotionalId &&
+        !devotional?._id
+      ) {
+        try {
+          const cached = await getCachedDevotion(devotionalId);
+          if (cached) {
+            setCachedDevotional(cached);
+            setIsUsingCache(true);
+            console.log('📦 Using cached devotional data (offline/error)');
+          }
+        } catch (error) {
+          console.error('Error loading cached devotional:', error);
+        }
+      } else if (devotional?._id && isUsingCache) {
+        // Clear cache flags when fresh data loads
+        setIsUsingCache(false);
+        setCachedDevotional(null);
+      }
+    };
+
+    loadFromCache();
+  }, [devotionalId, error, devotional?._id, isUsingCache]);
+
+  // Cache devotion when it's loaded
+  useEffect(() => {
+    if (devotional && devotional._id && !isUsingCache) {
+      saveDevotionToCache(devotional);
+    }
+  }, [devotional, isUsingCache]);
 
   // Extract the verse content and reference
   // Handle various quote types: double quotes, single quotes, and mixed quotes
@@ -343,7 +389,7 @@ const SelectedDevotional = ({route}) => {
   const cachedImage = useCachedImage(imageURI);
 
   // Handle different error states
-  if (networkError && !devotionals.length) {
+  if (networkError && !devotionals.length && !cachedDevotional) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
         <View style={tw`flex-1 justify-center items-center px-6`}>

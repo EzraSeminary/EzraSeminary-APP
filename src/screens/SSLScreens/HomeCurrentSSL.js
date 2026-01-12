@@ -26,6 +26,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import tw from './../../../tailwind';
 import {format} from 'date-fns';
+import {saveSSLLessonToCache} from '../../utils/sslCache';
 
 const HomeCurrentSSL = () => {
   const currentDate = new Date().toISOString().slice(0, 10);
@@ -179,7 +180,23 @@ const HomeCurrentSSL = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const language = useSelector(state => state.language.language);
 
-  const handleOpenButtonPress = () => {
+  const handleOpenButtonPress = async () => {
+    // Cache lesson and quarter data before navigation
+    // The lesson data will be fully cached when SSLWeek loads
+    if (quarterDetails && lessonDetails && quarter && week) {
+      try {
+        // Save with available data - full lesson data will be cached in SSLWeek
+        await saveSSLLessonToCache(
+          quarter,
+          week,
+          lessonDetails?.lesson || null,
+          quarterDetails,
+        );
+      } catch (error) {
+        console.error('Error caching SSL lesson data:', error);
+      }
+    }
+
     navigation.navigate('SSL', {
       screen: 'SSLWeek',
       params: {

@@ -25,6 +25,11 @@ import {
 import {useGetVideoLinkQuery} from '../../services/videoLinksApi';
 import {useNavigation} from '@react-navigation/native';
 import {
+  saveSSLLessonToCache,
+  getCachedSSLLesson,
+} from '../../utils/sslCache';
+import networkManager from '../../utils/networkManager';
+import {
   ArrowSquareLeft,
   YoutubeLogo,
   CaretUp,
@@ -146,6 +151,50 @@ const SSLWeek = ({route}) => {
     day: check,
   });
 
+  // Load from cache when offline or API fails
+  useEffect(() => {
+    const loadFromCache = async () => {
+      if ((!networkManager.isOnline || weekError || quarterError) && ssl && weekId) {
+        try {
+          const cached = await getCachedSSLLesson(ssl, weekId);
+          if (cached) {
+            if (cached.lessonData) {
+              setCachedSSLWeek(cached.lessonData);
+            }
+            if (cached.quarterData) {
+              setCachedSSLQuarter(cached.quarterData);
+            }
+            setIsUsingCache(true);
+            console.log('📦 Using cached SSL lesson data (offline/error)');
+          }
+        } catch (error) {
+          console.error('Error loading cached SSL lesson:', error);
+        }
+      } else {
+        setIsUsingCache(false);
+      }
+    };
+
+    loadFromCache();
+  }, [ssl, weekId, weekError, quarterError]);
+
+  // Cache SSL lesson when data is loaded
+  useEffect(() => {
+    if (SSLWeek && SSLQuarter && ssl && weekId) {
+      saveSSLLessonToCache(ssl, weekId, SSLWeek, SSLQuarter);
+      // Clear cache flags when fresh data loads
+      if (isUsingCache) {
+        setIsUsingCache(false);
+        setCachedSSLWeek(null);
+        setCachedSSLQuarter(null);
+      }
+    }
+  }, [SSLWeek, SSLQuarter, ssl, weekId, isUsingCache]);
+
+  // Use cached data if available and API data is not
+  const displaySSLWeek = SSLWeek || cachedSSLWeek;
+  const displaySSLQuarter = SSLQuarter || cachedSSLQuarter;
+
   const year = ssl.substring(0, 4);
   const quarter = ssl.substring(5, 7);
 
@@ -188,15 +237,16 @@ const SSLWeek = ({route}) => {
   }, [isQuarterLoading, isWeekLoading]);
 
   const handleVerseClick = verseKey => {
+    const weekData = displaySSLWeek;
     if (
-      SSLWeek &&
-      SSLWeek.bible &&
-      SSLWeek.bible.length > 0 &&
-      SSLWeek.bible[[0]].verses &&
-      SSLWeek.bible[[0]].verses[verseKey]
+      weekData &&
+      weekData.bible &&
+      weekData.bible.length > 0 &&
+      weekData.bible[[0]].verses &&
+      weekData.bible[[0]].verses[verseKey]
     ) {
       setSelectedVerseKey(verseKey);
-      setSelectedVerseContent(SSLWeek.bible[[0]].verses[verseKey]);
+      setSelectedVerseContent(weekData.bible[[0]].verses[verseKey]);
       setIsModalOpen(true);
     } else {
       console.error(`Verse key "${verseKey}" not found`);
@@ -334,7 +384,7 @@ const SSLWeek = ({route}) => {
   }
 
   // Validate that we have the required data
-  if (!SSLQuarter || !SSLWeek || !SSLWeek.content) {
+  if (!displaySSLQuarter || !displaySSLWeek || !displaySSLWeek.content) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <ScrollView
@@ -377,7 +427,7 @@ const SSLWeek = ({route}) => {
     );
   }
 
-  const {content} = SSLWeek;
+  const {content} = displaySSLWeek;
   const sanitizedContent = content.replace(/\n/g, '');
 
   const styles = StyleSheet.create({
@@ -701,7 +751,7 @@ const SSLWeek = ({route}) => {
         }>
         <View style={tw`flex`}>
           <ImageBackground
-            source={{uri: SSLQuarter.lesson.cover}}
+            source={{uri: displaySSLQuarter?.lesson?.cover || displaySSLQuarter?.quarterly?.splash}}
             style={tw`flex-5 flex-col justify-between py-6 px-4 h-80`}>
             <TouchableOpacity
               onPress={handleBackButtonPress}
@@ -729,14 +779,14 @@ const SSLWeek = ({route}) => {
                 <Text style={tw`font-nokia-bold text-lg text-primary-6 py-1`}>
                   {daysOfWeekEng[check % 7]}, &nbsp;
                   <Text style={tw`text-accent-6`}>
-                    {formatDate(SSLWeek.date)}
+                    {formatDate(displaySSLWeek.date)}
                   </Text>
                 </Text>
               ) : (
                 <Text style={tw`font-nokia-bold text-lg text-primary-6 py-1`}>
                   {daysOfWeek[check % 7]}፣ &nbsp;
                   <DateConverter
-                    gregorianDate={SSLWeek.date}
+                    gregorianDate={displaySSLWeek.date}
                     style={tw`text-2xl`}
                     textStyle={dateStyle}
                   />
@@ -744,7 +794,7 @@ const SSLWeek = ({route}) => {
               )}
               <Text
                 style={tw`flex flex-col font-nokia-bold text-3xl text-primary-1`}>
-                {SSLWeek.title}
+                {displaySSLWeek.title}
               </Text>
             </View>
           </ImageBackground>

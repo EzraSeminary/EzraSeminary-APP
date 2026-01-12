@@ -24,6 +24,7 @@ import {useSelector} from 'react-redux';
 import {useGetSSLOfQuarterQuery} from '../../services/SabbathSchoolApi';
 import LinearGradient from 'react-native-linear-gradient';
 import ErrorScreen from '../../components/ErrorScreen';
+import {saveSSLLessonToCache} from '../../utils/sslCache';
 
 const SSLQuarter = ({route}) => {
   const {sslId} = route.params;
@@ -190,7 +191,17 @@ const SSLQuarter = ({route}) => {
     );
   }
 
-  const handleButtonPress = (ssl, weekId) => {
+  const handleButtonPress = async (ssl, weekId) => {
+    // Cache the quarter data when navigating to a lesson
+    // The lesson data will be cached when SSLWeek loads
+    if (sslQuarter && ssl && weekId) {
+      // Save quarter data - lesson data will be cached in SSLWeek component
+      try {
+        await saveSSLLessonToCache(ssl, weekId, null, sslQuarter);
+      } catch (error) {
+        console.error('Error caching SSL quarter data:', error);
+      }
+    }
     navigation.navigate('SSLWeek', {ssl, weekId});
   };
 

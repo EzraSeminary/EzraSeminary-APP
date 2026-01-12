@@ -48,6 +48,10 @@ import DevotionalShareModal from '../components/DevotionalShareModal';
 import DevotionPlanSquareCard from '../components/DevotionPlanSquareCard';
 import StartDevotionPlanModal from '../components/StartDevotionPlanModal';
 import CommentsModal from '../components/CommentsModal';
+import {
+  saveHomeScreenToCache,
+  getCachedHomeScreen,
+} from '../utils/homeScreenCache';
 import networkManager from '../utils/networkManager';
 
 const ethiopianMonths = [
@@ -133,12 +137,80 @@ const Devotion = () => {
   const [sharesCount, setSharesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
   const [activeTab, setActiveTab] = useState('devotional'); // 'devotional' or 'plan'
+  const [cachedHomeData, setCachedHomeData] = useState(null);
+  const [isUsingCache, setIsUsingCache] = useState(false);
+
+  // Cache home screen data when loaded with internet
+  useEffect(() => {
+    if (
+      networkManager.isOnline &&
+      devotions.length > 0 &&
+      devotionPlans.length > 0
+    ) {
+      const homeData = {
+        devotions,
+        devotionPlans,
+        devotionToDisplay: devotionToDisplay || null,
+        myDevotionPlans: myDevotionPlans || [],
+        completedPlans: completedPlans || [],
+      };
+      saveHomeScreenToCache('Devotion', homeData);
+    }
+  }, [
+    devotions,
+    devotionPlans,
+    devotionToDisplay,
+    myDevotionPlans,
+    completedPlans,
+  ]);
+
+  // Load from cache when offline or API fails
+  useEffect(() => {
+    const loadFromCache = async () => {
+      if ((!networkManager.isOnline || error) && devotions.length === 0) {
+        try {
+          const cached = await getCachedHomeScreen('Devotion');
+          if (cached) {
+            setCachedHomeData(cached);
+            setIsUsingCache(true);
+            console.log('📦 Using cached Devotion home data (offline/error)');
+          }
+        } catch (error) {
+          console.error('Error loading cached Devotion home data:', error);
+        }
+      } else if (devotions.length > 0 && isUsingCache) {
+        setIsUsingCache(false);
+        setCachedHomeData(null);
+      }
+    };
+
+    loadFromCache();
+  }, [error, devotions.length, isUsingCache]);
+
+  // Use cached data if available
+  const displayDevotions =
+    devotions.length > 0 ? devotions : cachedHomeData?.devotions || [];
+  const displayDevotionPlans =
+    devotionPlans.length > 0
+      ? devotionPlans
+      : cachedHomeData?.devotionPlans || [];
+  const displayMyDevotionPlans =
+    myDevotionPlans.length > 0
+      ? myDevotionPlans
+      : cachedHomeData?.myDevotionPlans || [];
+  const displayCompletedPlans =
+    completedPlans.length > 0
+      ? completedPlans
+      : cachedHomeData?.completedPlans || [];
 
   // Find today's devotion from the loaded data
   const devotionToDisplay = useMemo(() => {
-    if (devotions.length === 0) return null;
+    const devotionsToUse = displayDevotions;
+    if (devotionsToUse.length === 0) {
+      return cachedHomeData?.devotionToDisplay || null;
+    }
 
-    const todaysDevotion = devotions.find(
+    const todaysDevotion = devotionsToUse.find(
       devotion =>
         devotion.month === currentEthiopianMonth &&
         Number(devotion.day) === ethDay,
@@ -155,8 +227,8 @@ const Devotion = () => {
       );
     }
 
-    return todaysDevotion || devotions[0];
-  }, [devotions, currentEthiopianMonth, ethDay]);
+    return todaysDevotion || devotionsToUse[0] || null;
+  }, [displayDevotions, currentEthiopianMonth, ethDay, cachedHomeData]);
 
   // Get cached image (must be called before conditional returns)
   const url = devotionToDisplay?.image ? `${devotionToDisplay.image}` : '';
@@ -467,7 +539,7 @@ const Devotion = () => {
   };
 
   // Handle different error states
-  if (networkError && !devotions.length) {
+  if (networkError && !devotions.length && !cachedHomeData) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
         <View style={tw`flex-1 justify-center items-center px-6`}>
@@ -630,9 +702,7 @@ const Devotion = () => {
                   tw`px-4 py-2 rounded-full`,
                   {
                     backgroundColor:
-                      activeTab === 'devotional'
-                        ? '#EA9215'
-                        : 'transparent',
+                      activeTab === 'devotional' ? '#EA9215' : 'transparent',
                   },
                 ]}>
                 <Text
@@ -872,7 +942,7 @@ const Devotion = () => {
           <View style={tw`border-b border-primary-7 mt-4 mb-4`} />
 
           {/* Devotion Plans Section - በእቅድ ያንብቡ */}
-          {devotionPlans && devotionPlans.length > 0 && (
+          {displayDevotionPlans && displayDevotionPlans.length > 0 && (
             <>
               <Animated.View
                 style={[
@@ -918,12 +988,12 @@ const Devotion = () => {
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={tw`px-1 pb-2`}>
-                  {devotionPlans.slice(0, 5).map((plan, index) => {
+                  {displayDevotionPlans.slice(0, 5).map((plan, index) => {
                     const isStarted =
-                      myDevotionPlans.some(
+                      displayMyDevotionPlans.some(
                         p => (p.planId || p.plan?._id) === plan._id,
                       ) ||
-                      completedPlans.some(
+                      displayCompletedPlans.some(
                         p => (p.planId || p.plan?._id) === plan._id,
                       );
                     return (
@@ -971,7 +1041,7 @@ const Devotion = () => {
             </TouchableOpacity>
           </View>
           <PreviousDevotions
-            devotions={devotions}
+            devotions={displayDevotions}
             darkMode={darkMode}
             currentYear={2018}
           />
@@ -1037,9 +1107,7 @@ const Devotion = () => {
               type: 'error',
               text1: 'Failed to Start Plan',
               text2:
-                error?.data?.message ||
-                error?.message ||
-                'Please try again.',
+                error?.data?.message || error?.message || 'Please try again.',
             });
           }
         }}

@@ -36,6 +36,10 @@ import ErrorScreen from '../../components/ErrorScreen';
 import {format} from 'date-fns';
 import DateConverter from './DateConverter';
 import networkManager from '../../utils/networkManager';
+import {
+  saveHomeScreenToCache,
+  getCachedHomeScreen,
+} from '../../utils/homeScreenCache';
 
 const InVerseHome = ({onReload}) => {
   const currentDate = new Date().toISOString().slice(0, 10);
@@ -267,7 +271,7 @@ const InVerseHome = ({onReload}) => {
   };
 
   // Handle different error states
-  if (networkError && (!InVerse || InVerse.length === 0)) {
+  if (networkError && (!InVerse || InVerse.length === 0) && !cachedHomeData) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
         <View style={tw`flex-1 justify-center items-center px-6`}>

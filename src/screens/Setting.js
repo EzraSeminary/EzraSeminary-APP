@@ -32,6 +32,7 @@ import {
 import {useGetSSLsQuery} from '../services/SabbathSchoolApi';
 import NotificationSettings from '../screens/Settings/NotificationSettings';
 import UserAvatar from '../components/UserAvatar';
+import CacheChecker from '../components/CacheChecker';
 
 const Setting = ({navigation}) => {
   const dispatch = useDispatch();
@@ -39,6 +40,7 @@ const Setting = ({navigation}) => {
   const user = useSelector(state => state.auth);
   const language = useSelector(state => state.language.language);
   const [modalVisible, setModalVisible] = useState(false);
+  const [showCacheChecker, setShowCacheChecker] = useState(false);
   const {refetch} = useGetSSLsQuery();
 
   // Animation values
@@ -379,6 +381,12 @@ const Setting = ({navigation}) => {
                 handleLinkPress('https://ezraseminary.org/aboutUs')
               }
             />
+
+            <SettingItem
+              icon={<Sparkle size={16} weight="fill" color={'#FFFFFF'} />}
+              title="Cache Status"
+              onPress={() => setShowCacheChecker(true)}
+            />
           </Animated.View>
 
           {/* Support Section */}
@@ -595,6 +603,13 @@ const Setting = ({navigation}) => {
           </View>
         </View>
       </Modal>
+
+      {/* Cache Checker Modal */}
+      <CacheChecker
+        visible={showCacheChecker}
+        onClose={() => setShowCacheChecker(false)}
+        darkMode={darkMode}
+      />
     </SafeAreaView>
   );
 };

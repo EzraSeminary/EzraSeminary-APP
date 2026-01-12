@@ -29,6 +29,10 @@ import {
   apiSlice,
 } from '../../redux/api-slices/apiSlice';
 import {useCachedImage} from '../../utils/imageCache';
+import {
+  saveDevotionToCache,
+  saveDevotionsToCache,
+} from '../../utils/devotionCache';
 
 // Completion Modal Component with Animation
 const CompletionModal = ({
@@ -273,6 +277,20 @@ const PlanDevotionViewer = () => {
   // Call useCachedImage hook at the top level (before any early returns)
   const devotionImageUrl = currentDevotion?.image;
   const cachedImage = useCachedImage(devotionImageUrl || '');
+
+  // Cache devotions when they're loaded
+  useEffect(() => {
+    if (sortedDevotions && sortedDevotions.length > 0) {
+      saveDevotionsToCache(sortedDevotions);
+    }
+  }, [sortedDevotions]);
+
+  // Cache current devotion when it changes
+  useEffect(() => {
+    if (currentDevotion && currentDevotion._id) {
+      saveDevotionToCache(currentDevotion);
+    }
+  }, [currentDevotion]);
 
   const handleMarkComplete = async () => {
     if (!currentDevotion || !planId) {

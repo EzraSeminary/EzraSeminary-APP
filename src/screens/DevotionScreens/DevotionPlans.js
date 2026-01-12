@@ -1,4 +1,4 @@
-import React, {useState, useMemo} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,11 @@ import {
   useRestartDevotionPlanMutation,
 } from '../../redux/api-slices/apiSlice';
 import DevotionPlanCard from '../../components/DevotionPlanCard';
+import {
+  saveHomeScreenToCache,
+  getCachedHomeScreen,
+} from '../../utils/homeScreenCache';
+import networkManager from '../../utils/networkManager';
 
 const DevotionPlans = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -41,6 +46,60 @@ const DevotionPlans = () => {
 
   const [startPlan] = useStartDevotionPlanMutation();
   const [restartPlan] = useRestartDevotionPlanMutation();
+  const [cachedHomeData, setCachedHomeData] = useState(null);
+  const [isUsingCache, setIsUsingCache] = useState(false);
+
+  // Cache home screen data when loaded with internet
+  useEffect(() => {
+    if (
+      networkManager.isOnline &&
+      findPlans.length > 0 &&
+      (myPlans.length > 0 || completedPlans.length > 0 || !user)
+    ) {
+      const homeData = {
+        findPlans,
+        myPlans,
+        completedPlans,
+      };
+      saveHomeScreenToCache('DevotionPlans', homeData);
+    }
+  }, [findPlans, myPlans, completedPlans, user]);
+
+  // Load from cache when offline or API fails
+  useEffect(() => {
+    const loadFromCache = async () => {
+      if (
+        (!networkManager.isOnline || (loadingFind && !findPlans.length)) &&
+        !findPlans.length
+      ) {
+        try {
+          const cached = await getCachedHomeScreen('DevotionPlans');
+          if (cached) {
+            setCachedHomeData(cached);
+            setIsUsingCache(true);
+            console.log('📦 Using cached DevotionPlans data (offline/error)');
+          }
+        } catch (error) {
+          console.error('Error loading cached DevotionPlans data:', error);
+        }
+      } else if (findPlans.length > 0 && isUsingCache) {
+        setIsUsingCache(false);
+        setCachedHomeData(null);
+      }
+    };
+
+    loadFromCache();
+  }, [loadingFind, findPlans.length, isUsingCache]);
+
+  // Use cached data if available
+  const displayFindPlans =
+    findPlans.length > 0 ? findPlans : cachedHomeData?.findPlans || [];
+  const displayMyPlans =
+    myPlans.length > 0 ? myPlans : cachedHomeData?.myPlans || [];
+  const displayCompletedPlans =
+    completedPlans.length > 0
+      ? completedPlans
+      : cachedHomeData?.completedPlans || [];
 
   const handleStartPlan = async planId => {
     if (!user) {
@@ -234,7 +293,7 @@ const DevotionPlans = () => {
         );
       }
 
-      if (!findPlans || findPlans.length === 0) {
+      if (!displayFindPlans || displayFindPlans.length === 0) {
         return (
           <View style={tw`flex-1 justify-center items-center py-20`}>
             <Text
@@ -250,12 +309,12 @@ const DevotionPlans = () => {
 
       // Check which plans are completed
       const completedPlanIds = new Set(
-        (completedPlans || []).map(p => p.planId || p.plan?._id),
+        (displayCompletedPlans || []).map(p => p.planId || p.plan?._id),
       );
 
       return (
         <FlatList
-          data={findPlans}
+          data={displayFindPlans}
           keyExtractor={item => item._id}
           renderItem={({item}) => {
             const isCompleted = completedPlanIds.has(item._id);
@@ -283,7 +342,7 @@ const DevotionPlans = () => {
         );
       }
 
-      if (!myPlans || myPlans.length === 0) {
+      if (!displayMyPlans || displayMyPlans.length === 0) {
         return (
           <View style={tw`flex-1 justify-center items-center py-20`}>
             <Text
@@ -299,7 +358,7 @@ const DevotionPlans = () => {
 
       return (
         <FlatList
-          data={myPlans}
+          data={displayMyPlans}
           keyExtractor={item => item._id || item.planId}
           renderItem={({item}) => renderPlanCard({item, withProgress: true})}
           contentContainerStyle={tw`pb-4`}
@@ -324,7 +383,7 @@ const DevotionPlans = () => {
         );
       }
 
-      if (!completedPlans || completedPlans.length === 0) {
+      if (!displayCompletedPlans || displayCompletedPlans.length === 0) {
         return (
           <View style={tw`flex-1 justify-center items-center py-20`}>
             <Text
@@ -340,7 +399,7 @@ const DevotionPlans = () => {
 
       return (
         <FlatList
-          data={completedPlans}
+          data={displayCompletedPlans}
           keyExtractor={item => item._id || item.planId}
           renderItem={({item}) =>
             renderPlanCard({item, withProgress: true, isCompleted: true})
@@ -357,6 +416,23 @@ const DevotionPlans = () => {
   return (
     <SafeAreaView
       style={darkMode ? tw`bg-secondary-9 flex-1` : tw`bg-primary-1 flex-1`}>
+      {isUsingCache && (
+        <View
+          style={[
+            tw`px-4 py-2 border-b`,
+            darkMode
+              ? tw`bg-secondary-8 border-secondary-7`
+              : tw`bg-primary-5 border-primary-4`,
+          ]}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xs text-center`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            📦 Showing cached content (offline mode)
+          </Text>
+        </View>
+      )}
       <View style={tw`flex mx-auto w-11/12`}>
         {/* Header */}
         <View style={tw`flex-row items-center justify-between my-4`}>
