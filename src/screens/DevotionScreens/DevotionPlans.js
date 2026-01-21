@@ -123,15 +123,27 @@ const DevotionPlans = () => {
     };
   }, [refetchFindPlans, refetchMy, refetchCompleted]);
 
-  // Use cached data if available
-  const displayFindPlans =
-    findPlans.length > 0 ? findPlans : cachedHomeData?.findPlans || [];
-  const displayMyPlans =
-    myPlans.length > 0 ? myPlans : cachedHomeData?.myPlans || [];
-  const displayCompletedPlans =
+  // Filter plans to only show those with at least 1 day of data
+  const filterPlansWithData = plans => {
+    return plans.filter(item => {
+      const plan = item.plan || item;
+      // Only show plans that have at least 1 day (numItems > 0)
+      return plan.numItems != null && plan.numItems > 0;
+    });
+  };
+
+  // Use cached data if available and filter plans with data
+  const displayFindPlans = filterPlansWithData(
+    findPlans.length > 0 ? findPlans : cachedHomeData?.findPlans || [],
+  );
+  const displayMyPlans = filterPlansWithData(
+    myPlans.length > 0 ? myPlans : cachedHomeData?.myPlans || [],
+  );
+  const displayCompletedPlans = filterPlansWithData(
     completedPlans.length > 0
       ? completedPlans
-      : cachedHomeData?.completedPlans || [];
+      : cachedHomeData?.completedPlans || [],
+  );
 
   const handleStartPlan = async planId => {
     if (!user) {
@@ -345,16 +357,20 @@ const DevotionPlans = () => {
       );
 
       return (
-        <FlatList
-          data={displayFindPlans}
-          keyExtractor={item => item._id}
-          renderItem={({item}) => {
-            const isCompleted = completedPlanIds.has(item._id);
-            return renderPlanCard({item, isCompleted});
-          }}
-          contentContainerStyle={tw`pb-4`}
-          showsVerticalScrollIndicator={false}
-        />
+        <>
+          <View style={tw`mb-64`}>
+            <FlatList
+              data={displayFindPlans}
+              keyExtractor={item => item._id}
+              renderItem={({item}) => {
+                const isCompleted = completedPlanIds.has(item._id);
+                return renderPlanCard({item, isCompleted});
+              }}
+              contentContainerStyle={{marginBottom: 48, paddingHorizontal: 0}}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        </>
       );
     }
 
@@ -389,13 +405,19 @@ const DevotionPlans = () => {
       }
 
       return (
-        <FlatList
-          data={displayMyPlans}
-          keyExtractor={item => item._id || item.planId}
-          renderItem={({item}) => renderPlanCard({item, withProgress: true})}
-          contentContainerStyle={tw`pb-4`}
-          showsVerticalScrollIndicator={false}
-        />
+        <>
+          <View style={tw`mb-64`}>
+            <FlatList
+              data={displayMyPlans}
+              keyExtractor={item => item._id || item.planId}
+              renderItem={({item}) =>
+                renderPlanCard({item, withProgress: true})
+              }
+              contentContainerStyle={{paddingBottom: 32, paddingHorizontal: 0}}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        </>
       );
     }
 
@@ -430,15 +452,19 @@ const DevotionPlans = () => {
       }
 
       return (
-        <FlatList
-          data={displayCompletedPlans}
-          keyExtractor={item => item._id || item.planId}
-          renderItem={({item}) =>
-            renderPlanCard({item, withProgress: true, isCompleted: true})
-          }
-          contentContainerStyle={tw`pb-4`}
-          showsVerticalScrollIndicator={false}
-        />
+        <>
+          <View style={tw`mb-64`}>
+            <FlatList
+              data={displayCompletedPlans}
+              keyExtractor={item => item._id || item.planId}
+              renderItem={({item}) =>
+                renderPlanCard({item, withProgress: true, isCompleted: true})
+              }
+              contentContainerStyle={{paddingBottom: 64, paddingHorizontal: 0}}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        </>
       );
     }
 

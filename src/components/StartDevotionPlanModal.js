@@ -149,7 +149,7 @@ const StartDevotionPlanModal = ({
 
               {/* Plan Info Cards */}
               <View style={tw`flex-row gap-4 mb-6`}>
-                {plan.numItems && (
+                {plan.numItems != null && plan.numItems > 0 && (
                   <View
                     style={[
                       tw`flex-1 px-4 py-3 rounded-4 flex-row items-center`,
