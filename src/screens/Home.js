@@ -14,7 +14,7 @@ import {
 import Toast from 'react-native-toast-message';
 import {useSelector, useDispatch} from 'react-redux';
 import tw from './../../tailwind';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {
   useGetDevotionsQuery,
   useGetCoursesQuery,
@@ -23,6 +23,7 @@ import {
   useStartDevotionPlanMutation,
   apiSlice,
 } from '../redux/api-slices/apiSlice';
+import networkManager from '../utils/networkManager';
 import HomeCurrentSSL from './SSLScreens/HomeCurrentSSL';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import {toEthiopian} from 'ethiopian-date';
@@ -132,6 +133,7 @@ const Home = () => {
     data: devotionPlans = [],
     isLoading: devotionPlansLoading,
     error: devotionPlansError,
+    refetch: refetchDevotionPlans,
   } = useGetDevotionPlansQuery();
 
   // Debug logging for devotion plans
@@ -145,12 +147,107 @@ const Home = () => {
     }
     console.log('=================================');
   }, [devotionPlans, devotionPlansLoading, devotionPlansError]);
-  const {data: myDevotionPlans = []} = useGetMyDevotionPlansQuery({
+  const {
+    data: myDevotionPlans = [],
+    refetch: refetchMyDevotionPlans,
+  } = useGetMyDevotionPlansQuery({
     status: 'in_progress',
   });
-  const {data: completedPlans = []} = useGetMyDevotionPlansQuery({
+  const {
+    data: completedPlans = [],
+    refetch: refetchCompletedPlans,
+  } = useGetMyDevotionPlansQuery({
     status: 'completed',
   });
+
+  // Network connectivity listener to refetch devotion plans when connection is restored
+  useEffect(() => {
+    const unsubscribe = networkManager.addListener(async networkState => {
+      // When network comes back online, refetch devotion plans
+      if (networkState.isNowConnected) {
+        console.log('🌐 Network restored - Refetching devotion plans...');
+        try {
+          // Invalidate cache first to force fresh data
+          dispatch(apiSlice.util.invalidateTags(['DevotionPlans']));
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // Refetch all devotion plan related queries
+          await Promise.all([
+            refetchDevotionPlans(),
+            refetchMyDevotionPlans(),
+            refetchCompletedPlans(),
+          ]);
+          console.log('✅ Devotion plans refetched successfully');
+        } catch (error) {
+          console.error('❌ Error refetching devotion plans:', error);
+        }
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      unsubscribe();
+    };
+  }, [refetchDevotionPlans, refetchMyDevotionPlans, refetchCompletedPlans, dispatch]);
+
+  // Force refetch devotion plans on mount if online (fixes iOS stale cache issue)
+  useEffect(() => {
+    const refetchIfOnline = async () => {
+      if (networkManager.isOnline) {
+        console.log(
+          '🔄 Home mounted with internet - Refetching devotion plans to ensure fresh data...',
+        );
+        try {
+          // Invalidate cache first to force fresh data
+          dispatch(apiSlice.util.invalidateTags(['DevotionPlans']));
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // Refetch all devotion plan related queries
+          await Promise.all([
+            refetchDevotionPlans(),
+            refetchMyDevotionPlans(),
+            refetchCompletedPlans(),
+          ]);
+          console.log('✅ Devotion plans refetched on mount');
+        } catch (error) {
+          console.error('❌ Error refetching devotion plans on mount:', error);
+        }
+      }
+    };
+
+    refetchIfOnline();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
+
+  // Refetch devotion plans when screen comes into focus (iOS fix for stale data)
+  useFocusEffect(
+    useCallback(() => {
+      if (networkManager.isOnline) {
+        console.log('🔄 Home screen focused - Refetching devotion plans...');
+        // Invalidate cache first to force fresh data
+        dispatch(apiSlice.util.invalidateTags(['DevotionPlans']));
+
+        // Small delay to ensure cache invalidation completes
+        setTimeout(() => {
+          Promise.all([
+            refetchDevotionPlans(),
+            refetchMyDevotionPlans(),
+            refetchCompletedPlans(),
+          ]).catch(error => {
+            console.error(
+              '❌ Error refetching devotion plans on focus:',
+              error,
+            );
+          });
+        }, 100);
+      }
+    }, [
+      refetchDevotionPlans,
+      refetchMyDevotionPlans,
+      refetchCompletedPlans,
+      dispatch,
+    ]),
+  );
 
   const [startDevotionPlan, {isLoading: isStartingPlan}] =
     useStartDevotionPlanMutation();
@@ -1165,36 +1262,40 @@ const Home = () => {
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={tw`px-1 pb-2`}>
-                    {devotionPlans.map((plan, index) => {
-                      const isStarted =
-                        myDevotionPlans.some(
-                          p => (p.planId || p.plan?._id) === plan._id,
-                        ) ||
-                        completedPlans.some(
-                          p => (p.planId || p.plan?._id) === plan._id,
-                        );
-                      return (
-                        <DevotionPlanSquareCard
-                          key={plan._id || index}
-                          plan={plan}
-                          darkMode={darkMode}
-                          isStarted={isStarted}
-                          onPress={plan => {
+                    {devotionPlans
+                      .filter(plan => plan && (plan._id || plan.id))
+                      .map((plan, index) => {
+                        const planId = plan._id || plan.id;
+                        const isStarted =
+                          myDevotionPlans.some(
+                            p => (p.planId || p.plan?._id) === planId,
+                          ) ||
+                          completedPlans.some(
+                            p => (p.planId || p.plan?._id) === planId,
+                          );
+                        return (
+                          <DevotionPlanSquareCard
+                            key={planId || index}
+                            plan={plan}
+                            darkMode={darkMode}
+                            isStarted={isStarted}
+                          onPress={pressedPlan => {
+                            const pressedPlanId = pressedPlan._id || pressedPlan.id;
                             if (isStarted) {
                               // If plan is already started, navigate directly
                               navigation.navigate('Devotional', {
                                 screen: 'PlanDevotionViewer',
-                                params: {planId: plan._id},
+                                params: {planId: pressedPlanId},
                               });
                             } else {
                               // If plan is not started, show modal
-                              setSelectedPlan(plan);
+                              setSelectedPlan(pressedPlan);
                               setShowStartPlanModal(true);
                             }
                           }}
-                        />
-                      );
-                    })}
+                          />
+                        );
+                      })}
                   </ScrollView>
                 </Animated.View>
               </>

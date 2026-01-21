@@ -34,15 +34,21 @@ const DevotionPlans = () => {
   const [tab, setTab] = useState('find'); // 'find', 'my', 'completed'
   const [activeTab, setActiveTab] = useState('plan'); // 'devotional' or 'plan'
 
-  const {data: findPlans = [], isLoading: loadingFind} =
-    useGetDevotionPlansQuery();
+  const {
+    data: findPlans = [],
+    isLoading: loadingFind,
+    refetch: refetchFindPlans,
+  } = useGetDevotionPlansQuery();
   const {
     data: myPlans = [],
     isLoading: loadingMy,
     refetch: refetchMy,
   } = useGetMyDevotionPlansQuery({status: 'in_progress'});
-  const {data: completedPlans = [], isLoading: loadingCompleted} =
-    useGetMyDevotionPlansQuery({status: 'completed'});
+  const {
+    data: completedPlans = [],
+    isLoading: loadingCompleted,
+    refetch: refetchCompleted,
+  } = useGetMyDevotionPlansQuery({status: 'completed'});
 
   const [startPlan] = useStartDevotionPlanMutation();
   const [restartPlan] = useRestartDevotionPlanMutation();
@@ -90,6 +96,32 @@ const DevotionPlans = () => {
 
     loadFromCache();
   }, [loadingFind, findPlans.length, isUsingCache]);
+
+  // Network connectivity listener to refetch devotion plans when connection is restored
+  useEffect(() => {
+    const unsubscribe = networkManager.addListener(async networkState => {
+      // When network comes back online, refetch devotion plans
+      if (networkState.isNowConnected) {
+        console.log('🌐 Network restored - Refetching devotion plans in DevotionPlans screen...');
+        try {
+          // Refetch all devotion plan related queries
+          await Promise.all([
+            refetchFindPlans(),
+            refetchMy(),
+            refetchCompleted(),
+          ]);
+          console.log('✅ Devotion plans refetched successfully in DevotionPlans screen');
+        } catch (error) {
+          console.error('❌ Error refetching devotion plans:', error);
+        }
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      unsubscribe();
+    };
+  }, [refetchFindPlans, refetchMy, refetchCompleted]);
 
   // Use cached data if available
   const displayFindPlans =
