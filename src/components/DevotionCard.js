@@ -7,6 +7,8 @@ import tw from './../../tailwind';
 import {
   useToggleDevotionLikeMutation,
   useGetDevotionLikesQuery,
+  useTrackDevotionShareMutation,
+  useGetDevotionCommentsQuery,
 } from '../redux/api-slices/apiSlice';
 import CommentsModal from './CommentsModal';
 import Toast from 'react-native-toast-message';
@@ -21,12 +23,28 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
     devotion.commentsCount || 0,
   );
 
-  const {data: likesData} = useGetDevotionLikesQuery(devotion._id, {
-    skip: !user || !devotion._id,
+  const {data: likesData, refetch: refetchLikes} = useGetDevotionLikesQuery(
+    devotion._id,
+    {
+      skip: !user || !devotion._id,
+    },
+  );
+
+  const {data: commentsData} = useGetDevotionCommentsQuery(devotion._id, {
+    skip: !devotion._id,
   });
 
   const [toggleLike, {isLoading: isTogglingLike}] =
     useToggleDevotionLikeMutation();
+  const [trackShare, {isLoading: isTrackingShare}] =
+    useTrackDevotionShareMutation();
+
+  // Refetch likes when user logs in to ensure persistence
+  React.useEffect(() => {
+    if (user && devotion._id) {
+      refetchLikes();
+    }
+  }, [user, devotion._id, refetchLikes]);
 
   // Update likes, shares, and comments state when data changes
   React.useEffect(() => {
@@ -37,11 +55,18 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
       setIsLiked(devotion.isLiked);
       setLikesCount(devotion.likesCount || 0);
     }
-    // Update shares and comments count from devotion data
+    // Update shares count from devotion data
     setSharesCount(devotion.sharesCount || 0);
-    setCommentsCount(devotion.commentsCount || 0);
+    // Update comments count from API query (same source as modal)
+    if (commentsData) {
+      setCommentsCount(commentsData.count || 0);
+    } else if (devotion.commentsCount !== undefined) {
+      // Fallback to devotion data if API query is not available
+      setCommentsCount(devotion.commentsCount || 0);
+    }
   }, [
     likesData,
+    commentsData,
     devotion.isLiked,
     devotion.likesCount,
     devotion.sharesCount,
@@ -76,7 +101,7 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
   };
 
   const handleShare = async () => {
-    if (!user) {
+    if (!devotion || !devotion._id) {
       return;
     }
 
@@ -87,6 +112,23 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
       });
 
       if (result.action === Share.sharedAction) {
+        // Track share on backend to increment share count
+        try {
+          const shareResult = await trackShare(devotion._id).unwrap();
+          // Update share count from backend response
+          if (shareResult?.sharesCount !== undefined) {
+            setSharesCount(shareResult.sharesCount);
+          } else {
+            // Fallback: optimistic update if backend doesn't return count
+            setSharesCount(prevCount => prevCount + 1);
+          }
+        } catch (shareError) {
+          // Even if tracking fails, still show success (share was successful)
+          console.error('Failed to track share:', shareError);
+          // Optimistic update
+          setSharesCount(prevCount => prevCount + 1);
+        }
+
         Toast.show({
           type: 'success',
           text1: 'Shared successfully',

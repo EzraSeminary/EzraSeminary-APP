@@ -248,6 +248,17 @@ export const apiSlice = createApi({
     getDevotionLikes: builder.query({
       query: id => `/devotion/${id}/likes`,
       providesTags: (result, error, id) => [{type: 'DevotionLikes', id}],
+      // Refetch when user logs in (don't skip based on user, but handle in component)
+    }),
+    trackDevotionShare: builder.mutation({
+      query: id => ({
+        url: `/devotion/${id}/share`,
+        method: 'POST',
+      }),
+      invalidatesTags: (result, error, id) => [
+        {type: 'Devotions', id},
+        'Devotions',
+      ],
     }),
     getDevotionComments: builder.query({
       query: id => `/devotion/${id}/comments`,
@@ -329,6 +340,7 @@ export const {
   useRestartDevotionPlanMutation,
   useToggleDevotionLikeMutation,
   useGetDevotionLikesQuery,
+  useTrackDevotionShareMutation,
   useGetDevotionCommentsQuery,
   useAddDevotionCommentMutation,
   useDeleteDevotionCommentMutation,

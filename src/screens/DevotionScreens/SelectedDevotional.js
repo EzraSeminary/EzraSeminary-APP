@@ -31,6 +31,8 @@ import {
   useGetDevotionsQuery,
   useToggleDevotionLikeMutation,
   useGetDevotionLikesQuery,
+  useTrackDevotionShareMutation,
+  useGetDevotionCommentsQuery,
   apiSlice,
 } from '../../redux/api-slices/apiSlice';
 import {useDispatch} from 'react-redux';
@@ -83,12 +85,28 @@ const SelectedDevotional = ({route}) => {
   const [isUsingCache, setIsUsingCache] = useState(false);
   const scrollViewRef = useRef();
 
-  const {data: likesData} = useGetDevotionLikesQuery(devotional?._id, {
-    skip: !currentUser || !devotional?._id,
+  const {data: likesData, refetch: refetchLikes} = useGetDevotionLikesQuery(
+    devotional?._id,
+    {
+      skip: !currentUser || !devotional?._id,
+    },
+  );
+
+  const {data: commentsData} = useGetDevotionCommentsQuery(devotional?._id, {
+    skip: !devotional?._id,
   });
 
   const [toggleLike, {isLoading: isTogglingLike}] =
     useToggleDevotionLikeMutation();
+  const [trackShare, {isLoading: isTrackingShare}] =
+    useTrackDevotionShareMutation();
+
+  // Refetch likes when user logs in to ensure persistence
+  useEffect(() => {
+    if (currentUser && devotional?._id) {
+      refetchLikes();
+    }
+  }, [currentUser, devotional?._id, refetchLikes]);
 
   // Update likes, shares, and comments state when data changes
   useEffect(() => {
@@ -99,13 +117,20 @@ const SelectedDevotional = ({route}) => {
       setIsLiked(devotional.isLiked);
       setLikesCount(devotional.likesCount || 0);
     }
-    // Update shares and comments count from devotional data
+    // Update shares count from devotional data
     if (devotional) {
       setSharesCount(devotional.sharesCount || 0);
+    }
+    // Update comments count from API query (same source as modal)
+    if (commentsData) {
+      setCommentsCount(commentsData.count || 0);
+    } else if (devotional?.commentsCount !== undefined) {
+      // Fallback to devotional data if API query is not available
       setCommentsCount(devotional.commentsCount || 0);
     }
   }, [
     likesData,
+    commentsData,
     devotional?.isLiked,
     devotional?.likesCount,
     devotional?.sharesCount,
@@ -140,7 +165,7 @@ const SelectedDevotional = ({route}) => {
   };
 
   const handleShareDevotion = async () => {
-    if (!currentUser || !devotional) {
+    if (!devotional || !devotional._id) {
       return;
     }
 
@@ -151,6 +176,23 @@ const SelectedDevotional = ({route}) => {
       });
 
       if (result.action === RNShare.sharedAction) {
+        // Track share on backend to increment share count
+        try {
+          const shareResult = await trackShare(devotional._id).unwrap();
+          // Update share count from backend response
+          if (shareResult?.sharesCount !== undefined) {
+            setSharesCount(shareResult.sharesCount);
+          } else {
+            // Fallback: optimistic update if backend doesn't return count
+            setSharesCount(prevCount => prevCount + 1);
+          }
+        } catch (shareError) {
+          // Even if tracking fails, still show success (share was successful)
+          console.error('Failed to track share:', shareError);
+          // Optimistic update
+          setSharesCount(prevCount => prevCount + 1);
+        }
+
         Toast.show({
           type: 'success',
           text1: 'Shared successfully',

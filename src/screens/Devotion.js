@@ -34,6 +34,7 @@ import {
   useStartDevotionPlanMutation,
   useToggleDevotionLikeMutation,
   useGetDevotionLikesQuery,
+  useTrackDevotionShareMutation,
   useGetDevotionCommentsQuery,
   apiSlice,
 } from '../redux/api-slices/apiSlice';
@@ -234,9 +235,19 @@ const Devotion = () => {
   const url = devotionToDisplay?.image ? `${devotionToDisplay.image}` : '';
   const cachedImage = useCachedImage(url);
 
-  const {data: likesData} = useGetDevotionLikesQuery(devotionToDisplay?._id, {
-    skip: !user || !devotionToDisplay?._id,
-  });
+  const {data: likesData, refetch: refetchLikes} = useGetDevotionLikesQuery(
+    devotionToDisplay?._id,
+    {
+      skip: !user || !devotionToDisplay?._id,
+    },
+  );
+
+  // Refetch likes when user logs in to ensure persistence
+  useEffect(() => {
+    if (user && devotionToDisplay?._id) {
+      refetchLikes();
+    }
+  }, [user, devotionToDisplay?._id, refetchLikes]);
 
   const {data: commentsData} = useGetDevotionCommentsQuery(
     devotionToDisplay?._id,
@@ -247,6 +258,8 @@ const Devotion = () => {
 
   const [toggleLike, {isLoading: isTogglingLike}] =
     useToggleDevotionLikeMutation();
+  const [trackShare, {isLoading: isTrackingShare}] =
+    useTrackDevotionShareMutation();
 
   // Update likes, shares, and comments state when data changes
   useEffect(() => {
@@ -307,7 +320,7 @@ const Devotion = () => {
   };
 
   const handleShareDevotion = async () => {
-    if (!devotionToDisplay) {
+    if (!devotionToDisplay || !devotionToDisplay._id) {
       return;
     }
 
@@ -318,8 +331,22 @@ const Devotion = () => {
       });
 
       if (result.action === RNShare.sharedAction) {
-        // Optimistic update for shares count
-        setSharesCount(prevCount => prevCount + 1);
+        // Track share on backend to increment share count
+        try {
+          const shareResult = await trackShare(devotionToDisplay._id).unwrap();
+          // Update share count from backend response
+          if (shareResult?.sharesCount !== undefined) {
+            setSharesCount(shareResult.sharesCount);
+          } else {
+            // Fallback: optimistic update if backend doesn't return count
+            setSharesCount(prevCount => prevCount + 1);
+          }
+        } catch (shareError) {
+          // Even if tracking fails, still show success (share was successful)
+          console.error('Failed to track share:', shareError);
+          // Optimistic update
+          setSharesCount(prevCount => prevCount + 1);
+        }
 
         Toast.show({
           type: 'success',
