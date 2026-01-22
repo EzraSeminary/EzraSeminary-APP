@@ -28,6 +28,7 @@ import {
   Globe,
   Bell,
   Sparkle,
+  Folder,
 } from 'phosphor-react-native';
 import {useGetSSLsQuery} from '../services/SabbathSchoolApi';
 import NotificationSettings from '../screens/Settings/NotificationSettings';
@@ -297,6 +298,33 @@ const Setting = ({navigation}) => {
               />
             </Animated.View>
           )}
+
+          {/* Admin Section */}
+          {user.user &&
+            (user.user.role === 'Admin' || user.user.role === 'Instructor') && (
+              <Animated.View
+                style={[
+                  tw`mb-6 p-4 rounded-2xl border border-accent-6`,
+                  {
+                    backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                    transform: [{scale: scaleAnim}],
+                  },
+                ]}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-lg text-secondary-6 mb-4`,
+                    darkMode ? tw`text-primary-1` : null,
+                  ]}>
+                  Admin
+                </Text>
+
+                <SettingItem
+                  icon={<Folder size={16} weight="fill" color={'#FFFFFF'} />}
+                  title="Explore/Supplements"
+                  onPress={() => navigation.navigate('ExploreAdmin')}
+                />
+              </Animated.View>
+            )}
 
           {/* App Settings Section */}
           <Animated.View

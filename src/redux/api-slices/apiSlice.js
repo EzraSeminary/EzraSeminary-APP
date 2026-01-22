@@ -50,6 +50,8 @@ export const apiSlice = createApi({
     'DevotionPlans',
     'DevotionLikes',
     'DevotionComments',
+    'ExploreCategories',
+    'ExploreItems',
   ],
   endpoints: builder => ({
     login: builder.mutation({
@@ -317,6 +319,105 @@ export const apiSlice = createApi({
       keepUnusedDataFor: 3600,
       providesTags: [{type: 'Devotions', id: 'years'}],
     }),
+    // Explore/Supplements endpoints
+    getExploreCategories: builder.query({
+      query: () => '/explore/categories',
+      providesTags: ['ExploreCategories'],
+    }),
+    getExploreItems: builder.query({
+      query: categoryId => ({
+        url: '/explore/items',
+        params: {categoryId},
+      }),
+      providesTags: (result, error, categoryId) => [
+        {type: 'ExploreItems', id: categoryId},
+        'ExploreItems',
+      ],
+    }),
+    getExploreItemById: builder.query({
+      query: id => `/explore/items/${id}`,
+      providesTags: (result, error, id) => [{type: 'ExploreItems', id}],
+    }),
+    // Admin Explore endpoints
+    getAdminExploreCategories: builder.query({
+      query: () => '/explore/admin/categories',
+      providesTags: ['ExploreCategories'],
+    }),
+    createExploreCategory: builder.mutation({
+      query: data => ({
+        url: '/explore/admin/categories',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: data,
+      }),
+      invalidatesTags: ['ExploreCategories'],
+    }),
+    updateExploreCategory: builder.mutation({
+      query: ({id, ...data}) => ({
+        url: `/explore/admin/categories/${id}`,
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: data,
+      }),
+      invalidatesTags: ['ExploreCategories'],
+    }),
+    deleteExploreCategory: builder.mutation({
+      query: id => ({
+        url: `/explore/admin/categories/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['ExploreCategories', 'ExploreItems'],
+    }),
+    getAdminExploreItems: builder.query({
+      query: categoryId => ({
+        url: '/explore/admin/items',
+        params: categoryId ? {categoryId} : {},
+      }),
+      providesTags: ['ExploreItems'],
+    }),
+    createExploreItem: builder.mutation({
+      query: formData => ({
+        url: '/explore/admin/items',
+        method: 'POST',
+        body: formData,
+        // Don't set Content-Type for FormData, browser will set it with boundary
+      }),
+      invalidatesTags: ['ExploreItems', 'ExploreCategories'],
+    }),
+    updateExploreItem: builder.mutation({
+      query: ({id, formData}) => {
+        // If formData is a FormData object, don't set Content-Type header
+        // Otherwise, set it to application/json
+        const isFormData = formData instanceof FormData;
+        return {
+          url: `/explore/admin/items/${id}`,
+          method: 'PUT',
+          body: formData,
+          ...(isFormData
+            ? {}
+            : {
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              }),
+        };
+      },
+      invalidatesTags: (result, error, {id}) => [
+        {type: 'ExploreItems', id},
+        'ExploreItems',
+      ],
+    }),
+    deleteExploreItem: builder.mutation({
+      query: id => ({
+        url: `/explore/admin/items/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['ExploreItems'],
+    }),
   }),
 });
 
@@ -344,9 +445,22 @@ export const {
   useGetDevotionCommentsQuery,
   useAddDevotionCommentMutation,
   useDeleteDevotionCommentMutation,
-  // Lazy loading hooks for devotions by month
-  useGetMonthsByYearQuery,
-  useGetDevotionsByYearAndMonthQuery,
-  useGetAvailableYearsQuery,
-  util: {invalidateTags},
+    // Lazy loading hooks for devotions by month
+    useGetMonthsByYearQuery,
+    useGetDevotionsByYearAndMonthQuery,
+    useGetAvailableYearsQuery,
+    // Explore hooks
+    useGetExploreCategoriesQuery,
+    useGetExploreItemsQuery,
+    useGetExploreItemByIdQuery,
+    // Admin Explore hooks
+    useGetAdminExploreCategoriesQuery,
+    useCreateExploreCategoryMutation,
+    useUpdateExploreCategoryMutation,
+    useDeleteExploreCategoryMutation,
+    useGetAdminExploreItemsQuery,
+    useCreateExploreItemMutation,
+    useUpdateExploreItemMutation,
+    useDeleteExploreItemMutation,
+    util: {invalidateTags},
 } = apiSlice;

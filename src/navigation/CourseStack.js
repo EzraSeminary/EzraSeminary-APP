@@ -5,6 +5,7 @@ import DisplayCourse from './../screens/CoursePages/DisplayCourse';
 import CourseContent from './../screens/CoursePages/CourseContent';
 import SlideSample1 from './../screens/CoursePages/SlideSample1';
 import SlideSample2 from './../screens/CoursePages/SlideSample2';
+import ExploreItemViewer from './../screens/ExploreScreens/ExploreItemViewer';
 
 const Stack = createNativeStackNavigator();
 
@@ -38,6 +39,11 @@ const CourseStack = () => {
       <Stack.Screen
         name="SlideSample2"
         component={SlideSample2}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="ExploreItemViewer"
+        component={ExploreItemViewer}
         options={{headerShown: false}}
       />
     </Stack.Navigator>

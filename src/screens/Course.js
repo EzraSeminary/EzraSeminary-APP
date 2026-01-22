@@ -10,13 +10,10 @@ import {
   ActivityIndicator,
   RefreshControl,
   Animated,
-  Dimensions,
 } from 'react-native';
 import {
-  User,
   CaretCircleDown,
   BookOpen,
-  Sparkle,
   MagnifyingGlass,
 } from 'phosphor-react-native';
 import tw from './../../tailwind';
@@ -24,12 +21,71 @@ import {useGetCoursesQuery} from './../redux/api-slices/apiSlice';
 import {useNavigation} from '@react-navigation/native';
 import {useSelector} from 'react-redux';
 import ErrorScreen from '../components/ErrorScreen';
-import {ProgressBar} from 'react-native-paper';
 import NetInfo from '@react-native-community/netinfo';
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
+import Explore from './Explore';
+
+// Tab Switcher Component - matching Devotion screen style
+const TabSwitcher = ({activeTab, setActiveTab, darkMode}) => (
+  <View
+    style={[
+      tw`flex-row mb-6 p-1 rounded-full`,
+      {
+        backgroundColor: darkMode ? '#374151' : '#E5E7EB',
+      },
+    ]}>
+    <TouchableOpacity
+      onPress={() => setActiveTab('course')}
+      style={[
+        tw`px-4 py-2 rounded-full`,
+        {
+          backgroundColor: activeTab === 'course' ? '#EA9215' : 'transparent',
+        },
+      ]}>
+      <Text
+        style={[
+          tw`font-nokia-bold text-sm`,
+          {
+            color:
+              activeTab === 'course'
+                ? '#FFFFFF'
+                : darkMode
+                ? '#D1D5DB'
+                : '#4B5563',
+          },
+        ]}>
+        Course
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={() => setActiveTab('explore')}
+      style={[
+        tw`px-4 py-2 rounded-full`,
+        {
+          backgroundColor: activeTab === 'explore' ? '#EA9215' : 'transparent',
+        },
+      ]}>
+      <Text
+        style={[
+          tw`font-nokia-bold text-sm`,
+          {
+            color:
+              activeTab === 'explore'
+                ? '#FFFFFF'
+                : darkMode
+                ? '#D1D5DB'
+                : '#4B5563',
+          },
+        ]}>
+        Explore
+      </Text>
+    </TouchableOpacity>
+  </View>
+);
 
 const Course = () => {
+  const [activeTab, setActiveTab] = useState('course'); // 'course' or 'explore'
   const {data: courses, error, isLoading, refetch} = useGetCoursesQuery();
   const [searchTerm, setSearchTerm] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -170,9 +226,31 @@ const Course = () => {
   if (error) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
+
+  // Render Explore content if explore tab is active
+  if (activeTab === 'explore') {
+    return (
+      <View style={darkMode ? tw`bg-secondary-9` : null}>
+        <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
+          <TabSwitcher
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            darkMode={darkMode}
+          />
+          <Explore />
+        </SafeAreaView>
+      </View>
+    );
+  }
+
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
-      <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
+      <SafeAreaView style={tw`flex mx-auto w-auto`}>
+        <TabSwitcher
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          darkMode={darkMode}
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -188,79 +266,11 @@ const Course = () => {
               opacity: fadeAnim,
               transform: [{translateY: slideAnim}],
             }}>
-            {/* Enhanced Header */}
-            <Animated.View
-              style={[
-                tw`flex flex-row justify-between items-center my-6 p-6 rounded-3xl`,
-                {
-                  backgroundColor: darkMode ? '#374151' : '#FFFFFF',
-                  shadowColor: darkMode ? '#000000' : '#EA9215',
-                  shadowOffset: {width: 0, height: 4},
-                  shadowOpacity: darkMode ? 0.2 : 0.1,
-                  shadowRadius: 12,
-                  elevation: 4,
-                  transform: [{scale: scaleAnim}],
-                },
-              ]}>
-              <View style={tw`flex-row items-center`}>
-                <View
-                  style={[
-                    tw`w-12 h-12 rounded-2xl items-center justify-center mr-4`,
-                    {backgroundColor: 'rgba(234, 146, 21, 0.1)'},
-                  ]}>
-                  <BookOpen size={24} color="#EA9215" weight="bold" />
-                </View>
-                <View>
-                  <Text
-                    style={[
-                      tw`font-nokia-bold text-2xl`,
-                      darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-                    ]}>
-                    Courses
-                  </Text>
-                  <Text
-                    style={[
-                      tw`font-nokia-bold text-sm opacity-70`,
-                      darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
-                    ]}>
-                    {filteredData?.length || 0} courses available
-                  </Text>
-                </View>
-                <Animated.View
-                  style={[
-                    tw`ml-3`,
-                    {
-                      transform: [
-                        {
-                          rotate: sparkleAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ['0deg', '360deg'],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}>
-                  <Sparkle size={20} color="#EA9215" weight="fill" />
-                </Animated.View>
-              </View>
-              <TouchableOpacity
-                style={[
-                  tw`w-12 h-12 rounded-2xl items-center justify-center`,
-                  {backgroundColor: darkMode ? '#4B5563' : '#F3F4F6'},
-                ]}
-                onPress={() => navigation.navigate('Setting')}>
-                <User
-                  size={24}
-                  weight="bold"
-                  color={darkMode ? '#FFFFFF' : '#374151'}
-                />
-              </TouchableOpacity>
-            </Animated.View>
 
             {/* Enhanced Search Bar */}
             <Animated.View
               style={[
-                tw`mb-6 p-5 rounded-3xl`,
+                tw`mb-6 px-5 py-2 rounded-full`,
                 {
                   backgroundColor: darkMode ? '#374151' : '#FFFFFF',
                   shadowColor: darkMode ? '#000000' : '#EA9215',
