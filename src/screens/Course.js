@@ -28,59 +28,62 @@ import Explore from './Explore';
 
 // Tab Switcher Component - matching Devotion screen style
 const TabSwitcher = ({activeTab, setActiveTab, darkMode}) => (
-  <View
-    style={[
-      tw`flex-row mb-6 p-1 rounded-full`,
-      {
-        backgroundColor: darkMode ? '#374151' : '#E5E7EB',
-      },
-    ]}>
-    <TouchableOpacity
-      onPress={() => setActiveTab('course')}
+  <View style={tw`flex-row items-center justify-center my-4`}>
+    <View
       style={[
-        tw`px-4 py-2 rounded-full`,
+        tw`flex-row p-1 rounded-full`,
         {
-          backgroundColor: activeTab === 'course' ? '#EA9215' : 'transparent',
+          backgroundColor: darkMode ? '#374151' : '#E5E7EB',
         },
       ]}>
-      <Text
+      <TouchableOpacity
+        onPress={() => setActiveTab('course')}
         style={[
-          tw`font-nokia-bold text-sm`,
+          tw`px-4 py-2 rounded-full`,
           {
-            color:
-              activeTab === 'course'
-                ? '#FFFFFF'
-                : darkMode
-                ? '#D1D5DB'
-                : '#4B5563',
+            backgroundColor: activeTab === 'course' ? '#EA9215' : 'transparent',
           },
         ]}>
-        Course
-      </Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-      onPress={() => setActiveTab('explore')}
-      style={[
-        tw`px-4 py-2 rounded-full`,
-        {
-          backgroundColor: activeTab === 'explore' ? '#EA9215' : 'transparent',
-        },
-      ]}>
-      <Text
+        <Text
+          style={[
+            tw`font-nokia-bold text-sm`,
+            {
+              color:
+                activeTab === 'course'
+                  ? '#FFFFFF'
+                  : darkMode
+                  ? '#D1D5DB'
+                  : '#4B5563',
+            },
+          ]}>
+          Course
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => setActiveTab('explore')}
         style={[
-          tw`font-nokia-bold text-sm`,
+          tw`px-4 py-2 rounded-full`,
           {
-            color:
-              activeTab === 'explore'
-                ? '#FFFFFF'
-                : darkMode
-                ? '#D1D5DB'
-                : '#4B5563',
+            backgroundColor:
+              activeTab === 'explore' ? '#EA9215' : 'transparent',
           },
         ]}>
-        Explore
-      </Text>
-    </TouchableOpacity>
+        <Text
+          style={[
+            tw`font-nokia-bold text-sm`,
+            {
+              color:
+                activeTab === 'explore'
+                  ? '#FFFFFF'
+                  : darkMode
+                  ? '#D1D5DB'
+                  : '#4B5563',
+            },
+          ]}>
+          Explore
+        </Text>
+      </TouchableOpacity>
+    </View>
   </View>
 );
 
