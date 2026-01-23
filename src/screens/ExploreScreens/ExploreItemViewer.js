@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
-  Linking,
   Dimensions,
 } from 'react-native';
 import {ArrowLeft, Download, FilePdf, Presentation} from 'phosphor-react-native';
@@ -26,6 +25,32 @@ const ExploreItemViewer = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const [isDownloading, setIsDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const downloadInProgressRef = useRef(false);
+  const webViewRef = useRef(null);
+  const loadTimeoutRef = useRef(null);
+
+  // Reset state when item changes
+  useEffect(() => {
+    downloadInProgressRef.current = false;
+    setIsDownloading(false);
+    setLoading(true);
+
+    // Clear any existing timeout
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
+
+    // Set a timeout to hide loading if it takes too long
+    loadTimeoutRef.current = setTimeout(() => {
+      setLoading(false);
+    }, 20000); // 20 seconds
+
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
+  }, [item._id]);
 
   const requestStoragePermission = async () => {
     if (Platform.OS === 'android') {
@@ -61,6 +86,11 @@ const ExploreItemViewer = () => {
   };
 
   const handleDownload = async () => {
+    // Prevent multiple simultaneous downloads
+    if (downloadInProgressRef.current || isDownloading) {
+      return;
+    }
+
     if (!item.fileUrl) {
       Toast.show({
         type: 'error',
@@ -80,6 +110,7 @@ const ExploreItemViewer = () => {
       return;
     }
 
+    downloadInProgressRef.current = true;
     setIsDownloading(true);
 
     try {
@@ -135,6 +166,7 @@ const ExploreItemViewer = () => {
       });
     } finally {
       setIsDownloading(false);
+      downloadInProgressRef.current = false;
     }
   };
 
@@ -149,17 +181,29 @@ const ExploreItemViewer = () => {
 
   const renderContent = () => {
     if (item.fileType === 'pdf') {
-      // Enhanced PDF viewer with zoom and landscape support
+      // Use Google Docs Viewer for reliable PDF viewing on Android
       const pdfUrl = item.fileUrl;
+      const viewerUrl = Platform.OS === 'android'
+        ? `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(pdfUrl)}`
+        : pdfUrl;
 
       return (
         <WebView
-          source={{uri: pdfUrl}}
+          ref={webViewRef}
+          source={{uri: viewerUrl}}
           style={{flex: 1}}
           onLoadStart={() => setLoading(true)}
-          onLoadEnd={() => setLoading(false)}
+          onLoadEnd={() => {
+            setLoading(false);
+            if (loadTimeoutRef.current) {
+              clearTimeout(loadTimeoutRef.current);
+            }
+          }}
           onError={syntheticEvent => {
             setLoading(false);
+            if (loadTimeoutRef.current) {
+              clearTimeout(loadTimeoutRef.current);
+            }
             const {nativeEvent} = syntheticEvent;
             console.warn('WebView error: ', nativeEvent);
             Alert.alert(
@@ -174,39 +218,42 @@ const ExploreItemViewer = () => {
               ],
             );
           }}
-          // Enable zoom and pinch gestures
+          // Prevent automatic downloads
+          setSupportMultipleWindows={false}
+          // Enable zoom and scrolling
           scalesPageToFit={true}
-          startInLoadingState={true}
           javaScriptEnabled={true}
           domStorageEnabled={true}
-          // Enable zoom
+          startInLoadingState={false}
           showsHorizontalScrollIndicator={true}
           showsVerticalScrollIndicator={true}
-          // Support landscape - WebView automatically handles orientation
-          automaticallyAdjustContentInsets={false}
-          // Allow user interaction for zoom
-          allowsInlineMediaPlayback={true}
-          mediaPlaybackRequiresUserAction={false}
-          // Additional props for better PDF rendering
-          originWhitelist={['*']}
+          // Android specific props
+          androidHardwareAccelerationDisabled={false}
           mixedContentMode="always"
-          // Enable pinch to zoom
-          bounces={false}
-          // Inject JavaScript to enable zoom and viewport meta tag
-          injectedJavaScript={`
-            (function() {
-              var meta = document.createElement('meta');
-              meta.name = 'viewport';
-              meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
-              var head = document.getElementsByTagName('head')[0];
-              if (head) {
-                head.appendChild(meta);
-              }
-            })();
-            true;
-          `}
-          // Allow zoom gestures
-          allowsBackForwardNavigationGestures={false}
+          allowFileAccess={true}
+          allowUniversalAccessFromFileURLs={true}
+          originWhitelist={['*']}
+          // Prevent new window opening
+          onShouldStartLoadWithRequest={(request) => {
+            // Allow the viewer and PDF URLs
+            if (request.url.includes('docs.google.com/viewer') || 
+                request.url === pdfUrl || 
+                request.url === viewerUrl ||
+                request.url.includes(pdfUrl)) {
+              return true;
+            }
+            // Block downloads
+            if (request.url.includes('download')) {
+              console.log('Blocked download:', request.url);
+              return false;
+            }
+            return true;
+          }}
+          // iOS specific - use native rendering
+          {...(Platform.OS === 'ios' && {
+            allowsInlineMediaPlayback: true,
+            mediaPlaybackRequiresUserAction: false,
+          })}
         />
       );
     } else {
@@ -315,7 +362,7 @@ const ExploreItemViewer = () => {
                 tw`font-nokia-bold text-base mt-4`,
                 darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
               ]}>
-              Loading...
+              Loading PDF...
             </Text>
           </View>
         )}
