@@ -6,12 +6,18 @@ import {
   ScrollView,
   Alert,
   Animated,
-  Dimensions,
   Image,
 } from 'react-native';
 import React, {useState, useRef, useEffect} from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {Eye, Lock, UserCircle, Cross, Sparkle} from 'phosphor-react-native';
+import {
+  Eye,
+  Lock,
+  UserCircle,
+  Cross,
+  Sparkle,
+  Warning,
+} from 'phosphor-react-native';
 import tw from './../../tailwind';
 import {useDispatch} from 'react-redux';
 import {
@@ -29,7 +35,9 @@ const Login = ({navigation}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(true);
-  const [login, {isLoading, error}] = useLoginMutation();
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [login, {isLoading}] = useLoginMutation();
   const [updateUserStatus] = useUpdateUserStatusMutation();
   const dispatch = useDispatch();
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -81,6 +89,38 @@ const Login = ({navigation}) => {
     return () => sparkleAnimation.stop();
   }, [fadeAnim, slideAnim, scaleAnim, sparkleAnim]);
 
+  const validateEmail = email => {
+    if (!email || email.trim() === '') {
+      return 'Email is required.';
+    }
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!re.test(email)) {
+      return 'Please enter a valid email address.';
+    }
+    return '';
+  };
+
+  const validatePassword = password => {
+    if (!password || password.trim() === '') {
+      return 'Password is required.';
+    }
+    return '';
+  };
+
+  const handleEmailChange = text => {
+    setEmail(text);
+    if (emailError) {
+      setEmailError('');
+    }
+  };
+
+  const handlePasswordChange = text => {
+    setPassword(text);
+    if (passwordError) {
+      setPasswordError('');
+    }
+  };
+
   const handleForgotPassword = () => {
     const url = 'https://ezraseminary.org/forgot-password';
     Linking.openURL(url).catch(err =>
@@ -93,10 +133,25 @@ const Login = ({navigation}) => {
   };
 
   const handleSubmit = async () => {
-    try {
-      if (!email || !password) {
-        throw new Error('Please enter both email and password.');
+    // Clear previous errors
+    setEmailError('');
+    setPasswordError('');
+
+    // Validate fields
+    const emailValidationError = validateEmail(email);
+    const passwordValidationError = validatePassword(password);
+
+    if (emailValidationError || passwordValidationError) {
+      if (emailValidationError) {
+        setEmailError(emailValidationError);
       }
+      if (passwordValidationError) {
+        setPasswordError(passwordValidationError);
+      }
+      return;
+    }
+
+    try {
       const result = await login({email, password}).unwrap();
       if (result) {
         if (result.status === 'inactive') {
@@ -148,25 +203,49 @@ const Login = ({navigation}) => {
           });
           setEmail('');
           setPassword('');
+          setEmailError('');
+          setPasswordError('');
         }
       }
     } catch (err) {
       console.error('Login Failed: ', err);
-      let errorMessage = 'Invalid email or password. Please try again.';
-      if (err.message === 'Please enter both email and password.') {
-        errorMessage = err.message;
-      } else if (
+
+      // Handle network errors with toast (global error)
+      if (
         err.message === 'Network Error' ||
-        err.code === 'ECONNABORTED'
+        err.code === 'ECONNABORTED' ||
+        err.message === 'Network request failed'
       ) {
-        errorMessage =
-          'Network error or timeout. Please check your internet connection and try again.';
+        Toast.show({
+          type: 'error',
+          text1: 'Network Error',
+          text2:
+            'Network error or timeout. Please check your internet connection and try again.',
+        });
+        return;
       }
-      Toast.show({
-        type: 'error',
-        text1: 'Login Error',
-        text2: errorMessage,
-      });
+
+      // Handle authentication errors with inline messages
+      // Check if it's an email or password error based on common API responses
+      if (err.status === 401 || err.status === 404) {
+        setEmailError('Invalid email or password.');
+        setPasswordError('Invalid email or password.');
+      } else if (err.data?.message) {
+        // If API provides specific error message
+        const errorMsg = err.data.message.toLowerCase();
+        if (errorMsg.includes('email')) {
+          setEmailError(err.data.message);
+        } else if (errorMsg.includes('password')) {
+          setPasswordError(err.data.message);
+        } else {
+          setEmailError('Invalid email or password.');
+          setPasswordError('Invalid email or password.');
+        }
+      } else {
+        // Default: show error on both fields
+        setEmailError('Invalid email or password.');
+        setPasswordError('Invalid email or password.');
+      }
     }
   };
 
@@ -238,41 +317,66 @@ const Login = ({navigation}) => {
             <View style={tw`mb-2`}>
               <View
                 style={[
-                  tw`flex flex-row items-center gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                  tw`flex flex-row items-center gap-2 w-100% h-12 bg-primary-4 border rounded-2 px-4`,
+                  emailError ? tw`border-red-500` : tw`border-secondary-3`,
                   darkMode ? tw`bg-secondary-6` : null,
                 ]}>
                 <UserCircle
                   size={20}
                   style={[
-                    tw`text-secondary-5`,
-                    darkMode ? tw`text-primary-3` : null,
+                    emailError ? tw`text-red-500` : tw`text-secondary-5`,
+                    darkMode && !emailError ? tw`text-primary-3` : null,
                   ]}
                 />
                 <TextInput
                   placeholder="Email address"
                   keyboardType="email-address"
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={handleEmailChange}
                   style={[
-                    tw`font-nokia-bold text-sm text-secondary-6 w-100%`,
+                    tw`font-nokia-bold text-sm text-secondary-6 flex-1`,
                     darkMode ? tw`text-primary-3` : null,
                   ]}
                   placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
                 />
+                {emailError && (
+                  <Warning
+                    size={18}
+                    color={darkMode ? '#EF4444' : '#DC2626'}
+                    weight="fill"
+                  />
+                )}
               </View>
+              {emailError && (
+                <View style={tw`flex flex-row items-center gap-1 mt-1 px-1`}>
+                  <Warning
+                    size={14}
+                    color={darkMode ? '#EF4444' : '#DC2626'}
+                    weight="fill"
+                  />
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs`,
+                      darkMode ? tw`text-red-400` : tw`text-red-600`,
+                    ]}>
+                    {emailError}
+                  </Text>
+                </View>
+              )}
             </View>
             <View style={tw`mb-2`}>
               <View
                 style={[
-                  tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                  tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border rounded-2 px-4`,
+                  passwordError ? tw`border-red-500` : tw`border-secondary-3`,
                   darkMode ? tw`bg-secondary-6` : null,
                 ]}>
-                <View style={tw`flex flex-row items-center gap-2`}>
+                <View style={tw`flex flex-row items-center gap-2 flex-1`}>
                   <Lock
                     size={20}
                     style={[
-                      tw`text-secondary-5`,
-                      darkMode ? tw`text-primary-3` : null,
+                      passwordError ? tw`text-red-500` : tw`text-secondary-5`,
+                      darkMode && !passwordError ? tw`text-primary-3` : null,
                     ]}
                   />
                   <TextInput
@@ -280,9 +384,9 @@ const Login = ({navigation}) => {
                     secureTextEntry={showPassword}
                     keyboardType="default"
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={handlePasswordChange}
                     style={[
-                      tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
+                      tw`font-nokia-bold text-sm text-secondary-6 flex-1`,
                       darkMode ? tw`text-primary-3` : null,
                     ]}
                     placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
@@ -297,7 +401,31 @@ const Login = ({navigation}) => {
                     ]}
                   />
                 </TouchableOpacity>
+                {passwordError && (
+                  <Warning
+                    size={18}
+                    color={darkMode ? '#EF4444' : '#DC2626'}
+                    weight="fill"
+                    style={tw`ml-1`}
+                  />
+                )}
               </View>
+              {passwordError && (
+                <View style={tw`flex flex-row items-center gap-1 mt-1 px-1`}>
+                  <Warning
+                    size={14}
+                    color={darkMode ? '#EF4444' : '#DC2626'}
+                    weight="fill"
+                  />
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs`,
+                      darkMode ? tw`text-red-400` : tw`text-red-600`,
+                    ]}>
+                    {passwordError}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
           <Text
