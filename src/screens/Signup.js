@@ -247,7 +247,7 @@ const Signup = ({navigation}) => {
     <SafeAreaView
       style={[tw`flex-1 bg-primary-1`, darkMode ? tw`bg-secondary-9` : null]}>
       <ScrollView
-        contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-6`}
+        contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-4`}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled">
         <Animated.View
@@ -258,10 +258,19 @@ const Signup = ({navigation}) => {
               transform: [{translateY: slideAnim}],
             },
           ]}>
+          {/* Continue without account button */}
+          <TouchableOpacity
+            style={tw`flex flex-row justify-center mb-4`}
+            onPress={() => navigation.navigate('MainTab')}>
+            <Text
+              style={tw`font-nokia-bold text-accent-6 px-4 py-2 border border-accent-6 rounded-full`}>
+              Continue without account
+            </Text>
+          </TouchableOpacity>
           {/* Enhanced Welcome Section */}
           <Animated.View
             style={[
-              tw`my-8 p-6 rounded-2xl items-center`,
+              tw`mb-6 p-6 rounded-2xl items-center`,
               {
                 backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                 transform: [{scale: scaleAnim}],
@@ -647,14 +656,6 @@ const Signup = ({navigation}) => {
               </Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={tw`flex flex-row justify-center mt-4`}
-            onPress={() => navigation.navigate('MainTab')}>
-            <Text
-              style={tw`font-nokia-bold text-accent-6 px-4 py-2 border border-accent-6 rounded-full`}>
-              Continue without account
-            </Text>
-          </TouchableOpacity>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
