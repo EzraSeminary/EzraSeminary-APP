@@ -40,8 +40,12 @@ const ITEM_WIDTH = SCREEN_WIDTH * 0.4;
 const ITEM_MARGIN = 12;
 
 const Explore = () => {
-  const {data: categories, error, isLoading, refetch} =
-    useGetExploreCategoriesQuery();
+  const {
+    data: categories,
+    error,
+    isLoading,
+    refetch,
+  } = useGetExploreCategoriesQuery();
   // All categories expanded by default
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -154,7 +158,7 @@ const Explore = () => {
 
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
-      <SafeAreaView style={tw`flex mx-auto w-[100%]`}>
+      <SafeAreaView style={tw`flex mx-auto w-[100%] h-100%`}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={

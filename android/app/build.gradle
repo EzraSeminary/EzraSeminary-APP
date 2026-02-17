@@ -81,8 +81,8 @@ android {
         applicationId "com.ezraapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 37
-        versionName "1.1.5"
+        versionCode 42
+        versionName "1.2"
     }
     
     // Add configuration to handle large assets and prevent timeouts
@@ -91,10 +91,12 @@ android {
         cruncherEnabled false
     }
     
-    // Configure packaging options
+    // Configure packaging options for 16KB page size support
     packagingOptions {
         jniLibs {
             useLegacyPackaging false
+            // Exclude debug symbols to reduce APK size and ensure 16KB compatibility
+            excludes += ['**/lib/*/libc++_shared.so.debug']
         }
         resources {
             excludes += [
@@ -146,6 +148,10 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            // Debug builds support all architectures for emulators/testing
+            ndk {
+                abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            }
         }
         release {
             // Caution! In production, you need to generate your own keystore file.
@@ -155,6 +161,10 @@ android {
             signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            // Release builds: Only 64-bit architectures for 16KB page size support
+            ndk {
+                abiFilters 'arm64-v8a', 'x86_64'
+            }
         }
     }
 }

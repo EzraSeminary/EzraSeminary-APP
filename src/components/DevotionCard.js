@@ -88,10 +88,12 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
       const result = await toggleLike(devotion._id).unwrap();
       setIsLiked(result.isLiked);
       setLikesCount(result.likesCount);
+      // No success message - silent success
     } catch (error) {
       // Revert optimistic update on error
       setIsLiked(previousLiked);
       setLikesCount(previousCount);
+      // Only show error message if something goes wrong
       Toast.show({
         type: 'error',
         text1: 'Failed to like',

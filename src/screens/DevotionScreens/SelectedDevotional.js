@@ -85,12 +85,9 @@ const SelectedDevotional = ({route}) => {
   const [isUsingCache, setIsUsingCache] = useState(false);
   const scrollViewRef = useRef();
 
-  const {data: likesData, refetch: refetchLikes} = useGetDevotionLikesQuery(
-    devotional?._id,
-    {
-      skip: !currentUser || !devotional?._id,
-    },
-  );
+  const {data: likesData} = useGetDevotionLikesQuery(devotional?._id, {
+    skip: !currentUser || !devotional?._id,
+  });
 
   const {data: commentsData} = useGetDevotionCommentsQuery(devotional?._id, {
     skip: !devotional?._id,
@@ -101,12 +98,9 @@ const SelectedDevotional = ({route}) => {
   const [trackShare, {isLoading: isTrackingShare}] =
     useTrackDevotionShareMutation();
 
-  // Refetch likes when user logs in to ensure persistence
-  useEffect(() => {
-    if (currentUser && devotional?._id) {
-      refetchLikes();
-    }
-  }, [currentUser, devotional?._id, refetchLikes]);
+  // Note: Do not call refetch on the likes query here. The query runs automatically when
+  // skip becomes false (devotional._id + currentUser). Calling refetch when the query
+  // was previously skipped causes "Cannot refetch a query that has not been started yet".
 
   // Update likes, shares, and comments state when data changes
   useEffect(() => {
@@ -152,10 +146,12 @@ const SelectedDevotional = ({route}) => {
       const result = await toggleLike(devotional._id).unwrap();
       setIsLiked(result.isLiked);
       setLikesCount(result.likesCount);
+      // No success message - silent success
     } catch (error) {
       // Revert optimistic update on error
       setIsLiked(previousLiked);
       setLikesCount(previousCount);
+      // Only show error message if something goes wrong
       Toast.show({
         type: 'error',
         text1: 'Failed to like',
