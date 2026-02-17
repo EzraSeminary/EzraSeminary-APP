@@ -100,8 +100,12 @@ export const apiSlice = createApi({
     getDevotions: builder.query({
       query: ({limit, sort} = {}) => {
         const queryParams = new URLSearchParams();
-        if (limit) queryParams.append('limit', limit);
-        if (sort) queryParams.append('sort', sort);
+        if (limit) {
+          queryParams.append('limit', limit);
+        }
+        if (sort) {
+          queryParams.append('sort', sort);
+        }
         return {
           url: '/devotion/show',
           params: queryParams.toString(),
@@ -115,7 +119,19 @@ export const apiSlice = createApi({
       query: () => '/users/current',
     }),
     getCourses: builder.query({
-      query: () => 'course/getall',
+      query: ({limit, sort} = {}) => {
+        const queryParams = new URLSearchParams();
+        if (limit) {
+          queryParams.append('limit', limit);
+        }
+        if (sort) {
+          queryParams.append('sort', sort);
+        }
+        return {
+          url: 'course/getall',
+          params: queryParams.toString(),
+        };
+      },
       providesTags: ['Courses'],
     }),
     getCourseById: builder.query({
