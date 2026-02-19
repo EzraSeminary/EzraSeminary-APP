@@ -7,8 +7,6 @@ import {
   ScrollView,
   Animated,
   Dimensions,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import React, {useState, useRef, useEffect} from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -275,70 +273,138 @@ const Signup = ({navigation}) => {
             style={[
               tw`mb-6 p-6 rounded-2xl items-center`,
               {
-                opacity: fadeAnim,
-                transform: [{translateY: slideAnim}],
+                backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                transform: [{scale: scaleAnim}],
+                elevation: 8,
               },
             ]}>
-            {/* Enhanced Welcome Section */}
             <Animated.View
               style={[
-                tw`my-8 p-6 rounded-2xl items-center`,
+                tw`mb-4`,
                 {
-                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
-                  transform: [{scale: scaleAnim}],
-                  elevation: 8,
+                  transform: [
+                    {
+                      scale: sparkleAnim.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [1, 1.1, 1],
+                      }),
+                    },
+                  ],
                 },
               ]}>
-              <Animated.View
-                style={[
-                  tw`mb-4`,
-                  {
-                    transform: [
-                      {
-                        scale: sparkleAnim.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [1, 1.1, 1],
-                        }),
-                      },
-                    ],
-                  },
-                ]}>
-                <Image
-                  source={require('./../assets/ezra_logo.png')}
-                  style={tw`w-16 h-16`}
-                  resizeMode="contain"
-                />
-              </Animated.View>
-              <Text
-                style={[
-                  tw`font-nokia-bold text-4xl text-secondary-6 text-center mb-2`,
-                  darkMode ? tw`text-accent-6` : null,
-                ]}>
-                እንኳን ደህና መጡ!
-              </Text>
-              <Text
-                style={[
-                  tw`font-Lato-Black text-2xl text-secondary-6 text-center mb-2`,
-                  darkMode ? tw`text-primary-1` : null,
-                ]}>
-                Create an account
-              </Text>
-              <Text
-                style={[
-                  tw`font-Lato-Regular text-sm text-secondary-6 text-center opacity-70`,
-                  darkMode ? tw`text-primary-3` : null,
-                ]}>
-                Join our spiritual community and track your progress
-              </Text>
+              <Image
+                source={require('./../assets/ezra_logo.png')}
+                style={tw`w-16 h-16`}
+                resizeMode="contain"
+              />
             </Animated.View>
-            <Animated.View style={tw`flex flex-col gap-4`}>
-              <View style={tw`flex flex-row mb-2 justify-between`}>
-                <View
+            <Text
+              style={[
+                tw`font-nokia-bold text-4xl text-secondary-6 text-center mb-2`,
+                darkMode ? tw`text-accent-6` : null,
+              ]}>
+              እንኳን ደህና መጡ!
+            </Text>
+            <Text
+              style={[
+                tw`font-Lato-Black text-2xl text-secondary-6 text-center mb-2`,
+                darkMode ? tw`text-primary-1` : null,
+              ]}>
+              Create an account
+            </Text>
+            <Text
+              style={[
+                tw`font-Lato-Regular text-sm text-secondary-6 text-center opacity-70`,
+                darkMode ? tw`text-primary-3` : null,
+              ]}>
+              Join our spiritual community and track your progress
+            </Text>
+          </Animated.View>
+          <View style={tw`flex flex-col gap-4`}>
+            <View style={tw`flex flex-row mb-2 justify-between`}>
+              <View
+                style={[
+                  tw`flex flex-row items-center gap-2 w-48% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                  darkMode ? tw`bg-secondary-6` : null,
+                ]}>
+                <UserCircle
+                  size={20}
                   style={[
-                    tw`flex flex-row items-center gap-2 w-48% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
-                    darkMode ? tw`bg-secondary-6` : null,
-                  ]}>
-                  <UserCircle
+                    tw`text-secondary-5`,
+                    darkMode ? tw`text-primary-3` : null,
+                  ]}
+                />
+                <TextInput
+                  placeholder="First Name"
+                  keyboardType="default"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  style={[
+                    tw`font-nokia-bold text-sm text-secondary-6 w-100%`,
+                    darkMode ? tw`text-primary-3` : null,
+                  ]}
+                  placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
+                />
+              </View>
+              <View
+                style={[
+                  tw`flex flex-row items-center gap-2 w-48% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                  darkMode ? tw`bg-secondary-6` : null,
+                ]}>
+                <UserCircle
+                  size={20}
+                  style={[
+                    tw`text-secondary-5`,
+                    darkMode ? tw`text-primary-3` : null,
+                  ]}
+                />
+                <TextInput
+                  placeholder="Last Name"
+                  keyboardType="default"
+                  value={lastName}
+                  onChangeText={setLastName}
+                  style={[
+                    tw`font-nokia-bold text-sm text-secondary-6 w-100%`,
+                    darkMode ? tw`text-primary-3` : null,
+                  ]}
+                  placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
+                />
+              </View>
+            </View>
+            <View style={tw`mb-2`}>
+              <View
+                style={[
+                  tw`flex flex-row items-center gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                  darkMode ? tw`bg-secondary-6` : null,
+                ]}>
+                <EnvelopeSimple
+                  size={20}
+                  style={[
+                    tw`text-secondary-5`,
+                    darkMode ? tw`text-primary-3` : null,
+                  ]}
+                />
+                <TextInput
+                  placeholder="Email address"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+                  style={[
+                    tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
+                    darkMode ? tw`text-primary-3` : null,
+                  ]}
+                  placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
+                />
+              </View>
+            </View>
+            <View style={tw`mb-2`}>
+              <View
+                style={[
+                  tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                  darkMode ? tw`bg-secondary-6` : null,
+                ]}>
+                <View style={tw`flex flex-row items-center gap-2`}>
+                  <Lock
                     size={20}
                     style={[
                       tw`text-secondary-5`,
@@ -346,41 +412,29 @@ const Signup = ({navigation}) => {
                     ]}
                   />
                   <TextInput
-                    placeholder="First Name"
+                    placeholder="Password"
+                    secureTextEntry={showPassword}
                     keyboardType="default"
-                    value={firstName}
-                    onChangeText={setFirstName}
+                    value={password}
+                    onChangeText={setPassword}
+                    onFocus={() => setIsPasswordFocused(true)}
+                    onBlur={() => setIsPasswordFocused(false)}
                     style={[
-                      tw`font-nokia-bold text-sm text-secondary-6 w-100%`,
+                      tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
                       darkMode ? tw`text-primary-3` : null,
                     ]}
                     placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
                   />
                 </View>
-                <View
-                  style={[
-                    tw`flex flex-row items-center gap-2 w-48% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
-                    darkMode ? tw`bg-secondary-6` : null,
-                  ]}>
-                  <UserCircle
+                <TouchableOpacity onPress={toggleShowPassword}>
+                  <Eye
                     size={20}
                     style={[
                       tw`text-secondary-5`,
                       darkMode ? tw`text-primary-3` : null,
                     ]}
                   />
-                  <TextInput
-                    placeholder="Last Name"
-                    keyboardType="default"
-                    value={lastName}
-                    onChangeText={setLastName}
-                    style={[
-                      tw`font-nokia-bold text-sm text-secondary-6 w-100%`,
-                      darkMode ? tw`text-primary-3` : null,
-                    ]}
-                    placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
-                  />
-                </View>
+                </TouchableOpacity>
               </View>
               {/* Password Requirements */}
               {isPasswordFocused && (
@@ -540,7 +594,7 @@ const Signup = ({navigation}) => {
                   </View>
                 </View>
               )}
-            </Animated.View>
+            </View>
             <View style={tw`mb-2`}>
               <View
                 style={[
@@ -556,10 +610,11 @@ const Signup = ({navigation}) => {
                     ]}
                   />
                   <TextInput
-                    placeholder="Email address"
-                    keyboardType="email-address"
-                    value={email}
-                    onChangeText={setEmail}
+                    placeholder="Confirm Password"
+                    secureTextEntry={showConfirmPassword}
+                    keyboardType="default"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
                     style={[
                       tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
                       darkMode ? tw`text-primary-3` : null,
@@ -567,122 +622,45 @@ const Signup = ({navigation}) => {
                     placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
                   />
                 </View>
-              </View>
-              <View style={tw`mb-2`}>
-                <View
-                  style={[
-                    tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
-                    darkMode ? tw`bg-secondary-6` : null,
-                  ]}>
-                  <View style={tw`flex flex-row items-center gap-2`}>
-                    <Lock
-                      size={20}
-                      style={[
-                        tw`text-secondary-5`,
-                        darkMode ? tw`text-primary-3` : null,
-                      ]}
-                    />
-                    <TextInput
-                      placeholder="Password"
-                      secureTextEntry={showPassword}
-                      keyboardType="default"
-                      value={password}
-                      onChangeText={setPassword}
-                      onFocus={() => setIsPasswordFocused(true)}
-                      onBlur={() => setIsPasswordFocused(false)}
-                      style={[
-                        tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
-                        darkMode ? tw`text-primary-3` : null,
-                      ]}
-                      placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
-                    />
-                  </View>
-                  <TouchableOpacity onPress={toggleShowPassword}>
-                    <Eye
-                      size={20}
-                      style={[
-                        tw`text-secondary-5`,
-                        darkMode ? tw`text-primary-3` : null,
-                      ]}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={tw`mb-2`}>
-                <View
-                  style={[
-                    tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
-                    darkMode ? tw`bg-secondary-6` : null,
-                  ]}>
-                  <View style={tw`flex flex-row items-center gap-2`}>
-                    <Lock
-                      size={20}
-                      style={[
-                        tw`text-secondary-5`,
-                        darkMode ? tw`text-primary-3` : null,
-                      ]}
-                    />
-                    <TextInput
-                      placeholder="Confirm Password"
-                      secureTextEntry={showConfirmPassword}
-                      keyboardType="default"
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      style={[
-                        tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
-                        darkMode ? tw`text-primary-3` : null,
-                      ]}
-                      placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
-                    />
-                  </View>
-                  <TouchableOpacity onPress={toggleShowConfirmPassword}>
-                    <Eye
-                      size={20}
-                      style={[
-                        tw`text-secondary-5`,
-                        darkMode ? tw`text-primary-3` : null,
-                      ]}
-                    />
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity onPress={toggleShowConfirmPassword}>
+                  <Eye
+                    size={20}
+                    style={[
+                      tw`text-secondary-5`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                  />
+                </TouchableOpacity>
               </View>
             </View>
-            <TouchableOpacity
-              style={tw`w-100% py-4 items-center bg-accent-6 rounded-2 my-2`}
-              onPress={handleSubmit}
-              disabled={isLoading}>
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={tw`font-Lato-Black text-primary-1`}>
-                  Create Account
-                </Text>
-              )}
-            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={tw`w-100% py-4 items-center bg-accent-6 rounded-2 my-2`}
+            onPress={handleSubmit}
+            disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={tw`font-Lato-Black text-primary-1`}>
+                Create Account
+              </Text>
+            )}
+          </TouchableOpacity>
 
-            <View style={tw`flex-row justify-center my-4`}>
-              <Text
-                style={[
-                  tw`font-Lato-Bold text-secondary-6 text-lg`,
-                  darkMode ? tw`text-primary-3` : null,
-                ]}>
-                Already have an account{' '}
-              </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={tw`font-Lato-Bold text-accent-6 text-lg`}>
-                  Login
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity
-              style={tw`flex flex-row justify-center mt-4`}
-              onPress={() => navigation.navigate('MainTab')}>
-              <Text
-                style={tw`font-nokia-bold text-accent-6 px-4 py-2 border border-accent-6 rounded-full`}>
-                Continue without account
+          <View style={tw`flex-row justify-center my-4`}>
+            <Text
+              style={[
+                tw`font-Lato-Bold text-secondary-6 text-lg`,
+                darkMode ? tw`text-primary-3` : null,
+              ]}>
+              Already have an account{' '}
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={tw`font-Lato-Bold text-accent-6 text-lg`}>
+                Login
               </Text>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

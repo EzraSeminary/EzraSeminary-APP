@@ -26,7 +26,7 @@ import {
 } from '../redux/api-slices/apiSlice';
 import {login as loginUser} from '../redux/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {ActivityIndicator, KeyboardAvoidingView, Platform} from 'react-native';
+import {ActivityIndicator} from 'react-native';
 import {useSelector} from 'react-redux';
 import Toast from 'react-native-toast-message';
 import {Linking} from 'react-native';
@@ -256,32 +256,66 @@ const Login = ({navigation}) => {
   return (
     <SafeAreaView
       style={[tw`flex-1 bg-primary-1`, darkMode ? tw`bg-secondary-9` : null]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={tw`flex-1`}>
-        <ScrollView
-          contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-6`}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-6`}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
+        <Animated.View
+          style={[
+            tw`w-full max-w-sm`,
+            {
+              opacity: fadeAnim,
+              transform: [{translateY: slideAnim}],
+            },
+          ]}>
+          {/* Enhanced Welcome Section */}
           <Animated.View
             style={[
-              tw`w-full max-w-sm`,
+              tw`my-8 p-6 rounded-2xl items-center`,
               {
-                opacity: fadeAnim,
-                transform: [{translateY: slideAnim}],
+                backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                transform: [{scale: scaleAnim}],
+                elevation: 8,
               },
             ]}>
-            {/* Enhanced Welcome Section */}
             <Animated.View
               style={[
-                tw`my-8 p-6 rounded-2xl items-center`,
+                tw`mb-4`,
                 {
-                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
-                  transform: [{scale: scaleAnim}],
-                  elevation: 8,
+                  transform: [
+                    {
+                      scale: sparkleAnim.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [1, 1.1, 1],
+                      }),
+                    },
+                  ],
                 },
               ]}>
-              <Animated.View
+              <Image
+                source={require('./../assets/ezra_logo.png')}
+                style={tw`w-16 h-16`}
+                resizeMode="contain"
+              />
+            </Animated.View>
+            <Text
+              style={[
+                tw`font-nokia-bold text-3xl text-secondary-6 text-center mb-2`,
+                darkMode ? tw`text-primary-1` : null,
+              ]}>
+              Welcome Back!
+            </Text>
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm text-secondary-4 text-center opacity-70`,
+                darkMode ? tw`text-primary-3` : null,
+              ]}>
+              Sign in to continue your spiritual journey
+            </Text>
+          </Animated.View>
+          <View style={tw`flex flex-col gap-4`}>
+            <View style={tw`mb-2`}>
+              <View
                 style={[
                   tw`flex flex-row items-center gap-2 w-100% h-12 bg-primary-4 border rounded-2 px-4`,
                   emailError ? tw`border-red-500` : tw`border-secondary-3`,
@@ -312,7 +346,7 @@ const Login = ({navigation}) => {
                     weight="fill"
                   />
                 )}
-              </Animated.View>
+              </View>
               {emailError && (
                 <View style={tw`flex flex-row items-center gap-1 mt-1 px-1`}>
                   <Warning
@@ -329,7 +363,7 @@ const Login = ({navigation}) => {
                   </Text>
                 </View>
               )}
-            </Animated.View>
+            </View>
             <View style={tw`mb-2`}>
               <View
                 style={[
@@ -393,38 +427,38 @@ const Login = ({navigation}) => {
                 </View>
               )}
             </View>
+          </View>
+          <Text
+            style={tw`py-2 font-Lato-Bold text-accent-6 text-right`}
+            onPress={handleForgotPassword}>
+            Forgot Password?
+          </Text>
+          <TouchableOpacity
+            style={tw`w-100% py-4 items-center bg-accent-6 rounded-2 my-2`}
+            onPress={handleSubmit}
+            disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={tw`font-Lato-Black text-primary-1`}>Sign In</Text>
+            )}
+          </TouchableOpacity>
+          <View style={tw`flex-row justify-center my-4`}>
             <Text
-              style={tw`py-2 font-Lato-Bold text-accent-6 text-right`}
-              onPress={handleForgotPassword}>
-              Forgot Password?
+              style={[
+                tw`font-Lato-Bold text-secondary-6 text-lg`,
+                darkMode ? tw`text-primary-3` : null,
+              ]}>
+              Don't have an account{' '}
             </Text>
-            <TouchableOpacity
-              style={tw`w-100% py-4 items-center bg-accent-6 rounded-2 my-2`}
-              onPress={handleSubmit}
-              disabled={isLoading}>
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={tw`font-Lato-Black text-primary-1`}>Sign In</Text>
-              )}
-            </TouchableOpacity>
-            <View style={tw`flex-row justify-center my-4`}>
-              <Text
-                style={[
-                  tw`font-Lato-Bold text-secondary-6 text-lg`,
-                  darkMode ? tw`text-primary-3` : null,
-                ]}>
-                Don't have an account{' '}
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+              <Text style={tw`font-Lato-Bold text-accent-6 text-lg`}>
+                Sign Up
               </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                <Text style={tw`font-Lato-Bold text-accent-6 text-lg`}>
-                  Sign Up
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
