@@ -110,6 +110,22 @@ export const apiSlice = createApi({
       query: () => 'course/getall',
       providesTags: ['Courses'],
     }),
+    getPublishedCourses: builder.query({
+      query: ({limit, sort} = {}) => {
+        const queryParams = new URLSearchParams();
+        if (limit) {
+          queryParams.append('limit', limit);
+        }
+        if (sort) {
+          queryParams.append('sort', sort);
+        }
+        return {
+          url: 'course/get/published',
+          params: queryParams.toString(),
+        };
+      },
+      providesTags: ['Courses'],
+    }),
     getCourseById: builder.query({
       query: id => `course/get/${id}`,
       providesTags: (result, error, id) => [{type: 'Courses', id}],
@@ -427,6 +443,7 @@ export const {
   useDeleteUserMutation,
   useGetDevotionsQuery,
   useGetCoursesQuery,
+  useGetPublishedCoursesQuery,
   useGetCourseByIdQuery,
   useGetCurrentUserQuery,
   useUpdateUserStatusMutation,

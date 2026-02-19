@@ -14,6 +14,7 @@ import {
 import Toast from 'react-native-toast-message';
 import {useSelector, useDispatch} from 'react-redux';
 import tw from './../../tailwind';
+<<<<<<< HEAD
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {
   useGetDevotionsQuery,
@@ -24,6 +25,13 @@ import {
   apiSlice,
 } from '../redux/api-slices/apiSlice';
 import networkManager from '../utils/networkManager';
+=======
+import {useNavigation} from '@react-navigation/native';
+import {
+  useGetDevotionsQuery,
+  useGetPublishedCoursesQuery,
+} from '../redux/api-slices/apiSlice';
+>>>>>>> 73ad21f43c16ca57af1f75217762294f97a0253e
 import HomeCurrentSSL from './SSLScreens/HomeCurrentSSL';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
 import {toEthiopian} from 'ethiopian-date';
@@ -120,14 +128,34 @@ const Home = () => {
     isLoading: devotionsLoading,
     refetch: refetchDevotions,
     error: devotionsError,
+<<<<<<< HEAD
   } = useGetDevotionsQuery({year: yearToFetch});
+=======
+  } = useGetDevotionsQuery({limit: 5});
+>>>>>>> 73ad21f43c16ca57af1f75217762294f97a0253e
 
   const {
     data: courses = [],
     isFetching: courseIsFetching,
     refetch: refetchCourses,
     error: courseError,
-  } = useGetCoursesQuery();
+  } = useGetPublishedCoursesQuery({limit: 1});
+
+  // [DEVOTION FLOW] 1. Fetched from API (RTK Query)
+  console.log('[Home] Devotion - Fetched from API:', {
+    count: devotions?.length ?? 0,
+    data: devotions,
+    isFetching,
+    error: devotionsError,
+  });
+
+  // [COURSE FLOW] 1. Fetched from API (RTK Query)
+  console.log('[Home] Course - Fetched from API:', {
+    count: courses?.length ?? 0,
+    data: courses,
+    isFetching: courseIsFetching,
+    error: courseError,
+  });
 
   const {
     data: devotionPlans = [],
@@ -297,12 +325,23 @@ const Home = () => {
           if (cached.courses?.length > 0) {
             dispatch(setCourses(cached.courses));
           }
+<<<<<<< HEAD
           // Begin prefetching cached images in background (devotions & courses)
           prefetchImages(
             (cached.devotions || [])
               .map(d => d.image)
               .concat((cached.courses || []).map(c => c.image)),
           ).catch(() => {});
+=======
+          console.log('[Home] Devotion - Loaded from cache:', {
+            count: cached.devotions?.length ?? 0,
+            lastCacheTime: cached.lastCacheTime,
+          });
+          console.log('[Home] Course - Loaded from cache:', {
+            count: cached.courses?.length ?? 0,
+            lastCacheTime: cached.lastCacheTime,
+          });
+>>>>>>> 73ad21f43c16ca57af1f75217762294f97a0253e
           return cached;
         }
       }
@@ -345,6 +384,12 @@ const Home = () => {
 
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(minimized));
       setCachedData(cacheData);
+      console.log('[Home] Devotion - Saved to cache:', {
+        count: cacheData.devotions?.length ?? 0,
+      });
+      console.log('[Home] Course - Saved to cache:', {
+        count: cacheData.courses?.length ?? 0,
+      });
     } catch (error) {
       // Handle SQLITE_FULL gracefully by purging cache
       const message = String(error?.message || '');
@@ -390,6 +435,17 @@ const Home = () => {
     };
 
     const devotionsToUse = getDevotionsToUse();
+    console.log("[Home] Devotion - Selecting today's devotion:", {
+      devotionsToUseCount: devotionsToUse?.length ?? 0,
+      source: isOffline
+        ? cachedData.devotions?.length > 0
+          ? 'cached'
+          : 'persisted'
+        : devotions?.length > 0
+        ? 'API'
+        : 'cached',
+    });
+
     if (devotionsToUse && devotionsToUse.length > 0) {
       // Find today's devotion from the current month's data
       const todaysDevotion = devotionsToUse.find(
@@ -397,7 +453,14 @@ const Home = () => {
           devotion.month === currentEthiopianMonth &&
           Number(devotion.day) === ethDay,
       );
-      setSelectedDevotion(todaysDevotion || devotionsToUse[0]);
+      const selected = todaysDevotion || devotionsToUse[0];
+      setSelectedDevotion(selected);
+      console.log('[Home] Devotion - Selected devotion:', {
+        isTodaysMatch: !!todaysDevotion,
+        selected: selected
+          ? {id: selected._id, month: selected.month, day: selected.day}
+          : null,
+      });
     }
   }, [
     devotions,
@@ -409,6 +472,7 @@ const Home = () => {
   ]);
 
   const getDataToDisplay = () => {
+<<<<<<< HEAD
     // Priority: fresh data > cached data > persisted data (always show something)
     const devotionsSource =
       (devotions?.length > 0 ? devotions : null) ||
@@ -426,21 +490,139 @@ const Home = () => {
       devotions: devotionsSource,
       courses: coursesSource,
     };
+=======
+    let result;
+    if (isOffline) {
+      result = {
+        devotions:
+          cachedData.devotions?.length > 0
+            ? cachedData.devotions
+            : persistedDevotions,
+        courses:
+          cachedData.courses?.length > 0
+            ? cachedData.courses
+            : persistedCourses,
+      };
+      console.log('[Home] Devotion - getDataToDisplay (offline):', {
+        source: cachedData.devotions?.length > 0 ? 'cached' : 'persisted',
+        count: result.devotions?.length ?? 0,
+      });
+      console.log('[Home] Course - getDataToDisplay (offline):', {
+        source: cachedData.courses?.length > 0 ? 'cached' : 'persisted',
+        count: result.courses?.length ?? 0,
+      });
+    } else {
+      result = {
+        devotions: devotions?.length > 0 ? devotions : cachedData.devotions,
+        courses: courses?.length > 0 ? courses : cachedData.courses,
+      };
+      console.log('[Home] Devotion - getDataToDisplay (online):', {
+        source: devotions?.length > 0 ? 'API' : 'cached',
+        count: result.devotions?.length ?? 0,
+      });
+      console.log('[Home] Course - getDataToDisplay (online):', {
+        source: courses?.length > 0 ? 'API' : 'cached',
+        count: result.courses?.length ?? 0,
+      });
+    }
+    return result;
+>>>>>>> 73ad21f43c16ca57af1f75217762294f97a0253e
   };
 
   const {devotions: devotionsToDisplay, courses: coursesToDisplay} =
     getDataToDisplay();
+<<<<<<< HEAD
+=======
+  const devotionToDisplay = selectedDevotion || devotionsToDisplay[0];
+
+  // [DEVOTION FLOW] 4. Final display values
+  console.log('[Home] Devotion - Display:', {
+    devotionToDisplay: devotionToDisplay
+      ? {
+          id: devotionToDisplay._id,
+          month: devotionToDisplay.month,
+          day: devotionToDisplay.day,
+        }
+      : null,
+    devotionsToDisplayCount: devotionsToDisplay?.length ?? 0,
+  });
+
+  // [COURSE FLOW] 4. Final display values
+  const lastCourse = coursesToDisplay ? coursesToDisplay[0] : null;
+  console.log('[Home] Course - Display:', {
+    lastCourse: lastCourse
+      ? {id: lastCourse._id, title: lastCourse.title}
+      : null,
+    coursesToDisplayCount: coursesToDisplay?.length ?? 0,
+  });
+
+  const fetchData = useCallback(async () => {
+    const netInfo = await NetInfo.fetch();
+    if (!netInfo.isConnected) {
+      setIsOffline(true);
+      console.log('[Home] fetchData - Offline, loading cached data');
+      // Load cached data when offline
+      const cached = await loadCachedData();
+      if (
+        cached &&
+        (cached.devotions?.length > 0 || cached.courses?.length > 0)
+      ) {
+        console.log('[Home] fetchData - Using cached data (offline):', {
+          devotions: cached.devotions?.length ?? 0,
+          courses: cached.courses?.length ?? 0,
+        });
+        Toast.show({
+          type: 'info',
+          text1: 'Offline Mode',
+          text2: 'Showing cached data. Connect to internet for updates.',
+        });
+        setHasError(false);
+        setIsLoading(false);
+        return;
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'No Cached Data',
+          text2: 'Please connect to the internet to load data.',
+        });
+        setHasError(true);
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    try {
+      setIsLoading(true);
+      setHasError(false);
+      setIsOffline(false);
+>>>>>>> 73ad21f43c16ca57af1f75217762294f97a0253e
 
   // Ensure devotionsToDisplay is always an array
   const safeDevotionsToDisplay = Array.isArray(devotionsToDisplay)
     ? devotionsToDisplay
     : [];
 
+<<<<<<< HEAD
   // API already returns only 2018 devotions, no need to filter
   const filteredDevotionsToDisplay = safeDevotionsToDisplay;
+=======
+      console.log('[Home] Devotion - Refetched (fetchData):', {
+        count: devotionsData?.data?.length ?? 0,
+        data: devotionsData?.data,
+      });
+      console.log('[Home] Course - Refetched (fetchData):', {
+        count: coursesData?.data?.length ?? 0,
+        data: coursesData?.data,
+      });
+
+      // Update Redux store
+      dispatch(setDevotions(devotionsData.data));
+      dispatch(setCourses(coursesData.data));
+>>>>>>> 73ad21f43c16ca57af1f75217762294f97a0253e
 
   const devotionToDisplay = selectedDevotion || filteredDevotionsToDisplay[0];
 
+<<<<<<< HEAD
   // Debug logging
   useEffect(() => {
     console.log('=== HOME DEVOTION DEBUG ===');
@@ -451,6 +633,38 @@ const Home = () => {
     console.log('selectedDevotion:', selectedDevotion ? 'YES' : 'NO');
     console.log('devotionToDisplay:', devotionToDisplay ? 'YES' : 'NO');
     console.log('==========================');
+=======
+      if (devotionToDisplay) {
+        scheduleVerseOfTheDayNotification(devotionToDisplay.verse);
+      }
+    } catch (e) {
+      console.error('[Home] fetchData - Fetch error:', e);
+      // Try to load cached data if network request fails
+      const cached = await loadCachedData();
+      if (
+        cached &&
+        (cached.devotions?.length > 0 || cached.courses?.length > 0)
+      ) {
+        console.log(
+          '[Home] fetchData - Network error, using cached fallback:',
+          {
+            devotions: cached.devotions?.length ?? 0,
+            courses: cached.courses?.length ?? 0,
+          },
+        );
+        Toast.show({
+          type: 'info',
+          text1: 'Network Error',
+          text2: 'Showing cached data. Please check your connection.',
+        });
+        setHasError(false);
+      } else {
+        setHasError(true);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+>>>>>>> 73ad21f43c16ca57af1f75217762294f97a0253e
   }, [
     devotions,
     cachedData,
@@ -754,6 +968,7 @@ const Home = () => {
   // Load cached data on app start
   useEffect(() => {
     const initializeApp = async () => {
+<<<<<<< HEAD
       try {
         // First, try to load cached data immediately
         const cached = await loadCachedData();
@@ -772,6 +987,29 @@ const Home = () => {
         }
       } catch (error) {
         console.error('Initialization error:', error);
+=======
+      console.log('[Home] Initialize - Loading cached data...');
+      // First, try to load cached data
+      const cached = await loadCachedData();
+      if (
+        cached &&
+        (cached.devotions?.length > 0 || cached.courses?.length > 0)
+      ) {
+        console.log('[Home] Initialize - Cache hit, checking network...');
+        setIsLoading(false);
+        // Check internet connection and fetch fresh data in background
+        const netInfo = await NetInfo.fetch();
+        if (netInfo.isConnected) {
+          console.log('[Home] Initialize - Online, fetching fresh data');
+          fetchData();
+        } else {
+          console.log('[Home] Initialize - Offline, using cached data');
+          setIsOffline(true);
+        }
+      } else {
+        console.log('[Home] Initialize - No cache, fetching from network');
+        // No cached data, must fetch from network
+>>>>>>> 73ad21f43c16ca57af1f75217762294f97a0253e
         fetchData();
       }
     };
@@ -780,9 +1018,63 @@ const Home = () => {
   }, [fetchData, loadCachedData]);
 
   const onRefresh = useCallback(async () => {
+<<<<<<< HEAD
     // Pull to refresh uses force refresh (clears cache and fetches fresh)
     await fetchData({forceRefresh: true});
   }, [fetchData]);
+=======
+    const netInfo = await NetInfo.fetch();
+    if (!netInfo.isConnected) {
+      Toast.show({
+        type: 'info',
+        text1: 'Internet Connection Required',
+        text2: 'Please connect to the internet to reload data.',
+      });
+      return;
+    }
+
+    try {
+      setIsRefreshing(true);
+      setHasError(false);
+      setIsOffline(false);
+
+      const [devotionsData, coursesData] = await Promise.all([
+        refetchDevotions(),
+        refetchCourses(),
+      ]);
+
+      console.log('[Home] Devotion - Refetched (onRefresh):', {
+        count: devotionsData?.data?.length ?? 0,
+      });
+      console.log('[Home] Course - Refetched (onRefresh):', {
+        count: coursesData?.data?.length ?? 0,
+      });
+
+      // Update Redux store
+      dispatch(setDevotions(devotionsData.data));
+      dispatch(setCourses(coursesData.data));
+
+      // Save to cache
+      await saveCachedData(devotionsData.data, coursesData.data);
+
+      Toast.show({
+        type: 'success',
+        text1: 'Data Updated',
+        text2: 'Latest content has been loaded and cached.',
+      });
+    } catch (e) {
+      console.error('Refresh error:', e);
+      setHasError(true);
+      Toast.show({
+        type: 'error',
+        text1: 'Update Failed',
+        text2: 'Unable to refresh data. Please try again.',
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refetchDevotions, refetchCourses, dispatch, saveCachedData]);
+>>>>>>> 73ad21f43c16ca57af1f75217762294f97a0253e
 
   if (isLoading) {
     return (
@@ -876,6 +1168,7 @@ const Home = () => {
 
   // No full-screen errors - always show Home layout with inline error cards per section
 
+<<<<<<< HEAD
   // Determine course to show: last visited, then started, else latest published
   const publishedCourses = coursesToDisplay
     ? coursesToDisplay.filter(c => c.published)
@@ -891,6 +1184,8 @@ const Home = () => {
   const courseToFeature =
     lastVisitedCourse || startedCourse || latestPublished || null;
 
+=======
+>>>>>>> 73ad21f43c16ca57af1f75217762294f97a0253e
   return (
     <View style={darkMode ? tw`bg-secondary-9 flex-1` : tw`flex-1`}>
       <SafeAreaView style={tw`flex mx-auto w-11/12`}>
