@@ -17,6 +17,8 @@ import {
   EnvelopeSimple,
   Cross,
   Sparkle,
+  CheckCircle,
+  XCircle,
 } from 'phosphor-react-native';
 import tw from './../../tailwind';
 import {useDispatch} from 'react-redux';
@@ -35,6 +37,7 @@ const Signup = ({navigation}) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(true);
   const [showConfirmPassword, setShowConfirmPassword] = useState(true);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [signupMutation, {isLoading, error}] = useSignupMutation();
   const [errorMessage, setErrorMessage] = useState('');
   const dispatch = useDispatch();
@@ -106,9 +109,35 @@ const Signup = ({navigation}) => {
     return re.test(name);
   };
 
+  // Password complexity check functions
+  const checkPasswordLength = password => {
+    return password.length >= 8;
+  };
+
+  const checkPasswordUppercase = password => {
+    return /[A-Z]/.test(password);
+  };
+
+  const checkPasswordLowercase = password => {
+    return /[a-z]/.test(password);
+  };
+
+  const checkPasswordNumber = password => {
+    return /[0-9]/.test(password);
+  };
+
+  const checkPasswordSpecialChar = password => {
+    return /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
+  };
+
   const validatePassword = password => {
-    const re = /^.{6,}$/;
-    return re.test(password);
+    return (
+      checkPasswordLength(password) &&
+      checkPasswordUppercase(password) &&
+      checkPasswordLowercase(password) &&
+      checkPasswordNumber(password) &&
+      checkPasswordSpecialChar(password)
+    );
   };
 
   const handleSubmit = async e => {
@@ -146,7 +175,8 @@ const Signup = ({navigation}) => {
     }
 
     if (!validatePassword(password)) {
-      errMessage = 'Password must be at least 6 characters long.';
+      errMessage =
+        'Password must meet all requirements: at least 8 characters, uppercase, lowercase, number, and special character.';
       Toast.show({
         type: 'error',
         text1: 'Error during sign up',
@@ -218,7 +248,7 @@ const Signup = ({navigation}) => {
     <SafeAreaView
       style={[tw`flex-1 bg-primary-1`, darkMode ? tw`bg-secondary-9` : null]}>
       <ScrollView
-        contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-6`}
+        contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-4`}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled">
         <Animated.View
@@ -229,10 +259,19 @@ const Signup = ({navigation}) => {
               transform: [{translateY: slideAnim}],
             },
           ]}>
+          {/* Continue without account button */}
+          <TouchableOpacity
+            style={tw`flex flex-row justify-center mb-4`}
+            onPress={() => navigation.navigate('MainTab')}>
+            <Text
+              style={tw`font-nokia-bold text-accent-6 px-4 py-2 border border-accent-6 rounded-full`}>
+              Continue without account
+            </Text>
+          </TouchableOpacity>
           {/* Enhanced Welcome Section */}
           <Animated.View
             style={[
-              tw`my-8 p-6 rounded-2xl items-center`,
+              tw`mb-6 p-6 rounded-2xl items-center`,
               {
                 backgroundColor: darkMode ? '#374151' : '#F9FAFB',
                 transform: [{scale: scaleAnim}],
@@ -378,6 +417,8 @@ const Signup = ({navigation}) => {
                     keyboardType="default"
                     value={password}
                     onChangeText={setPassword}
+                    onFocus={() => setIsPasswordFocused(true)}
+                    onBlur={() => setIsPasswordFocused(false)}
                     style={[
                       tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
                       darkMode ? tw`text-primary-3` : null,
@@ -395,6 +436,164 @@ const Signup = ({navigation}) => {
                   />
                 </TouchableOpacity>
               </View>
+              {/* Password Requirements */}
+              {isPasswordFocused && (
+                <View
+                  style={[
+                    tw`mt-2 px-2 py-2 rounded-lg`,
+                    darkMode ? tw`bg-secondary-7` : tw`bg-primary-3`,
+                  ]}>
+                  <Text
+                    style={[
+                      tw`font-Lato-Bold text-xs mb-1.5`,
+                      darkMode ? tw`text-primary-2` : tw`text-secondary-7`,
+                    ]}>
+                    Password Requirements:
+                  </Text>
+                  <View style={tw`flex flex-col gap-1.5`}>
+                    <View style={tw`flex flex-row items-center gap-2`}>
+                      {checkPasswordLength(password) ? (
+                        <CheckCircle
+                          size={14}
+                          weight="fill"
+                          color={darkMode ? '#10B981' : '#059669'}
+                        />
+                      ) : (
+                        <XCircle
+                          size={14}
+                          weight="fill"
+                          color={darkMode ? '#EF4444' : '#DC2626'}
+                        />
+                      )}
+                      <Text
+                        style={[
+                          tw`font-Lato-Regular text-xs`,
+                          checkPasswordLength(password)
+                            ? darkMode
+                              ? tw`text-green-400`
+                              : tw`text-green-600`
+                            : darkMode
+                            ? tw`text-primary-4`
+                            : tw`text-secondary-5`,
+                        ]}>
+                        At least 8 characters
+                      </Text>
+                    </View>
+                    <View style={tw`flex flex-row items-center gap-2`}>
+                      {checkPasswordUppercase(password) ? (
+                        <CheckCircle
+                          size={14}
+                          weight="fill"
+                          color={darkMode ? '#10B981' : '#059669'}
+                        />
+                      ) : (
+                        <XCircle
+                          size={14}
+                          weight="fill"
+                          color={darkMode ? '#EF4444' : '#DC2626'}
+                        />
+                      )}
+                      <Text
+                        style={[
+                          tw`font-Lato-Regular text-xs`,
+                          checkPasswordUppercase(password)
+                            ? darkMode
+                              ? tw`text-green-400`
+                              : tw`text-green-600`
+                            : darkMode
+                            ? tw`text-primary-4`
+                            : tw`text-secondary-5`,
+                        ]}>
+                        One uppercase letter
+                      </Text>
+                    </View>
+                    <View style={tw`flex flex-row items-center gap-2`}>
+                      {checkPasswordLowercase(password) ? (
+                        <CheckCircle
+                          size={14}
+                          weight="fill"
+                          color={darkMode ? '#10B981' : '#059669'}
+                        />
+                      ) : (
+                        <XCircle
+                          size={14}
+                          weight="fill"
+                          color={darkMode ? '#EF4444' : '#DC2626'}
+                        />
+                      )}
+                      <Text
+                        style={[
+                          tw`font-Lato-Regular text-xs`,
+                          checkPasswordLowercase(password)
+                            ? darkMode
+                              ? tw`text-green-400`
+                              : tw`text-green-600`
+                            : darkMode
+                            ? tw`text-primary-4`
+                            : tw`text-secondary-5`,
+                        ]}>
+                        One lowercase letter
+                      </Text>
+                    </View>
+                    <View style={tw`flex flex-row items-center gap-2`}>
+                      {checkPasswordNumber(password) ? (
+                        <CheckCircle
+                          size={14}
+                          weight="fill"
+                          color={darkMode ? '#10B981' : '#059669'}
+                        />
+                      ) : (
+                        <XCircle
+                          size={14}
+                          weight="fill"
+                          color={darkMode ? '#EF4444' : '#DC2626'}
+                        />
+                      )}
+                      <Text
+                        style={[
+                          tw`font-Lato-Regular text-xs`,
+                          checkPasswordNumber(password)
+                            ? darkMode
+                              ? tw`text-green-400`
+                              : tw`text-green-600`
+                            : darkMode
+                            ? tw`text-primary-4`
+                            : tw`text-secondary-5`,
+                        ]}>
+                        One number
+                      </Text>
+                    </View>
+                    <View style={tw`flex flex-row items-center gap-2`}>
+                      {checkPasswordSpecialChar(password) ? (
+                        <CheckCircle
+                          size={14}
+                          weight="fill"
+                          color={darkMode ? '#10B981' : '#059669'}
+                        />
+                      ) : (
+                        <XCircle
+                          size={14}
+                          weight="fill"
+                          color={darkMode ? '#EF4444' : '#DC2626'}
+                        />
+                      )}
+                      <Text
+                        style={[
+                          tw`font-Lato-Regular text-xs`,
+                          checkPasswordSpecialChar(password)
+                            ? darkMode
+                              ? tw`text-green-400`
+                              : tw`text-green-600`
+                            : darkMode
+                            ? tw`text-primary-4`
+                            : tw`text-secondary-5`,
+                        ]}>
+                        One special character
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
             </View>
             <View style={tw`mb-2`}>
               <View
@@ -462,14 +661,6 @@ const Signup = ({navigation}) => {
               </Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={tw`flex flex-row justify-center mt-4`}
-            onPress={() => navigation.navigate('MainTab')}>
-            <Text
-              style={tw`font-nokia-bold text-accent-6 px-4 py-2 border border-accent-6 rounded-full`}>
-              Continue without account
-            </Text>
-          </TouchableOpacity>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
