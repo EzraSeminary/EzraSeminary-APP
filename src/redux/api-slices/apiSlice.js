@@ -95,7 +95,7 @@ export const apiSlice = createApi({
         }
         return {
           url: '/devotion/show',
-          params,
+          params: queryParams.toString(),
         };
       },
       transformResponse: response => normalizeDevotionsResponse(response),
@@ -108,7 +108,6 @@ export const apiSlice = createApi({
     }),
     getCourses: builder.query({
       query: () => 'course/getall',
-      transformResponse: response => normalizeCoursesResponse(response),
       providesTags: ['Courses'],
     }),
     getCourseById: builder.query({
@@ -445,22 +444,22 @@ export const {
   useGetDevotionCommentsQuery,
   useAddDevotionCommentMutation,
   useDeleteDevotionCommentMutation,
-    // Lazy loading hooks for devotions by month
-    useGetMonthsByYearQuery,
-    useGetDevotionsByYearAndMonthQuery,
-    useGetAvailableYearsQuery,
-    // Explore hooks
-    useGetExploreCategoriesQuery,
-    useGetExploreItemsQuery,
-    useGetExploreItemByIdQuery,
-    // Admin Explore hooks
-    useGetAdminExploreCategoriesQuery,
-    useCreateExploreCategoryMutation,
-    useUpdateExploreCategoryMutation,
-    useDeleteExploreCategoryMutation,
-    useGetAdminExploreItemsQuery,
-    useCreateExploreItemMutation,
-    useUpdateExploreItemMutation,
-    useDeleteExploreItemMutation,
-    util: {invalidateTags},
+  // Lazy loading hooks for devotions by month
+  useGetMonthsByYearQuery,
+  useGetDevotionsByYearAndMonthQuery,
+  useGetAvailableYearsQuery,
+  // Explore hooks
+  useGetExploreCategoriesQuery,
+  useGetExploreItemsQuery,
+  useGetExploreItemByIdQuery,
+  // Admin Explore hooks
+  useGetAdminExploreCategoriesQuery,
+  useCreateExploreCategoryMutation,
+  useUpdateExploreCategoryMutation,
+  useDeleteExploreCategoryMutation,
+  useGetAdminExploreItemsQuery,
+  useCreateExploreItemMutation,
+  useUpdateExploreItemMutation,
+  useDeleteExploreItemMutation,
+  util: {invalidateTags},
 } = apiSlice;
