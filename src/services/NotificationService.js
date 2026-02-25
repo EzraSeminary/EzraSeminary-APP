@@ -16,9 +16,6 @@ class NotificationService {
 
   async configure() {
     try {
-      // Request permissions for both Android and iOS
-      await this.requestPermissions();
-
       // Create channels (Android only)
       await this.createChannels();
 

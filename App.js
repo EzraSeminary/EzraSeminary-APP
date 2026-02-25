@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {ActivityIndicator, Platform, StatusBar} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
@@ -90,11 +90,56 @@ const MainTabNavigator = () => {
         tabBarInactiveTintColor: darkMode ? '#D3D3D3' : '#3A4750',
         tabBarStyle: tabBarStyle,
       })}>
-      <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen name="Course" component={CourseStack} />
-      <Tab.Screen name="SSL" component={SSLStack} />
-      <Tab.Screen name="Devotional" component={DevotionalStack} />
-      <Tab.Screen name="Setting" component={SettingsStack} />
+      <Tab.Screen
+        name="Home"
+        component={HomeStack}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            e.preventDefault();
+            navigation.navigate('Home', {screen: 'HomeStack'});
+          },
+        })}
+      />
+      <Tab.Screen
+        name="Course"
+        component={CourseStack}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            e.preventDefault();
+            navigation.navigate('Course', {screen: 'CourseHome'});
+          },
+        })}
+      />
+      <Tab.Screen
+        name="SSL"
+        component={SSLStack}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            e.preventDefault();
+            navigation.navigate('SSL', {screen: 'SSLHome'});
+          },
+        })}
+      />
+      <Tab.Screen
+        name="Devotional"
+        component={DevotionalStack}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            e.preventDefault();
+            navigation.navigate('Devotional', {screen: 'DevotionalHome'});
+          },
+        })}
+      />
+      <Tab.Screen
+        name="Setting"
+        component={SettingsStack}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            e.preventDefault();
+            navigation.navigate('Setting', {screen: 'SettingsStack'});
+          },
+        })}
+      />
     </Tab.Navigator>
   );
 };
@@ -103,6 +148,7 @@ const App = () => {
   const [isCheckingLoginStatus, setIsCheckingLoginStatus] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState('Signup');
+  const pendingNotificationRef = useRef(null);
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -125,57 +171,81 @@ const App = () => {
     setShowSplash(false);
   };
 
+  const navigateFromNotification = useCallback(notification => {
+    try {
+      const data = notification?.data || {};
+      const devotionId = data.devotionId || data.devotionalId;
+      const parsedYear = data.year ? Number(data.year) : undefined;
+
+      if (!navigationRef.current?.isReady?.()) {
+        pendingNotificationRef.current = notification;
+        return;
+      }
+
+      if (devotionId) {
+        navigationRef.current.navigate('SelectedDevotional', {
+          devotionalId: String(devotionId),
+          ...(Number.isFinite(parsedYear) ? {year: parsedYear} : {}),
+        });
+        return;
+      }
+
+      navigationRef.current.navigate('MainTab', {
+        screen: 'Devotional',
+        params: {screen: 'DevotionalHome'},
+      });
+    } catch (error) {
+      console.warn('Failed to handle notification press:', error);
+    }
+  }, []);
+
   useEffect(() => {
+    if (showSplash) {
+      return;
+    }
+
     const initializeNotifications = async () => {
       try {
-        // Request permissions safely for both Android and iOS
-        await NotificationService.requestPermissions();
-        // Ensure daily notifications are scheduled if enabled
-        await NotificationService.rescheduleNotificationsIfNeeded();
+        // Run startup notification tasks without blocking app interaction.
+        NotificationService.requestPermissions().catch(error =>
+          console.warn('Failed to request notification permissions:', error),
+        );
+        NotificationService.rescheduleNotificationsIfNeeded().catch(error =>
+          console.warn('Failed to reschedule notifications:', error),
+        );
+        RemotePush.init().catch(error =>
+          console.warn('RemotePush init failed:', error),
+        );
 
-        // Handle notification events
-        notifee.onForegroundEvent(({type, detail}) => {
-          if (type === EventType.PRESS) {
-            handleNotificationPress(detail.notification);
-          }
-        });
-
-        notifee.onBackgroundEvent(async ({type, detail}) => {
-          console.log('Background event:', type, detail);
-          if (type === EventType.PRESS) {
-            handleNotificationPress(detail.notification);
-          }
-        });
-
-        // Initialize FCM remote push (token, topic, foreground handler)
-        try {
-          await RemotePush.init();
-        } catch (e) {
-          console.warn('RemotePush init failed:', e);
+        const initialNotification = await notifee.getInitialNotification();
+        if (initialNotification?.notification) {
+          navigateFromNotification(initialNotification.notification);
         }
       } catch (error) {
         console.warn('Failed to initialize notifications:', error);
       }
     };
 
-    const handleNotificationPress = notification => {
-      try {
-        if (notification?.data?.type === 'daily-verse') {
-          setTimeout(() => {
-            if (navigationRef.current) {
-              navigationRef.current.navigate('MainTab', {
-                screen: 'Devotional',
-              });
-            }
-          }, 1000);
-        }
-      } catch (error) {
-        console.warn('Failed to handle notification press:', error);
+    const unsubscribeForeground = notifee.onForegroundEvent(({type, detail}) => {
+      if (type === EventType.PRESS) {
+        navigateFromNotification(detail.notification);
       }
-    };
+    });
 
     initializeNotifications();
-  }, []);
+
+    return () => {
+      unsubscribeForeground();
+    };
+  }, [showSplash, navigateFromNotification]);
+
+  useEffect(() => {
+    if (!showSplash && pendingNotificationRef.current) {
+      const pending = pendingNotificationRef.current;
+      pendingNotificationRef.current = null;
+      navigateFromNotification(pending);
+    }
+  }, [showSplash, navigateFromNotification]);
 
   // Show splash screen first
   if (showSplash) {

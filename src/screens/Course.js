@@ -248,7 +248,7 @@ const Course = () => {
 
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
-      <SafeAreaView style={tw`flex mx-auto w-auto`}>
+      <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
         <TabSwitcher
           activeTab={activeTab}
           setActiveTab={setActiveTab}

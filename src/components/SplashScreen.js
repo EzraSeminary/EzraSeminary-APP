@@ -101,11 +101,11 @@ const SplashScreen = ({onFinish}) => {
       }),
     ).start();
 
-    // Auto dismiss after 3 seconds
+    // Auto dismiss quickly to reduce startup wait
     const timer = setTimeout(() => {
       StatusBar.setHidden(false);
       onFinish();
-    }, 3000);
+    }, 1800);
 
     return () => {
       clearTimeout(timer);
