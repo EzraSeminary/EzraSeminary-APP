@@ -29,6 +29,7 @@ import tw from './../../tailwind';
 import Toast from 'react-native-toast-message';
 import {
   useGetDevotionsQuery,
+  useGetDevotionsByYearAndMonthQuery,
   useGetDevotionPlansQuery,
   useGetMyDevotionPlansQuery,
   useStartDevotionPlanMutation,
@@ -80,21 +81,32 @@ const Devotion = () => {
 
   // Get current Ethiopian date
   const today = new Date();
-  const [, ethMonth, ethDay] = toEthiopian(
+  const [ethYear, ethMonth, ethDay] = toEthiopian(
     today.getFullYear(),
     today.getMonth() + 1,
     today.getDate(),
   );
   const currentEthiopianMonth = ethiopianMonths[ethMonth];
-  const yearToFetch = 2018; // Fixed year for now
+  const yearToFetch = ethYear;
 
-  // Fetch all devotions for the year to ensure we find today's devotion
+  // Fetch current month first for fast "today's devotion" render
   const {
-    data: devotions = [],
-    isFetching,
-    error,
-    refetch,
-  } = useGetDevotionsQuery({year: yearToFetch});
+    data: featuredMonthDevotions = [],
+    isFetching: isFeaturedFetching,
+    error: featuredError,
+    refetch: refetchFeaturedMonthDevotions,
+  } = useGetDevotionsByYearAndMonthQuery({
+    year: yearToFetch,
+    month: currentEthiopianMonth,
+  });
+
+  // Fetch full list in background for "Discover Devotionals"
+  const {
+    data: discoverDevotions = [],
+    isFetching: isDiscoverFetching,
+    error: discoverError,
+    refetch: refetchDiscoverDevotions,
+  } = useGetDevotionsQuery({year: yearToFetch, limit: 1000, sort: 'desc'});
 
   const {
     data: devotionPlans = [],
@@ -145,11 +157,14 @@ const Devotion = () => {
   useEffect(() => {
     if (
       networkManager.isOnline &&
-      devotions.length > 0 &&
+      (featuredMonthDevotions.length > 0 || discoverDevotions.length > 0) &&
       devotionPlans.length > 0
     ) {
       const homeData = {
-        devotions,
+        devotions:
+          discoverDevotions.length > 0
+            ? discoverDevotions
+            : featuredMonthDevotions,
         devotionPlans,
         devotionToDisplay: devotionToDisplay || null,
         myDevotionPlans: myDevotionPlans || [],
@@ -158,7 +173,8 @@ const Devotion = () => {
       saveHomeScreenToCache('Devotion', homeData);
     }
   }, [
-    devotions,
+    featuredMonthDevotions,
+    discoverDevotions,
     devotionPlans,
     devotionToDisplay,
     myDevotionPlans,
@@ -168,7 +184,11 @@ const Devotion = () => {
   // Load from cache when offline or API fails
   useEffect(() => {
     const loadFromCache = async () => {
-      if ((!networkManager.isOnline || error) && devotions.length === 0) {
+      if (
+        (!networkManager.isOnline || (featuredError && discoverError)) &&
+        featuredMonthDevotions.length === 0 &&
+        discoverDevotions.length === 0
+      ) {
         try {
           const cached = await getCachedHomeScreen('Devotion');
           if (cached) {
@@ -179,18 +199,33 @@ const Devotion = () => {
         } catch (error) {
           console.error('Error loading cached Devotion home data:', error);
         }
-      } else if (devotions.length > 0 && isUsingCache) {
+      } else if (
+        (featuredMonthDevotions.length > 0 || discoverDevotions.length > 0) &&
+        isUsingCache
+      ) {
         setIsUsingCache(false);
         setCachedHomeData(null);
       }
     };
 
     loadFromCache();
-  }, [error, devotions.length, isUsingCache]);
+  }, [
+    featuredError,
+    discoverError,
+    featuredMonthDevotions.length,
+    discoverDevotions.length,
+    isUsingCache,
+  ]);
 
   // Use cached data if available
   const displayDevotions =
-    devotions.length > 0 ? devotions : cachedHomeData?.devotions || [];
+    discoverDevotions.length > 0
+      ? discoverDevotions
+      : cachedHomeData?.devotions || [];
+  const displayFeaturedDevotions =
+    featuredMonthDevotions.length > 0
+      ? featuredMonthDevotions
+      : displayDevotions;
   const displayDevotionPlans =
     devotionPlans.length > 0
       ? devotionPlans
@@ -206,14 +241,16 @@ const Devotion = () => {
 
   // Find today's devotion from the loaded data
   const devotionToDisplay = useMemo(() => {
-    const devotionsToUse = displayDevotions;
+    const devotionsToUse = displayFeaturedDevotions;
     if (devotionsToUse.length === 0) {
       return cachedHomeData?.devotionToDisplay || null;
     }
 
+    const normalizeMonth = month => String(month || '').trim();
     const todaysDevotion = devotionsToUse.find(
       devotion =>
-        devotion.month === currentEthiopianMonth &&
+        normalizeMonth(devotion.month) ===
+          normalizeMonth(currentEthiopianMonth) &&
         Number(devotion.day) === ethDay,
     );
 
@@ -229,7 +266,7 @@ const Devotion = () => {
     }
 
     return todaysDevotion || devotionsToUse[0] || null;
-  }, [displayDevotions, currentEthiopianMonth, ethDay, cachedHomeData]);
+  }, [displayFeaturedDevotions, currentEthiopianMonth, ethDay, cachedHomeData]);
 
   // Get cached image (must be called before conditional returns)
   const url = devotionToDisplay?.image ? `${devotionToDisplay.image}` : '';
@@ -396,9 +433,12 @@ const Devotion = () => {
   useEffect(() => {
     console.log('=== DEVOTION SCREEN DEBUG ===');
     console.log('currentMonth:', currentEthiopianMonth, 'day:', ethDay);
-    console.log('devotions loaded:', devotions?.length || 0);
-    console.log('isFetching:', isFetching);
-    console.log('error:', error);
+    console.log('featuredMonthDevotions loaded:', featuredMonthDevotions?.length || 0);
+    console.log('discoverDevotions loaded:', discoverDevotions?.length || 0);
+    console.log('isFeaturedFetching:', isFeaturedFetching);
+    console.log('isDiscoverFetching:', isDiscoverFetching);
+    console.log('featuredError:', featuredError);
+    console.log('discoverError:', discoverError);
     console.log(
       'devotionToDisplay:',
       devotionToDisplay ? devotionToDisplay.title : 'NO',
@@ -411,9 +451,12 @@ const Devotion = () => {
     console.log('user:', user ? 'logged in' : 'not logged in');
     console.log('============================');
   }, [
-    devotions,
-    isFetching,
-    error,
+    featuredMonthDevotions,
+    discoverDevotions,
+    isFeaturedFetching,
+    isDiscoverFetching,
+    featuredError,
+    discoverError,
     devotionToDisplay,
     currentEthiopianMonth,
     ethDay,
@@ -469,19 +512,29 @@ const Devotion = () => {
       // Wait for cache invalidation
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Refetch with fresh data
-      const result = await refetch();
+      // Refetch featured + discover data
+      const [featuredResult, discoverResult] = await Promise.all([
+        refetchFeaturedMonthDevotions(),
+        refetchDiscoverDevotions(),
+      ]);
       console.log(
         'Devotion screen: Refetch complete',
-        result?.data?.length || 0,
-        'devotions',
+        featuredResult?.data?.length || 0,
+        'featured /',
+        discoverResult?.data?.length || 0,
+        'discover',
       );
 
-      if (result?.data?.length > 0) {
+      if (
+        (featuredResult?.data?.length || 0) > 0 ||
+        (discoverResult?.data?.length || 0) > 0
+      ) {
+        const loadedCount =
+          discoverResult?.data?.length || featuredResult?.data?.length || 0;
         Toast.show({
           type: 'success',
           text1: 'Data Refreshed',
-          text2: `Loaded ${result.data.length} devotionals`,
+          text2: `Loaded ${loadedCount} devotionals`,
         });
       }
     } catch (err) {
@@ -494,12 +547,12 @@ const Devotion = () => {
     } finally {
       setIsRefreshing(false);
     }
-  }, [refetch, dispatch]);
+  }, [refetchFeaturedMonthDevotions, refetchDiscoverDevotions, dispatch]);
 
   // Add loading timeout effect
   useEffect(() => {
     let timeoutId;
-    if (isFetching && !error) {
+    if (isFeaturedFetching && !featuredError && !devotionToDisplay) {
       timeoutId = setTimeout(() => {
         setLoadingTimeout(true);
       }, 15000); // 15 second timeout
@@ -512,7 +565,7 @@ const Devotion = () => {
         clearTimeout(timeoutId);
       }
     };
-  }, [isFetching, error]);
+  }, [isFeaturedFetching, featuredError, devotionToDisplay]);
 
   // Check network connectivity on mount and set up listener
   useEffect(() => {
@@ -568,7 +621,7 @@ const Devotion = () => {
   };
 
   // Handle different error states
-  if (networkError && !devotions.length && !cachedHomeData) {
+  if (networkError && !devotionToDisplay && !cachedHomeData) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
         <View style={tw`flex-1 justify-center items-center px-6`}>
@@ -598,11 +651,11 @@ const Devotion = () => {
     );
   }
 
-  if (error && !devotions.length) {
-    return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
+  if (featuredError && !devotionToDisplay && !cachedHomeData) {
+    return <ErrorScreen refetch={onRefresh} darkMode={darkMode} />;
   }
 
-  if (loadingTimeout && !devotions.length) {
+  if (loadingTimeout && !devotionToDisplay) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
         <View style={tw`flex-1 justify-center items-center px-6`}>
@@ -631,7 +684,7 @@ const Devotion = () => {
     );
   }
 
-  if (isFetching && !devotions.length) {
+  if (isFeaturedFetching && !devotionToDisplay) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
@@ -642,8 +695,8 @@ const Devotion = () => {
     );
   }
 
-  if (!devotions || devotions.length === 0) {
-    return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
+  if (!devotionToDisplay) {
+    return <ErrorScreen refetch={onRefresh} darkMode={darkMode} />;
   }
 
   // Extract the verse content and reference
@@ -1069,11 +1122,36 @@ const Devotion = () => {
               </Text>
             </TouchableOpacity>
           </View>
-          <PreviousDevotions
-            devotions={displayDevotions}
-            darkMode={darkMode}
-            currentYear={2018}
-          />
+          {displayDevotions.length > 0 ? (
+            <PreviousDevotions
+              devotions={displayDevotions}
+              darkMode={darkMode}
+              currentYear={yearToFetch}
+            />
+          ) : (
+            <View style={tw`py-8 items-center`}>
+              {isDiscoverFetching ? (
+                <>
+                  <ActivityIndicator size="small" color="#EA9215" />
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-xs mt-2`,
+                      darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+                    ]}>
+                    Loading previous devotionals...
+                  </Text>
+                </>
+              ) : (
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xs mt-2`,
+                    darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+                  ]}>
+                  No previous devotionals available.
+                </Text>
+              )}
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
 

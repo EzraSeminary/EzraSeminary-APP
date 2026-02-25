@@ -95,7 +95,7 @@ export const apiSlice = createApi({
         }
         return {
           url: '/devotion/show',
-          params: queryParams.toString(),
+          params,
         };
       },
       transformResponse: response => normalizeDevotionsResponse(response),

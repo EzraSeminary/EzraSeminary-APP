@@ -44,6 +44,7 @@ import {
   saveDevotionToCache,
   getCachedDevotion,
 } from '../../utils/devotionCache';
+import {toEthiopian} from 'ethiopian-date';
 
 const SelectedDevotional = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -52,14 +53,12 @@ const SelectedDevotional = ({route}) => {
   const navigation = useNavigation();
   const {devotionalId, year: navigationYear} = route.params;
 
-  // Get current Ethiopian year
-  const getCurrentEthiopianYear = () => {
-    // For now, we'll use 2018 as the current Ethiopian year
-    // This should be updated based on the actual current Ethiopian year
-    return 2018;
-  };
-
-  const currentEthiopianYear = getCurrentEthiopianYear();
+  const today = new Date();
+  const [currentEthiopianYear] = toEthiopian(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    today.getDate(),
+  );
 
   // Determine which year to fetch data for
   // Use year from navigation if available, otherwise use current year
@@ -70,7 +69,7 @@ const SelectedDevotional = ({route}) => {
     isFetching,
     error,
     refetch,
-  } = useGetDevotionsQuery({year: 2018, limit: 1000, sort: 'desc'}); // Fetch 2018 devotions
+  } = useGetDevotionsQuery({year: yearToFetch, limit: 1000, sort: 'desc'});
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
