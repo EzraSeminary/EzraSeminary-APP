@@ -75,6 +75,13 @@ class RemotePushService {
       return null;
     }
     try {
+      if (Platform.OS === 'ios') {
+        try {
+          await messaging().registerDeviceForRemoteMessages();
+        } catch (e) {
+          console.warn('Failed to register device for remote messages:', e);
+        }
+      }
       const enabled = await this.requestPushPermission();
       if (!enabled) {
         console.log('Push notifications not authorized');

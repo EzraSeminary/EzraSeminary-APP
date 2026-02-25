@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Image,
   Animated,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import {X, PaperPlaneTilt, Trash} from 'phosphor-react-native';
 import {useSelector} from 'react-redux';
@@ -20,8 +20,6 @@ import {
   useDeleteDevotionCommentMutation,
 } from '../redux/api-slices/apiSlice';
 import Toast from 'react-native-toast-message';
-
-const {height: SCREEN_HEIGHT} = Dimensions.get('window');
 
 const formatTimeAgo = dateString => {
   const date = new Date(dateString);
@@ -52,7 +50,8 @@ const formatTimeAgo = dateString => {
 
 const CommentsModal = ({visible, onClose, devotionId, darkMode}) => {
   const [commentText, setCommentText] = useState('');
-  const [slideAnim] = useState(new Animated.Value(SCREEN_HEIGHT));
+  const {height: screenHeight} = useWindowDimensions();
+  const [slideAnim] = useState(new Animated.Value(screenHeight));
   const user = useSelector(state => state.auth.user);
 
   const {
@@ -72,6 +71,10 @@ const CommentsModal = ({visible, onClose, devotionId, darkMode}) => {
   const commentsCount = commentsData?.count || 0;
 
   useEffect(() => {
+    slideAnim.setValue(screenHeight);
+  }, [screenHeight, slideAnim]);
+
+  useEffect(() => {
     if (visible) {
       Animated.spring(slideAnim, {
         toValue: 0,
@@ -81,12 +84,12 @@ const CommentsModal = ({visible, onClose, devotionId, darkMode}) => {
       }).start();
     } else {
       Animated.timing(slideAnim, {
-        toValue: SCREEN_HEIGHT,
+        toValue: screenHeight,
         duration: 250,
         useNativeDriver: true,
       }).start();
     }
-  }, [visible, slideAnim]);
+  }, [visible, slideAnim, screenHeight]);
 
   const handlePostComment = async () => {
     if (!commentText.trim()) {
@@ -212,7 +215,7 @@ const CommentsModal = ({visible, onClose, devotionId, darkMode}) => {
               backgroundColor: darkMode ? '#1F2937' : '#FFFFFF',
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
-              maxHeight: SCREEN_HEIGHT * 0.8,
+              maxHeight: screenHeight * 0.8,
               transform: [{translateY: slideAnim}],
             },
           ]}>
@@ -292,6 +295,10 @@ const CommentsModal = ({visible, onClose, devotionId, darkMode}) => {
             }
             refreshing={isLoading}
             onRefresh={refetch}
+            removeClippedSubviews
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={7}
           />
         </Animated.View>
       </View>
@@ -300,4 +307,3 @@ const CommentsModal = ({visible, onClose, devotionId, darkMode}) => {
 };
 
 export default CommentsModal;
-

@@ -284,7 +284,7 @@ const Home = () => {
     if (Array.isArray(resolvedPlan.devotions)) {
       return resolvedPlan.devotions.length;
     }
-    return 0;
+    return null;
   }, []);
 
   const hasValidPlanData = useCallback(plan => {
@@ -292,7 +292,11 @@ const Home = () => {
     if (!resolvedPlan) return false;
     const planId = resolvedPlan._id || resolvedPlan.id;
     if (!planId) return false;
-    return getPlanDaysCount(resolvedPlan) >= 3;
+    const daysCount = getPlanDaysCount(resolvedPlan);
+    if (daysCount == null) {
+      return true;
+    }
+    return daysCount >= 3;
   }, [getPlanDaysCount]);
 
   const eligibleDevotionPlans = useMemo(
@@ -1026,7 +1030,8 @@ const Home = () => {
               colors={['#EA9215']}
               tintColor={'#EA9215'}
             />
-          }>
+          }
+          removeClippedSubviews>
           <Animated.View
             style={{
               opacity: fadeAnim,

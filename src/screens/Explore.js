@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useRef, useEffect} from 'react';
+import React, {useState, useCallback, useRef, useEffect, useMemo} from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Animated,
-  Dimensions,
+  useWindowDimensions,
   FlatList,
 } from 'react-native';
 import {
@@ -34,10 +34,7 @@ import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 import RNFS from 'react-native-fs';
 import {Platform, PermissionsAndroid} from 'react-native';
-
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
-const ITEM_WIDTH = SCREEN_WIDTH * 0.4;
-const ITEM_MARGIN = 12;
+import {useCachedImage} from '../utils/imageCache';
 
 const Explore = () => {
   const {
@@ -51,6 +48,8 @@ const Explore = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const darkMode = useSelector(state => state.ui.darkMode);
   const navigation = useNavigation();
+  const {width: screenWidth} = useWindowDimensions();
+  const itemWidth = useMemo(() => screenWidth * 0.4, [screenWidth]);
 
   // Expand all categories when data loads
   useEffect(() => {
@@ -177,14 +176,15 @@ const Explore = () => {
             {/* Categories List */}
             {categories && categories.length > 0 ? (
               categories.map((category, index) => (
-                <CategorySection
-                  key={category._id}
-                  category={category}
-                  darkMode={darkMode}
-                  onItemPress={handleItemPress}
-                  isExpanded={expandedCategories.has(category._id)}
-                  onToggle={() => handleCategoryPress(category)}
-                />
+                  <CategorySection
+                    key={category._id}
+                    category={category}
+                    darkMode={darkMode}
+                    onItemPress={handleItemPress}
+                    isExpanded={expandedCategories.has(category._id)}
+                    onToggle={() => handleCategoryPress(category)}
+                    itemWidth={itemWidth}
+                  />
               ))
             ) : (
               <Animated.View
@@ -231,6 +231,7 @@ const CategorySection = ({
   onItemPress,
   isExpanded,
   onToggle,
+  itemWidth,
 }) => {
   const {
     data: items,
@@ -317,8 +318,13 @@ const CategorySection = ({
                     item={item}
                     darkMode={darkMode}
                     onPress={() => onItemPress(item)}
+                    itemWidth={itemWidth}
                   />
                 )}
+                removeClippedSubviews
+                initialNumToRender={4}
+                maxToRenderPerBatch={4}
+                windowSize={5}
               />
               {shouldShowSeeMore && (
                 <TouchableOpacity
@@ -356,7 +362,8 @@ const CategorySection = ({
   );
 };
 
-const ExploreItemCard = ({item, darkMode, onPress}) => {
+const ExploreItemCard = React.memo(({item, darkMode, onPress, itemWidth}) => {
+  const cachedImage = useCachedImage(item.imageUrl);
   const getFileIcon = () => {
     if (item.fileType === 'pdf') {
       return <FilePdf size={32} color="#EA9215" weight="bold" />;
@@ -378,7 +385,7 @@ const ExploreItemCard = ({item, darkMode, onPress}) => {
       style={[
         tw`rounded-2xl overflow-hidden mr-3`,
         {
-          width: ITEM_WIDTH,
+          width: itemWidth,
           backgroundColor: darkMode ? '#374151' : '#FFFFFF',
           shadowColor: darkMode ? '#000000' : '#EA9215',
           shadowOffset: {width: 0, height: 4},
@@ -391,7 +398,7 @@ const ExploreItemCard = ({item, darkMode, onPress}) => {
       <View style={tw`h-48 relative`}>
         {item.imageUrl ? (
           <Image
-            source={{uri: item.imageUrl}}
+            source={{uri: cachedImage}}
             style={tw`w-full h-full`}
             resizeMode="cover"
           />
@@ -445,6 +452,6 @@ const ExploreItemCard = ({item, darkMode, onPress}) => {
       </View>
     </TouchableOpacity>
   );
-};
+});
 
 export default Explore;

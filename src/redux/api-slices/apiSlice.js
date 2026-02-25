@@ -25,9 +25,18 @@ const dynamicBaseQuery = async (args, api, extraOptions) => {
     baseUrl,
     timeout: 60000, // 60 second timeout to prevent AbortError
     prepareHeaders: async headers => {
-      const userString = await AsyncStorage.getItem('user');
-      const user = userString ? JSON.parse(userString) : null;
-      const token = user ? user.token : '';
+      let token = api.getState()?.auth?.user?.token || '';
+      if (!token) {
+        const userString = await AsyncStorage.getItem('user');
+        const user = userString ? JSON.parse(userString) : null;
+        token = user ? user.token : '';
+      }
+      if (!token) {
+        try {
+          const storedToken = await AsyncStorage.getItem('token');
+          token = storedToken || '';
+        } catch {}
+      }
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
@@ -464,6 +473,7 @@ export const {
   // Lazy loading hooks for devotions by month
   useGetMonthsByYearQuery,
   useGetDevotionsByYearAndMonthQuery,
+  useLazyGetDevotionsByYearAndMonthQuery,
   useGetAvailableYearsQuery,
   // Explore hooks
   useGetExploreCategoriesQuery,

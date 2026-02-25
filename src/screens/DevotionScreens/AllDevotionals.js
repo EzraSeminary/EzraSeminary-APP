@@ -1,12 +1,12 @@
-import React, {useState, useCallback, useMemo, useEffect} from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 import {
   View,
   Text,
-  ScrollView,
   SafeAreaView,
   TouchableOpacity,
   ImageBackground,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import {
@@ -16,9 +16,13 @@ import {
   ArrowSquareDown,
 } from 'phosphor-react-native';
 import tw from './../../../tailwind';
-import {useGetDevotionsByYearAndMonthQuery} from './../../redux/api-slices/apiSlice';
-import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useCachedImage} from '../../utils/imageCache';
+import {
+  useGetAvailableYearsQuery,
+  useGetMonthsByYearQuery,
+  useLazyGetDevotionsByYearAndMonthQuery,
+} from './../../redux/api-slices/apiSlice';
 
 // Utility function for Ethiopian month names
 const ethiopianMonths = [
@@ -55,17 +59,66 @@ const getThumbnailUrl = imageUrl => {
   return imageUrl;
 };
 
+const MonthDevotionCard = ({item, darkMode, onPress}) => {
+  const cachedImage = useCachedImage(getThumbnailUrl(item.image));
+
+  return (
+    <TouchableOpacity
+      style={tw`w-[47.5%] h-35 mb-4 rounded-2 overflow-hidden`}
+      onPress={onPress}>
+      <ImageBackground
+        source={{uri: cachedImage}}
+        style={tw`w-full h-full justify-end`}
+        imageStyle={tw`rounded-lg`}>
+        <View
+          style={[
+            tw`absolute inset-0 bg-accent-10 bg-opacity-60 rounded-lg`,
+            darkMode ? tw`bg-accent-11 bg-opacity-70` : null,
+          ]}>
+          <ArrowSquareUpRight
+            size={32}
+            weight="fill"
+            style={tw`text-white self-end m-2`}
+            color="#F8F8F8"
+          />
+          <View style={tw`flex absolute bottom-0 left-0 my-2`}>
+            <Text
+              style={tw`font-nokia-bold text-white text-lg mx-2`}
+              numberOfLines={2}>
+              {item.title}
+            </Text>
+            <Text
+              style={tw`font-nokia-bold text-white text-sm mx-2 text-accent-2`}>
+              {item.month} {item.day}
+            </Text>
+          </View>
+        </View>
+      </ImageBackground>
+    </TouchableOpacity>
+  );
+};
+
 const AllDevotionals = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
 
-  // Always show 2018 devotions only
-  const yearToFetch = 2018;
+  const {data: availableYearsRaw = []} = useGetAvailableYearsQuery();
+  const availableYears = Array.isArray(availableYearsRaw)
+    ? availableYearsRaw.map(y => Number(y)).filter(Boolean)
+    : [];
+  const yearToFetch =
+    availableYears.includes(2018)
+      ? 2018
+      : availableYears.length > 0
+      ? Math.max(...availableYears)
+      : 2018;
+  const {data: monthsFromApi = []} = useGetMonthsByYearQuery(yearToFetch);
   const HOME_CACHE_KEY = 'home_data_cache';
 
   const [expandedMonth, setExpandedMonth] = useState(null);
   const [loadedMonths, setLoadedMonths] = useState({}); // Store loaded month data
   const [loadingMonths, setLoadingMonths] = useState({}); // Track which months are loading
   const [allDevotions, setAllDevotions] = useState([]); // Store all devotions from cache
+  const [fetchMonthDevotions] = useLazyGetDevotionsByYearAndMonthQuery();
 
   // Load all devotions from Home cache on mount
   useEffect(() => {
@@ -133,21 +186,48 @@ const AllDevotionals = ({navigation}) => {
         }
       }
 
-      // Set the loaded data (even if empty)
-      setLoadedMonths(prev => ({
-        ...prev,
-        [month]: cachedMonthData,
-      }));
-      
       if (cachedMonthData.length > 0) {
+        setLoadedMonths(prev => ({
+          ...prev,
+          [month]: cachedMonthData,
+        }));
         console.log(`Loaded ${cachedMonthData.length} devotions for ${month} from cache`);
+        return;
+      }
+
+      // Fallback to API if cache is empty
+      try {
+        setLoadingMonths(prev => ({...prev, [month]: true}));
+        const result = await fetchMonthDevotions({
+          year: yearToFetch,
+          month,
+        }).unwrap();
+
+        const sorted = Array.isArray(result)
+          ? [...result].sort((a, b) => Number(a.day) - Number(b.day))
+          : [];
+
+        setLoadedMonths(prev => ({
+          ...prev,
+          [month]: sorted,
+        }));
+      } catch (error) {
+        console.error('Error fetching month devotions:', error);
+        setLoadedMonths(prev => ({
+          ...prev,
+          [month]: [],
+        }));
+      } finally {
+        setLoadingMonths(prev => ({...prev, [month]: false}));
       }
     },
-    [loadedMonths, allDevotions, yearToFetch],
+    [loadedMonths, allDevotions, yearToFetch, fetchMonthDevotions],
   );
 
-  // Use all Ethiopian months (already sorted in the array)
-  const sortedMonths = ethiopianMonths;
+  const sortedMonths =
+    Array.isArray(monthsFromApi) && monthsFromApi.length > 0
+      ? monthsFromApi
+      : ethiopianMonths;
 
   // Handle month toggle
   const toggleMonth = useCallback(
@@ -199,92 +279,42 @@ const AllDevotionals = ({navigation}) => {
     }
 
     return (
-      <View style={tw`flex flex-row flex-wrap justify-between mt-4`}>
-        {monthDevotions.map((item, index) => (
-          <TouchableOpacity
-            key={item._id || index}
-            style={tw`w-[47.5%] h-35 mb-4 rounded-2 overflow-hidden`}
+      <FlatList
+        data={monthDevotions}
+        keyExtractor={item => item._id || `${item.month}-${item.day}`}
+        numColumns={2}
+        columnWrapperStyle={tw`justify-between`}
+        contentContainerStyle={tw`mt-4`}
+        renderItem={({item}) => (
+          <MonthDevotionCard
+            item={item}
+            darkMode={darkMode}
             onPress={() =>
               navigation.navigate('SelectedDevotional', {
                 devotionalId: item._id,
                 year: yearToFetch,
               })
-            }>
-            <ImageBackground
-              source={{uri: getThumbnailUrl(item.image)}}
-              style={tw`w-full h-full justify-end`}
-              imageStyle={tw`rounded-lg`}>
-              <View
-                style={[
-                  tw`absolute inset-0 bg-accent-10 bg-opacity-60 rounded-lg`,
-                  darkMode ? tw`bg-accent-11 bg-opacity-70` : null,
-                ]}>
-                <ArrowSquareUpRight
-                  size={32}
-                  weight="fill"
-                  style={tw`text-white self-end m-2`}
-                  color="#F8F8F8"
-                />
-                <View style={tw`flex absolute bottom-0 left-0 my-2`}>
-                  <Text
-                    style={tw`font-nokia-bold text-white text-lg mx-2`}
-                    numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                  <Text
-                    style={tw`font-nokia-bold text-white text-sm mx-2 text-accent-2`}>
-                    {item.month} {item.day}
-                  </Text>
-                </View>
-              </View>
-            </ImageBackground>
-          </TouchableOpacity>
-        ))}
-      </View>
+            }
+          />
+        )}
+        scrollEnabled={false}
+        removeClippedSubviews
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+      />
     );
   };
-
 
   return (
     <View style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
       <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
-        <ScrollView
+        <FlatList
+          data={sortedMonths}
+          keyExtractor={month => month}
           showsVerticalScrollIndicator={false}
-          style={tw`h-100%`}>
-          <View style={tw`flex flex-row justify-between my-4`}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
-            </TouchableOpacity>
-            <Text
-              style={[
-                tw`font-nokia-bold text-xl text-secondary-6`,
-                darkMode ? tw`text-primary-1` : null,
-              ]}>
-              All Devotionals
-            </Text>
-            <User
-              size={32}
-              weight="bold"
-              style={[
-                tw`text-secondary-6`,
-                darkMode ? tw`text-primary-1` : null,
-              ]}
-            />
-          </View>
-
-          {/* Info */}
-          <View style={tw`mb-4 px-2`}>
-            <Text
-              style={[
-                tw`font-nokia-bold text-xs text-center`,
-                darkMode ? tw`text-primary-4` : tw`text-secondary-4`,
-              ]}>
-              Tap a month to load devotionals • Data is cached for faster access
-            </Text>
-          </View>
-
-          {sortedMonths.map(month => (
-            <View key={month} style={tw`my-2`}>
+          renderItem={({item: month}) => (
+            <View style={tw`my-2`}>
               <TouchableOpacity
                 style={tw`flex flex-row justify-between items-center border-b border-accent-6 pb-2`}
                 onPress={() => toggleMonth(month)}>
@@ -322,11 +352,47 @@ const AllDevotionals = ({navigation}) => {
                 <MonthDevotions month={month} />
               )}
             </View>
-          ))}
+          )}
+          ListHeaderComponent={
+            <>
+              <View style={tw`flex flex-row justify-between my-4`}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                  <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
+                </TouchableOpacity>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xl text-secondary-6`,
+                    darkMode ? tw`text-primary-1` : null,
+                  ]}>
+                  All Devotionals
+                </Text>
+                <User
+                  size={32}
+                  weight="bold"
+                  style={[
+                    tw`text-secondary-6`,
+                    darkMode ? tw`text-primary-1` : null,
+                  ]}
+                />
+              </View>
 
-          {/* Bottom padding */}
-          <View style={tw`h-20`} />
-        </ScrollView>
+              <View style={tw`mb-4 px-2`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xs text-center`,
+                    darkMode ? tw`text-primary-4` : tw`text-secondary-4`,
+                  ]}>
+                  Tap a month to load devotionals • Data is cached for faster access
+                </Text>
+              </View>
+            </>
+          }
+          ListFooterComponent={<View style={tw`h-20`} />}
+          removeClippedSubviews
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={7}
+        />
       </SafeAreaView>
     </View>
   );

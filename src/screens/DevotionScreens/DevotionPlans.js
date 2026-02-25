@@ -368,6 +368,10 @@ const DevotionPlans = () => {
               }}
               contentContainerStyle={{marginBottom: 48, paddingHorizontal: 0}}
               showsVerticalScrollIndicator={false}
+              removeClippedSubviews
+              initialNumToRender={6}
+              maxToRenderPerBatch={6}
+              windowSize={7}
             />
           </View>
         </>
@@ -415,6 +419,10 @@ const DevotionPlans = () => {
               }
               contentContainerStyle={{paddingBottom: 32, paddingHorizontal: 0}}
               showsVerticalScrollIndicator={false}
+              removeClippedSubviews
+              initialNumToRender={6}
+              maxToRenderPerBatch={6}
+              windowSize={7}
             />
           </View>
         </>
@@ -462,6 +470,10 @@ const DevotionPlans = () => {
               }
               contentContainerStyle={{paddingBottom: 64, paddingHorizontal: 0}}
               showsVerticalScrollIndicator={false}
+              removeClippedSubviews
+              initialNumToRender={6}
+              maxToRenderPerBatch={6}
+              windowSize={7}
             />
           </View>
         </>

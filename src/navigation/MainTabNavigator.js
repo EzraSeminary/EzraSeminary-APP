@@ -16,6 +16,7 @@ import InVerseStack from './InVerseStack';
 import Setting from '../screens/Setting';
 import {StatusBar} from 'react-native';
 import changeNavigationBarColor from 'react-native-navigation-bar-color';
+import {StackActions} from '@react-navigation/native';
 
 const Tab = createBottomTabNavigator();
 
@@ -73,9 +74,13 @@ const MainTabNavigator = () => {
             // If we're not on DevotionalHome, reset to it
             if (devotionalState?.index > 0) {
               e.preventDefault();
-              navigation.navigate('Devotional', {
-                screen: 'DevotionalHome',
-              });
+              if (devotionalRoute?.key) {
+                navigation.dispatch({
+                  ...StackActions.popToTop(),
+                  target: devotionalRoute.key,
+                });
+              }
+              navigation.navigate('Devotional', {screen: 'DevotionalHome'});
             }
           },
         })}

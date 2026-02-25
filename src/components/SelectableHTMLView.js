@@ -8,14 +8,11 @@ import {
   Share,
   Modal,
   ScrollView,
-  Dimensions,
 } from 'react-native';
-import HTMLView from 'react-native-htmlview';
+import HtmlContent from './HtmlContent';
 import tw from './../../tailwind';
 import {useSelector} from 'react-redux';
 import {Copy, ShareNetwork, Selection, X, Check} from 'phosphor-react-native';
-
-const {width: screenWidth} = Dimensions.get('window');
 
 const SelectableHTMLView = ({
   value,
@@ -76,36 +73,15 @@ const SelectableHTMLView = ({
     }
   };
 
-  const renderNode = (node, index, siblings, parent, defaultRenderer) => {
-    // Make text content selectable by wrapping in TouchableOpacity
-    if (node.name === 'p' && enableSelection) {
-      return (
-        <TouchableOpacity
-          key={index}
-          activeOpacity={1}
-          onLongPress={handleLongPress}
-          style={tw`mb-2`}>
-          <Text style={stylesheet?.p || {}}>
-            {defaultRenderer(node.children, node)}
-          </Text>
-        </TouchableOpacity>
-      );
-    }
-
-    // Handle other HTML elements normally
-    return defaultRenderer(node.children, node);
-  };
-
   return (
     <View>
       <TouchableOpacity
         activeOpacity={1}
         onLongPress={handleLongPress}
         disabled={!enableSelection}>
-        <HTMLView
-          value={value}
-          stylesheet={stylesheet}
-          renderNode={enableSelection ? renderNode : undefined}
+        <HtmlContent
+          html={value}
+          tagsStyles={stylesheet}
           {...props}
         />
       </TouchableOpacity>

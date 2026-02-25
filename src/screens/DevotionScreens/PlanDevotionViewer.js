@@ -689,7 +689,8 @@ const PlanDevotionViewer = () => {
       style={darkMode ? tw`bg-secondary-9 flex-1` : tw`bg-primary-1 flex-1`}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={tw`pb-6`}>
+        contentContainerStyle={tw`pb-6`}
+        removeClippedSubviews>
         <View style={tw`flex mx-auto w-11/12`}>
           {/* Header */}
           <View style={tw`flex-row items-center justify-between my-4`}>

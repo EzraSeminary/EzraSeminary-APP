@@ -1,5 +1,7 @@
 #import <UserNotifications/UserNotifications.h>
 #import <RNCPushNotificationIOS.h>
+#import <Firebase.h>
+#import <FirebaseMessaging/FirebaseMessaging.h>
 #import "AppDelegate.h"
 
 #import <React/RCTBundleURLProvider.h>
@@ -10,6 +12,10 @@
 {
   self.moduleName = @"EzraApp";
   self.initialProps = @{};
+
+  if ([FIRApp defaultApp] == nil) {
+    [FIRApp configure];
+  }
 
   // Define UNUserNotificationCenter
   UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
@@ -34,6 +40,7 @@
 
 - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
 {
+  [FIRMessaging messaging].APNSToken = deviceToken;
   [RNCPushNotificationIOS didRegisterForRemoteNotificationsWithDeviceToken:deviceToken];
 }
 

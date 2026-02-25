@@ -425,6 +425,12 @@ const SelectedDevotional = ({route}) => {
   const imageURI = `${devotional.image}`;
   const cachedImage = useCachedImage(imageURI);
 
+  const goToDevotionalHome = () => {
+    navigation.navigate('Devotional', {
+      screen: 'DevotionalHome',
+    });
+  };
+
   // Handle different error states
   if (networkError && !devotionals.length && !cachedDevotional) {
     return (
@@ -432,16 +438,7 @@ const SelectedDevotional = ({route}) => {
         <View style={tw`flex-1 justify-center items-center px-6`}>
           <TouchableOpacity
             style={tw`absolute top-12 left-6`}
-            onPress={() => {
-              // Go back to previous screen if possible, otherwise navigate to DevotionalHome
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate('Devotional', {
-                  screen: 'DevotionalHome',
-                });
-              }
-            }}>
+            onPress={goToDevotionalHome}>
             <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
           </TouchableOpacity>
           <Text
@@ -476,16 +473,7 @@ const SelectedDevotional = ({route}) => {
         <View style={tw`flex-1 justify-center items-center px-6`}>
           <TouchableOpacity
             style={tw`absolute top-12 left-6`}
-            onPress={() => {
-              // Go back to previous screen if possible, otherwise navigate to DevotionalHome
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate('Devotional', {
-                  screen: 'DevotionalHome',
-                });
-              }
-            }}>
+            onPress={goToDevotionalHome}>
             <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
           </TouchableOpacity>
           <ActivityIndicator size="large" color="#EA9215" style={tw`mb-4`} />
@@ -518,16 +506,7 @@ const SelectedDevotional = ({route}) => {
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <TouchableOpacity
           style={tw`absolute top-12 left-6 z-10`}
-          onPress={() => {
-            // Go back to previous screen if possible, otherwise navigate to DevotionalHome
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              navigation.navigate('Devotional', {
-                screen: 'DevotionalHome',
-              });
-            }
-          }}>
+          onPress={goToDevotionalHome}>
           <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
         </TouchableOpacity>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
@@ -549,16 +528,7 @@ const SelectedDevotional = ({route}) => {
         <View style={tw`flex-1 justify-center items-center px-6`}>
           <TouchableOpacity
             style={tw`absolute top-12 left-6`}
-            onPress={() => {
-              // Go back to previous screen if possible, otherwise navigate to DevotionalHome
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate('Devotional', {
-                  screen: 'DevotionalHome',
-                });
-              }
-            }}>
+            onPress={goToDevotionalHome}>
             <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
           </TouchableOpacity>
           <Text
@@ -577,16 +547,7 @@ const SelectedDevotional = ({route}) => {
           </Text>
           <TouchableOpacity
             style={tw`bg-accent-6 px-6 py-3 rounded-4`}
-            onPress={() => {
-              // Go back to previous screen if possible, otherwise navigate to DevotionalHome
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate('Devotional', {
-                  screen: 'DevotionalHome',
-                });
-              }
-            }}>
+            onPress={goToDevotionalHome}>
             <Text style={tw`font-nokia-bold text-white text-base`}>
               Go Back
             </Text>
@@ -599,20 +560,14 @@ const SelectedDevotional = ({route}) => {
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
       <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
-        <ScrollView showsVerticalScrollIndicator={false} ref={scrollViewRef}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          ref={scrollViewRef}
+          removeClippedSubviews>
           <View
             style={tw`flex flex-row justify-between items-center mt-4 mb-4`}>
             <TouchableOpacity
-              onPress={() => {
-                // Go back to previous screen if possible, otherwise navigate to DevotionalHome
-                if (navigation.canGoBack()) {
-                  navigation.goBack();
-                } else {
-                  navigation.navigate('Devotional', {
-                    screen: 'DevotionalHome',
-                  });
-                }
-              }}>
+              onPress={goToDevotionalHome}>
               <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
             </TouchableOpacity>
           </View>

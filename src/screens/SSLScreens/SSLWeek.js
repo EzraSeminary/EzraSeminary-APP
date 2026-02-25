@@ -38,6 +38,7 @@ import {
   Warning,
 } from 'phosphor-react-native';
 import HTMLView from 'react-native-htmlview';
+import HtmlContent from '../../components/HtmlContent';
 import tw from './../../../tailwind';
 import LinearGradient from 'react-native-linear-gradient';
 import ErrorScreen from '../../components/ErrorScreen';
@@ -847,33 +848,32 @@ const SSLWeek = ({route}) => {
               darkMode ? tw`bg-secondary-9` : null,
             ]}>
             <ScrollView>
-              <HTMLView
-                value={`<div>${modifiedContent}</div>`}
-                stylesheet={{
-                  p: [
-                    tw`text-secondary-6 font-nokia-bold text-justify`,
-                    darkMode ? tw`text-primary-1` : null,
-                  ],
-                  div: [
-                    tw`text-secondary-6 font-nokia-bold text-justify`,
-                    darkMode ? tw`text-primary-1` : null,
-                  ],
-                  h2: tw`font-nokia-bold text-2xl text-accent-6`,
-                  sup: tw`text-xs font-nokia-bold text-superscript text-accent-6`,
-                  ol: [
-                    tw`text-secondary-6 font-nokia-bold text-justify py-2`,
-                    darkMode ? tw`text-primary-1` : null,
-                  ],
-                  ul: [
-                    tw`text-secondary-6 font-nokia-bold text-justify py-2`,
-                    darkMode ? tw`text-primary-1` : null,
-                  ],
-                  li: [
-                    tw`text-secondary-6 font-nokia-bold text-justify py-1`,
-                    darkMode ? tw`text-primary-1` : null,
-                  ],
+              <HtmlContent
+                html={`<div>${modifiedContent}</div>`}
+                tagsStyles={{
+                  p: {
+                    ...tw`text-secondary-6 font-nokia-bold text-justify`,
+                    ...(darkMode ? tw`text-primary-1` : {}),
+                  },
+                  div: {
+                    ...tw`text-secondary-6 font-nokia-bold text-justify`,
+                    ...(darkMode ? tw`text-primary-1` : {}),
+                  },
+                  h2: {...tw`font-nokia-bold text-2xl text-accent-6`},
+                  sup: {...tw`text-xs font-nokia-bold text-superscript text-accent-6`},
+                  ol: {
+                    ...tw`text-secondary-6 font-nokia-bold text-justify py-2`,
+                    ...(darkMode ? tw`text-primary-1` : {}),
+                  },
+                  ul: {
+                    ...tw`text-secondary-6 font-nokia-bold text-justify py-2`,
+                    ...(darkMode ? tw`text-primary-1` : {}),
+                  },
+                  li: {
+                    ...tw`text-secondary-6 font-nokia-bold text-justify py-1`,
+                    ...(darkMode ? tw`text-primary-1` : {}),
+                  },
                 }}
-                addLineBreaks={true}
               />
             </ScrollView>
             <TouchableOpacity
