@@ -325,8 +325,9 @@ export const apiSlice = createApi({
         `/devotion/year/${year}/month/${encodeURIComponent(month)}`,
       transformResponse: response => {
         // Backend returns array of devotions for the month
-        if (Array.isArray(response)) {
-          return response;
+        if (Array.isArray(response)) return response;
+        if (response?.items && Array.isArray(response.items)) {
+          return response.items;
         }
         return [];
       },

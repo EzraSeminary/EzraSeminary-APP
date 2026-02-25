@@ -6,6 +6,7 @@ import notifee, {
 } from '@notifee/react-native';
 import {Platform, PermissionsAndroid, AppState} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {toEthiopian} from 'ethiopian-date';
 
 class NotificationService {
   constructor() {
@@ -397,13 +398,73 @@ class NotificationService {
 
   async getTodaysDevotion() {
     try {
-      // This is a simple implementation - in a real app, you'd fetch from your API
-      // For now, return a default devotion
-      return {
-        verse:
-          'Trust in the Lord with all your heart and lean not on your own understanding.',
-        title: 'Daily Devotion',
-      };
+      const ethiopianMonths = [
+        '',
+        'መስከረም',
+        'ጥቅምት',
+        'ህዳር',
+        'ታህሳስ',
+        'ጥር',
+        'የካቲት',
+        'መጋቢት',
+        'ሚያዝያ',
+        'ግንቦት',
+        'ሰኔ',
+        'ሐምሌ',
+        'ነሐሴ',
+        'ጳጉሜ',
+      ];
+
+      const today = new Date();
+      const [year, month, day] = toEthiopian(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate(),
+      );
+      const ethiopianMonth = ethiopianMonths[month];
+
+      // 1) Try cached home data first
+      try {
+        const cachedString = await AsyncStorage.getItem('home_data_cache');
+        if (cachedString) {
+          const cached = JSON.parse(cachedString);
+          const devotions = cached?.devotions || [];
+          const match =
+            devotions.find(
+              d => d.month === ethiopianMonth && Number(d.day) === day,
+            ) || devotions[0];
+          if (match) return match;
+        }
+      } catch (e) {
+        console.warn('Failed to read cached devotions:', e);
+      }
+
+      // 2) Fallback to API
+      let baseUrl = 'https://ezrabackend.online/';
+      try {
+        const override = await AsyncStorage.getItem('apiBaseUrl');
+        if (override && typeof override === 'string') {
+          baseUrl = override.endsWith('/') ? override : `${override}/`;
+        }
+      } catch {}
+
+      const response = await fetch(`${baseUrl}devotion/show`);
+      if (!response.ok) {
+        console.warn('Failed to fetch devotions:', response.status);
+        return null;
+      }
+      const data = await response.json();
+      const devotions = Array.isArray(data?.devotions)
+        ? data.devotions
+        : Array.isArray(data)
+        ? data
+        : [];
+
+      const match =
+        devotions.find(
+          d => d.month === ethiopianMonth && Number(d.day) === day,
+        ) || devotions[0];
+      return match || null;
     } catch (error) {
       console.error("Error getting today's devotion:", error);
       return null;

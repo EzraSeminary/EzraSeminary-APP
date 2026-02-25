@@ -130,6 +130,8 @@ const App = () => {
       try {
         // Request permissions safely for both Android and iOS
         await NotificationService.requestPermissions();
+        // Ensure daily notifications are scheduled if enabled
+        await NotificationService.rescheduleNotificationsIfNeeded();
 
         // Handle notification events
         notifee.onForegroundEvent(({type, detail}) => {
