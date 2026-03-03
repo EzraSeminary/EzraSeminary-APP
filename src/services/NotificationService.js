@@ -19,6 +19,9 @@ class NotificationService {
       // Create channels (Android only)
       await this.createChannels();
 
+      // Schedule daily verse at set time if enabled (e.g. after app install or restart)
+      await this.rescheduleNotificationsIfNeeded();
+
       // Listen for notification events
       notifee.onForegroundEvent(({type, detail}) => {
         // console.log('Foreground event:', type, detail);
@@ -420,9 +423,34 @@ class NotificationService {
       );
       const ethiopianMonth = ethiopianMonths[month];
 
-      // 1) Try cached home data first
+      // 1) Try cached home data (same key pattern as Home screen: home_data_cache_${year}_${month})
       try {
-        const cachedString = await AsyncStorage.getItem('home_data_cache');
+        const cacheKey = `home_data_cache_${year}_${ethiopianMonth}`;
+        let cachedString = await AsyncStorage.getItem(cacheKey);
+        if (!cachedString) {
+          const keys = await AsyncStorage.getAllKeys();
+          const homeKeys = keys.filter(k => k.startsWith('home_data_cache_'));
+          if (homeKeys.length > 0) {
+            const keyValues = await AsyncStorage.multiGet(homeKeys);
+            let latest = null;
+            keyValues.forEach(([, raw]) => {
+              if (!raw) return;
+              try {
+                const parsed = JSON.parse(raw);
+                if (parsed?.devotions?.length && parsed?.lastCacheTime) {
+                  if (
+                    !latest ||
+                    new Date(parsed.lastCacheTime).getTime() >
+                      new Date(latest.lastCacheTime || 0).getTime()
+                  ) {
+                    latest = parsed;
+                  }
+                }
+              } catch (_) {}
+            });
+            cachedString = latest ? JSON.stringify(latest) : null;
+          }
+        }
         if (cachedString) {
           const cached = JSON.parse(cachedString);
           const devotions = cached?.devotions || [];

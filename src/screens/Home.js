@@ -214,15 +214,20 @@ const Home = () => {
     refetchAllDevotionPlansRef.current = refetchAllDevotionPlans;
   }, [refetchAllDevotionPlans]);
 
-  // Network connectivity listener to refetch devotion plans when connection is restored
+  // Network connectivity listener: sync offline state and refetch when connection is restored
   useEffect(() => {
     const unsubscribe = networkManager.addListener(async networkState => {
-      // When network comes back online, refetch devotion plans
+      // Always sync isOffline with actual connectivity so UI doesn't stay stuck in "offline" after reconnect
+      setIsOffline(!networkState.isOnline);
+
+      // When network comes back online, refetch devotion plans and refresh home data
       if (networkState.isNowConnected) {
-        console.log('🌐 Network restored - Refetching devotion plans...');
+        console.log('🌐 Network restored - Refetching devotion plans and home data...');
         try {
           await refetchAllDevotionPlans('network-restore');
           console.log('✅ Devotion plans refetched successfully');
+          // Refresh home devotions/courses in background so content updates without full loading state
+          fetchData({background: true});
         } catch (error) {
           console.error('❌ Error refetching devotion plans:', error);
         }
@@ -233,7 +238,7 @@ const Home = () => {
     return () => {
       unsubscribe();
     };
-  }, [refetchAllDevotionPlans]);
+  }, [refetchAllDevotionPlans, fetchData]);
 
   // Force refetch devotion plans on mount if online (fixes iOS stale cache issue)
   useEffect(() => {
@@ -874,8 +879,10 @@ const Home = () => {
   }, [fetchData, loadCachedData]);
 
   const onRefresh = useCallback(async () => {
+    // Use both NetInfo and networkManager so reload works after reconnect (NetInfo can be stale)
     const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
+    const connected = netInfo.isConnected ?? networkManager.isOnline;
+    if (!connected) {
       Toast.show({
         type: 'info',
         text1: 'Internet Connection Required',

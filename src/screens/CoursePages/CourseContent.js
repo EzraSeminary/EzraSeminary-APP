@@ -20,6 +20,8 @@ import {
 } from 'phosphor-react-native';
 import {useSelector} from 'react-redux';
 import ErrorScreen from '../../components/ErrorScreen';
+import NetInfo from '@react-native-community/netinfo';
+import {getCachedCourseById, saveCourseToCache} from '../../utils/courseCache';
 
 const CourseContent = ({route}) => {
   const {courseId} = route.params;
@@ -31,22 +33,52 @@ const CourseContent = ({route}) => {
   // console.log(currentUser);
 
   const {
-    data: courseData,
+    data: apiCourseData,
     error,
     isLoading,
     refetch,
   } = useGetCourseByIdQuery(courseId, {
     skip: !courseId,
   });
+  const [cachedCourseData, setCachedCourseData] = useState(null);
+
+  useEffect(() => {
+    const loadCachedCourse = async () => {
+      const cached = await getCachedCourseById(courseId);
+      if (cached) {
+        setCachedCourseData(cached);
+      }
+    };
+    if (courseId) {
+      loadCachedCourse();
+    }
+  }, [courseId]);
+
+  useEffect(() => {
+    if (apiCourseData?._id) {
+      setCachedCourseData(apiCourseData);
+      saveCourseToCache(courseId, apiCourseData);
+    }
+  }, [apiCourseData, courseId]);
+
+  const courseData = apiCourseData || cachedCourseData;
 
   const onRefresh = useCallback(async () => {
     try {
       setIsRefreshing(true);
+      const network = await NetInfo.fetch();
+      if (!network.isConnected) {
+        const cached = await getCachedCourseById(courseId);
+        if (cached) {
+          setCachedCourseData(cached);
+        }
+        return;
+      }
       await refetch();
     } finally {
       setIsRefreshing(false);
     }
-  }, [refetch]);
+  }, [courseId, refetch]);
 
   const data = courseData?.chapters || [];
 
@@ -97,7 +129,7 @@ const CourseContent = ({route}) => {
     return '0'; // if there's no progress, return 0
   };
 
-  if (isLoading) {
+  if (isLoading && !courseData) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
@@ -108,7 +140,7 @@ const CourseContent = ({route}) => {
     );
   }
 
-  if (error) {
+  if (error && !courseData) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
 

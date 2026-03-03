@@ -47,6 +47,7 @@ import VideoPlayer from './Types/Video';
 import AudioPlayer from './Types/Audio';
 import Toast from 'react-native-toast-message';
 import ScrollMix from './Types/ScrollMix';
+import {getCachedCourseById, saveCourseToCache} from '../../utils/courseCache';
 
 const SlideSample2 = ({route}) => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -54,11 +55,12 @@ const SlideSample2 = ({route}) => {
   const navigation = useNavigation();
   const {courseId, chapterId} = route.params;
   const {
-    data: courseData,
+    data: apiCourseData,
     error,
     isLoading,
     refetch,
   } = useGetCourseByIdQuery(courseId);
+  const [cachedCourseData, setCachedCourseData] = useState(null);
   const [menuVisible, setMenuVisible] = React.useState(false);
   const darkMode = useSelector(state => state.ui.darkMode);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -99,6 +101,27 @@ const SlideSample2 = ({route}) => {
 
   const [nextButtonOpacity, setNextButtonOpacity] = useState(0.5);
   const [interactionMessage, setInteractionMessage] = useState('');
+
+  useEffect(() => {
+    const loadCachedCourse = async () => {
+      const cached = await getCachedCourseById(courseId);
+      if (cached) {
+        setCachedCourseData(cached);
+      }
+    };
+    if (courseId) {
+      loadCachedCourse();
+    }
+  }, [courseId]);
+
+  useEffect(() => {
+    if (apiCourseData?._id) {
+      setCachedCourseData(apiCourseData);
+      saveCourseToCache(courseId, apiCourseData);
+    }
+  }, [apiCourseData, courseId]);
+
+  const courseData = apiCourseData || cachedCourseData;
 
   useEffect(() => {
     const hasInteractiveElements = data[activeIndex]?.elements.some(element =>
@@ -199,12 +222,19 @@ const SlideSample2 = ({route}) => {
     chap => chap._id === chapterId,
   );
   // If the chapter is not found, handle accordingly
-  if (!chapter) {
-    return <p>Chapter not found</p>;
+  if (courseData && !chapter) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
+        <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
+        <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
+          Chapter not available offline yet
+        </Text>
+      </SafeAreaView>
+    );
   }
 
   // Setting the data to slides if the chapter is found
-  const data = chapter.slides;
+  const data = chapter?.slides || [];
   const currentDataNumber = activeIndex + 1;
   const totalDataNumber = data.length;
 
@@ -398,7 +428,7 @@ const SlideSample2 = ({route}) => {
     );
   }
 
-  if (isLoading) {
+  if (isLoading && !courseData) {
     return (
       <SafeAreaView>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
@@ -409,7 +439,7 @@ const SlideSample2 = ({route}) => {
     );
   }
 
-  if (error) {
+  if (error && !courseData) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
 

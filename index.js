@@ -2,63 +2,61 @@
  * @format
  */
 
-import React from 'react';
-import {AppRegistry, LogBox} from 'react-native';
-import 'react-native-screens/native-stack';
-import {enableScreens} from 'react-native-screens';
-import App from './App';
-import ErrorBoundary from './src/components/ErrorBoundary';
-import {name as appName} from './app.json';
+// Minimal imports so registration runs before any other module can throw
+const {AppRegistry} = require('react-native');
+const appName = require('./app.json').name;
 
-// Enable react-native-screens
-enableScreens();
+// Register immediately so "EzraApp" is always registered (native looks this up at launch)
+function RootComponent() {
+  const React = require('react');
+  const {View, Text} = require('react-native');
 
-LogBox.ignoreLogs(['ViewPropTypes will be removed', 'Carousel.propTypes']);
+  try {
+    require('react-native-screens/native-stack');
+    const {enableScreens} = require('react-native-screens');
+    enableScreens();
+  } catch (e) {
+    // non-fatal
+  }
 
-const AppWithErrorBoundary = () => {
-  return (
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  );
-};
+  try {
+    const App = require('./App').default;
+    const ErrorBoundary = require('./src/components/ErrorBoundary').default;
+    return React.createElement(ErrorBoundary, null, React.createElement(App, null));
+  } catch (e) {
+    return React.createElement(
+      View,
+      {style: {flex: 1, justifyContent: 'center', padding: 20}},
+      React.createElement(Text, null, String(e?.message || e)),
+    );
+  }
+}
 
-AppRegistry.registerComponent(appName, () => AppWithErrorBoundary);
+AppRegistry.registerComponent(appName, () => RootComponent);
+
+try {
+  const {LogBox} = require('react-native');
+  LogBox.ignoreLogs(['ViewPropTypes will be removed', 'Carousel.propTypes']);
+} catch (_) {}
 
 // Background/quit-state FCM handler - must be registered at top level
-// Note: This must be registered before the app starts
-// Firebase App auto-initializes from google-services.json (Android) and GoogleService-Info.plist (iOS)
 if (typeof require !== 'undefined') {
   try {
-    // Dynamically import to avoid errors if Firebase isn't properly linked
     const messagingModule = require('@react-native-firebase/messaging');
-    
-    if (messagingModule && messagingModule.default) {
-      const messaging = messagingModule.default;
-      
-      // Check if messaging is properly initialized before using it
-      try {
-        // Set background message handler
-        // Only register if the native module is available
-        const messagingInstance = messaging();
-        if (messagingInstance && typeof messagingInstance.setBackgroundMessageHandler === 'function') {
-          messagingInstance.setBackgroundMessageHandler(async remoteMessage => {
-            try {
-              const RemotePush = require('./src/services/RemotePush').default;
-              await RemotePush.handleBackgroundMessage(remoteMessage);
-            } catch (e) {
-              console.warn('Background message handler error:', e);
-            }
-          });
-          console.log('Background message handler registered successfully');
-        }
-      } catch (nativeError) {
-        // Native module not available - this is OK, app will work without FCM
-        console.warn('Firebase Messaging native module not available:', nativeError.message);
+    if (messagingModule?.default) {
+      const messaging = messagingModule.default();
+      if (messaging && typeof messaging.setBackgroundMessageHandler === 'function') {
+        messaging.setBackgroundMessageHandler(async remoteMessage => {
+          try {
+            const RemotePush = require('./src/services/RemotePush').default;
+            await RemotePush.handleBackgroundMessage(remoteMessage);
+          } catch (e) {
+            console.warn('Background message handler error:', e);
+          }
+        });
       }
     }
   } catch (error) {
-    // Firebase not configured or native modules not linked - app will still work
-    console.warn('Firebase Messaging background handler not available:', error.message);
+    console.warn('Firebase Messaging background handler not available:', error?.message);
   }
 }

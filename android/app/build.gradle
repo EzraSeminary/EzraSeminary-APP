@@ -70,7 +70,17 @@ def enableProguardInReleaseBuilds = false
  * this variant is about 6MiB larger per architecture than default.
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
-def releaseKeystoreFile = file("ezraseminary.keystore")
+// Release keystore: set EZRA_RELEASE_KEYSTORE_PATH in android/local.properties (recommended) or gradle.properties
+// to the path of the keystore that matches Play Console (SHA1: ED:09:19:2C:36:12:...).
+def localPropertiesFile = rootProject.file("local.properties")
+def localProperties = new Properties()
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader("UTF-8") { localProperties.load(it) }
+}
+def releaseKeystorePath = project.findProperty("EZRA_RELEASE_KEYSTORE_PATH")
+    ?: localProperties.getProperty("EZRA_RELEASE_KEYSTORE_PATH")
+    ?: "ezraseminary.keystore"
+def releaseKeystoreFile = file(releaseKeystorePath)
 def hasReleaseKeystore = releaseKeystoreFile.exists()
 
 android {

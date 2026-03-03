@@ -23,6 +23,7 @@
 		8827926CEE77F0D9F49F0731 /* libPods-EzraApp-EzraAppTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 490835990E820078C497271B /* libPods-EzraApp-EzraAppTests.a */; };
 		92675F6CA24247AA83CAC121 /* NOKIAPUREHEADLINE_RG.TTF in Resources */ = {isa = PBXBuildFile; fileRef = F426C3B6B6034D9892DF883C /* NOKIAPUREHEADLINE_RG.TTF */; };
 		9AA87D5081E143C3B326862A /* Nokia Pure Headline Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 98FB2A69063C49D2BEC774F8 /* Nokia Pure Headline Bold.ttf */; };
+		A54CA77F4FF530CD13B4D4C9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9CF604C9D68C5D90E1D14707 /* GoogleService-Info.plist */; };
 		B3DC24D639724D1F9BE48E94 /* Lato-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ECC0C17B081644DFBFB30E60 /* Lato-Light.ttf */; };
 /* End PBXBuildFile section */
 
@@ -59,6 +60,7 @@
 		717046CEC281719D1A21718A /* Pods-EzraApp-EzraAppTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-EzraApp-EzraAppTests.debug.xcconfig"; path = "Target Support Files/Pods-EzraApp-EzraAppTests/Pods-EzraApp-EzraAppTests.debug.xcconfig"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = EzraApp/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		98FB2A69063C49D2BEC774F8 /* Nokia Pure Headline Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Nokia Pure Headline Bold.ttf"; path = "../assets/fonts/Nokia Pure Headline Bold.ttf"; sourceTree = "<group>"; };
+		9CF604C9D68C5D90E1D14707 /* GoogleService-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		B5C9D6193093D6E4437DDFEE /* Pods-EzraApp-EzraAppTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-EzraApp-EzraAppTests.release.xcconfig"; path = "Target Support Files/Pods-EzraApp-EzraAppTests/Pods-EzraApp-EzraAppTests.release.xcconfig"; sourceTree = "<group>"; };
 		C2C3E1B776A2F27C9B41195F /* Pods-EzraApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-EzraApp.debug.xcconfig"; path = "Target Support Files/Pods-EzraApp/Pods-EzraApp.debug.xcconfig"; sourceTree = "<group>"; };
 		DF1DCB86AF624CB290D759C7 /* NokiaPureHeadline_Lt.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = NokiaPureHeadline_Lt.ttf; path = ../assets/fonts/NokiaPureHeadline_Lt.ttf; sourceTree = "<group>"; };
@@ -114,6 +116,7 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB71A68108700A75B9A /* main.m */,
+				9CF604C9D68C5D90E1D14707 /* GoogleService-Info.plist */,
 			);
 			name = EzraApp;
 			sourceTree = "<group>";
@@ -295,6 +298,7 @@
 				1A30EA65512A4BF4B80E1DF2 /* NokiaPureHeadline_Lt.ttf in Resources */,
 				72F715A7FC98484AA3765D3A /* NokiaPureHeadline_XBd..ttf in Resources */,
 				92675F6CA24247AA83CAC121 /* NOKIAPUREHEADLINE_RG.TTF in Resources */,
+				A54CA77F4FF530CD13B4D4C9 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

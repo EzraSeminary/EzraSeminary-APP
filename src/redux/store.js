@@ -38,9 +38,8 @@ const persistConfig = {
     'ui',
     'auth',
     'language',
-    SSLapi.reducerPath,
-    InVerseapi.reducerPath, // Persist the InVerseapi state
-    apiSlice.reducerPath,
+    // Avoid persisting RTK query caches - they can grow large and trigger SQLITE_FULL.
+    // These caches are safely recreated from the network/custom AsyncStorage caches.
   ],
 };
 

@@ -14,7 +14,16 @@
   self.initialProps = @{};
 
   if ([FIRApp defaultApp] == nil) {
-    [FIRApp configure];
+    @try {
+      FIROptions *firebaseOptions = [FIROptions defaultOptions];
+      if (firebaseOptions != nil) {
+        [FIRApp configureWithOptions:firebaseOptions];
+      } else {
+        NSLog(@"[Firebase] GoogleService-Info.plist is missing from app bundle; skipping Firebase configuration.");
+      }
+    } @catch (NSException *exception) {
+      NSLog(@"[Firebase] Failed to configure Firebase at launch: %@", exception.reason);
+    }
   }
 
   // Define UNUserNotificationCenter

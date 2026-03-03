@@ -41,10 +41,6 @@ const ethiopianMonths = [
   'ጳጉሜ',
 ];
 
-// Cache key prefix for storing month data
-const CACHE_PREFIX = 'devotion_month_';
-const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
-
 // Helper function to get thumbnail URL for smaller images (reduces bandwidth)
 const getThumbnailUrl = imageUrl => {
   if (!imageUrl) return imageUrl;
@@ -112,7 +108,6 @@ const AllDevotionals = ({navigation}) => {
       ? Math.max(...availableYears)
       : 2018;
   const {data: monthsFromApi = []} = useGetMonthsByYearQuery(yearToFetch);
-  const HOME_CACHE_KEY = 'home_data_cache';
 
   const [expandedMonth, setExpandedMonth] = useState(null);
   const [loadedMonths, setLoadedMonths] = useState({}); // Store loaded month data
@@ -120,31 +115,59 @@ const AllDevotionals = ({navigation}) => {
   const [allDevotions, setAllDevotions] = useState([]); // Store all devotions from cache
   const [fetchMonthDevotions] = useLazyGetDevotionsByYearAndMonthQuery();
 
+  const getLatestHomeCacheDevotions = useCallback(async () => {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const homeKeys = keys.filter(key => key.startsWith('home_data_cache_'));
+
+      if (homeKeys.length === 0) {
+        return [];
+      }
+
+      const keyValues = await AsyncStorage.multiGet(homeKeys);
+      let latest = null;
+
+      keyValues.forEach(([, raw]) => {
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          if (!parsed?.devotions || !Array.isArray(parsed.devotions)) return;
+          if (
+            !latest ||
+            new Date(parsed.lastCacheTime).getTime() >
+              new Date(latest.lastCacheTime || 0).getTime()
+          ) {
+            latest = parsed;
+          }
+        } catch {}
+      });
+
+      return latest?.devotions || [];
+    } catch (error) {
+      console.error('Error loading Home cache keys:', error);
+      return [];
+    }
+  }, []);
+
   // Load all devotions from Home cache on mount
   useEffect(() => {
     const loadFromHomeCache = async () => {
       try {
-        const cachedString = await AsyncStorage.getItem(HOME_CACHE_KEY);
-        if (cachedString) {
-          const cached = JSON.parse(cachedString);
-          if (cached.devotions && cached.devotions.length > 0) {
-            // Filter for 2018 devotions only
-            const devotions2018 = cached.devotions.filter(
-              d => d.year === yearToFetch || !d.year, // Include if year is 2018 or not specified
-            );
-            setAllDevotions(devotions2018);
-            console.log(
-              `Loaded ${devotions2018.length} devotions from Home cache`,
-            );
-          }
-        }
+        const cachedDevotions = await getLatestHomeCacheDevotions();
+        if (!cachedDevotions.length) return;
+
+        const devotionsForYear = cachedDevotions.filter(
+          d => d.year === yearToFetch || !d.year,
+        );
+        setAllDevotions(devotionsForYear);
+        console.log(`Loaded ${devotionsForYear.length} devotions from Home cache`);
       } catch (error) {
         console.error('Error loading from Home cache:', error);
       }
     };
 
     loadFromHomeCache();
-  }, [yearToFetch]);
+  }, [getLatestHomeCacheDevotions, yearToFetch]);
 
   // Function to get devotions for a specific month from cached data
   const getMonthDevotionsFromCache = month => {
@@ -168,18 +191,15 @@ const AllDevotionals = ({navigation}) => {
       // If not found in allDevotions, try to reload from Home cache
       if (cachedMonthData.length === 0) {
         try {
-          const cachedString = await AsyncStorage.getItem(HOME_CACHE_KEY);
-          if (cachedString) {
-            const cached = JSON.parse(cachedString);
-            if (cached.devotions && cached.devotions.length > 0) {
-              const devotions2018 = cached.devotions.filter(
-                d => d.year === yearToFetch || !d.year,
-              );
-              setAllDevotions(devotions2018);
-              cachedMonthData = devotions2018
-                .filter(d => d.month === month)
-                .sort((a, b) => Number(a.day) - Number(b.day));
-            }
+          const cachedDevotions = await getLatestHomeCacheDevotions();
+          if (cachedDevotions.length > 0) {
+            const devotionsForYear = cachedDevotions.filter(
+              d => d.year === yearToFetch || !d.year,
+            );
+            setAllDevotions(devotionsForYear);
+            cachedMonthData = devotionsForYear
+              .filter(d => d.month === month)
+              .sort((a, b) => Number(a.day) - Number(b.day));
           }
         } catch (error) {
           console.error('Error reloading cache:', error);
@@ -221,7 +241,13 @@ const AllDevotionals = ({navigation}) => {
         setLoadingMonths(prev => ({...prev, [month]: false}));
       }
     },
-    [loadedMonths, allDevotions, yearToFetch, fetchMonthDevotions],
+    [
+      loadedMonths,
+      allDevotions,
+      yearToFetch,
+      fetchMonthDevotions,
+      getLatestHomeCacheDevotions,
+    ],
   );
 
   const sortedMonths =

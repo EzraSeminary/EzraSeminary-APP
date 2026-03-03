@@ -66,15 +66,16 @@ const NotificationSettings = () => {
       savedTime.setHours(settings.time.hour, settings.time.minute, 0, 0);
       setNotificationTime(savedTime);
 
-      // Schedule notification with saved time or default
-      const currentDevotion = getCurrentDevotion();
-      if (currentDevotion) {
+      // Schedule notification: use Redux devotions if loaded, else fetch today's devotion from cache/API
+      let devotion = getCurrentDevotion();
+      if (!devotion) {
+        devotion = await NotificationService.getTodaysDevotion();
+      }
+      if (devotion) {
         await NotificationService.scheduleDailyVerseNotification(
-          currentDevotion,
+          devotion,
           settings.time,
         );
-
-        // Enable notifications if not already enabled
         if (!settings.enabled) {
           await NotificationService.enableDailyNotifications(settings.time);
         }
@@ -117,11 +118,14 @@ const NotificationSettings = () => {
     try {
       await NotificationService.updateDailyNotificationTime(time);
 
-      const currentDevotion = getCurrentDevotion();
-      if (currentDevotion) {
+      let devotion = getCurrentDevotion();
+      if (!devotion) {
+        devotion = await NotificationService.getTodaysDevotion();
+      }
+      if (devotion) {
         const success =
           await NotificationService.scheduleDailyVerseNotification(
-            currentDevotion,
+            devotion,
             time,
           );
 
@@ -140,6 +144,12 @@ const NotificationSettings = () => {
             [{text: 'OK'}],
           );
         }
+      } else {
+        Alert.alert(
+          'No devotion data',
+          'Could not schedule. Open the Home screen first to load devotions, then set the time again.',
+          [{text: 'OK'}],
+        );
       }
     } catch (error) {
       console.error('Error updating notification time:', error);
@@ -152,11 +162,14 @@ const NotificationSettings = () => {
   };
 
   const handleTestNotification = async () => {
-    const currentDevotion = getCurrentDevotion();
-    if (currentDevotion) {
+    let devotion = getCurrentDevotion();
+    if (!devotion) {
+      devotion = await NotificationService.getTodaysDevotion();
+    }
+    if (devotion) {
       try {
         const success = await NotificationService.showTestNotification(
-          currentDevotion,
+          devotion,
         );
         if (success) {
           Alert.alert(

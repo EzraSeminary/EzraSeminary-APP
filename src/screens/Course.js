@@ -25,6 +25,10 @@ import NetInfo from '@react-native-community/netinfo';
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 import Explore from './Explore';
+import {
+  getCachedCourseList,
+  saveCourseListToCache,
+} from '../utils/courseCache';
 
 // Tab Switcher Component - matching Devotion screen style
 const TabSwitcher = ({activeTab, setActiveTab, darkMode}) => (
@@ -89,10 +93,11 @@ const TabSwitcher = ({activeTab, setActiveTab, darkMode}) => (
 
 const Course = () => {
   const [activeTab, setActiveTab] = useState('course'); // 'course' or 'explore'
-  const {data: courses, error, isLoading, refetch} = useGetCoursesQuery();
+  const {data: apiCourses, error, isLoading, refetch} = useGetCoursesQuery();
   const [searchTerm, setSearchTerm] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortByLatest, setSortByLatest] = useState(false);
+  const [cachedCourses, setCachedCourses] = useState([]);
   const darkMode = useSelector(state => state.ui.darkMode);
   const navigation = useNavigation();
   const currentUser = useSelector(state => state.auth.user);
@@ -144,6 +149,26 @@ const Course = () => {
       return () => sparkleAnimation.stop();
     }
   }, [isLoading, fadeAnim, slideAnim, scaleAnim, sparkleAnim]);
+
+  useEffect(() => {
+    const loadCachedCourses = async () => {
+      const cached = await getCachedCourseList();
+      if (cached.length > 0) {
+        setCachedCourses(cached);
+      }
+    };
+    loadCachedCourses();
+  }, []);
+
+  useEffect(() => {
+    if (Array.isArray(apiCourses) && apiCourses.length > 0) {
+      setCachedCourses(apiCourses);
+      saveCourseListToCache(apiCourses);
+    }
+  }, [apiCourses]);
+
+  const courses =
+    Array.isArray(apiCourses) && apiCourses.length > 0 ? apiCourses : cachedCourses;
 
   const onRefresh = useCallback(async () => {
     const netInfo = await NetInfo.fetch();
@@ -215,7 +240,7 @@ const Course = () => {
     return undefined;
   }
 
-  if (isLoading) {
+  if (isLoading && courses.length === 0) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
@@ -226,7 +251,7 @@ const Course = () => {
     );
   }
 
-  if (error) {
+  if (error && courses.length === 0) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
 

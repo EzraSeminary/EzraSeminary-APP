@@ -151,8 +151,48 @@ const App = () => {
   const pendingNotificationRef = useRef(null);
 
   useEffect(() => {
+    const recoverStorageIfNeeded = async () => {
+      const HEALTH_CHECK_KEY = '__storage_health_check__';
+      try {
+        await AsyncStorage.setItem(HEALTH_CHECK_KEY, 'ok');
+        await AsyncStorage.removeItem(HEALTH_CHECK_KEY);
+        return;
+      } catch (error) {
+        const message = String(error?.message || '');
+        const isStorageFull =
+          message.includes('SQLITE_FULL') || message.includes('disk is full');
+
+        if (!isStorageFull) {
+          return;
+        }
+
+        try {
+          const keys = await AsyncStorage.getAllKeys();
+          const keysToRemove = keys.filter(
+            key =>
+              key === 'persist:root' ||
+              key === 'home_data_cache' ||
+              key === 'home_screen_cache' ||
+              key === 'devotion_cache' ||
+              key === 'ssl_lesson_cache' ||
+              key.startsWith('app_cache_'),
+          );
+
+          if (keysToRemove.length > 0) {
+            await AsyncStorage.multiRemove(keysToRemove);
+          }
+          console.warn(
+            `Storage was full. Cleared ${keysToRemove.length} cache keys for recovery.`,
+          );
+        } catch (cleanupError) {
+          console.warn('Failed to recover from low storage state:', cleanupError);
+        }
+      }
+    };
+
     const checkLoginStatus = async () => {
       try {
+        await recoverStorageIfNeeded();
         const storedUser = await AsyncStorage.getItem('user');
         if (storedUser) {
           store.dispatch(login(JSON.parse(storedUser)));

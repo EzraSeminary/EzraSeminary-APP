@@ -17,6 +17,7 @@ import {useNavigation} from '@react-navigation/core';
 import {ActivityIndicator} from 'react-native';
 import {useSelector} from 'react-redux';
 import ErrorScreen from '../../components/ErrorScreen';
+import {getCachedCourseById, saveCourseToCache} from '../../utils/courseCache';
 const {width, height} = Dimensions.get('window');
 
 const FullScreenMenu = ({
@@ -30,12 +31,34 @@ const FullScreenMenu = ({
 }) => {
   const navigation = useNavigation();
   const {
-    data: courseData,
+    data: apiCourseData,
     error,
     isLoading,
     refetch,
   } = useGetCourseByIdQuery(courseId);
+  const [cachedCourseData, setCachedCourseData] = useState(null);
   const darkMode = useSelector(state => state.ui.darkMode);
+
+  useEffect(() => {
+    const loadCachedCourse = async () => {
+      const cached = await getCachedCourseById(courseId);
+      if (cached) {
+        setCachedCourseData(cached);
+      }
+    };
+    if (courseId) {
+      loadCachedCourse();
+    }
+  }, [courseId]);
+
+  useEffect(() => {
+    if (apiCourseData?._id) {
+      setCachedCourseData(apiCourseData);
+      saveCourseToCache(courseId, apiCourseData);
+    }
+  }, [apiCourseData, courseId]);
+
+  const courseData = apiCourseData || cachedCourseData;
 
   useFocusEffect(
     React.useCallback(() => {
@@ -69,7 +92,7 @@ const FullScreenMenu = ({
     return null;
   }
 
-  if (isLoading) {
+  if (isLoading && !courseData) {
     return (
       <SafeAreaView>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
@@ -80,7 +103,7 @@ const FullScreenMenu = ({
     );
   }
 
-  if (error) {
+  if (error && !courseData) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
 
