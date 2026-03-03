@@ -70,6 +70,8 @@ def enableProguardInReleaseBuilds = false
  * this variant is about 6MiB larger per architecture than default.
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
+def releaseKeystoreFile = file("ezraseminary.keystore")
+def hasReleaseKeystore = releaseKeystoreFile.exists()
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -81,8 +83,8 @@ android {
         applicationId "com.ezraapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 42
-        versionName "1.2"
+        versionCode 46
+        versionName "1.2.1"
     }
     
     // Add configuration to handle large assets and prevent timeouts
@@ -126,20 +128,14 @@ android {
             keyPassword 'android'
         }
         release {
-    storeFile file('ezraseminary.keystore')
-    
-    // Check if running in interactive mode
-    if (project.hasProperty("interactive")) {
-        storePassword = new String(System.console().readPassword("\nKeystore password:"))
-        keyAlias = System.console().readLine("\nAlias: ")
-        keyPassword = new String(System.console().readPassword("\nAlias password: "))
-    } else {
-        // If not running in interactive mode, set fixed values or retrieve from a secure source
-        storePassword = "ezraseminary"
-        keyAlias = "ezraseminary"
-        keyPassword = "ezraseminary"
-    }
-}
+            // Configure release signing only when the private keystore is available.
+            if (hasReleaseKeystore) {
+                storeFile releaseKeystoreFile
+                storePassword System.getenv("EZRAAPP_UPLOAD_STORE_PASSWORD") ?: "ezraseminary"
+                keyAlias System.getenv("EZRAAPP_UPLOAD_KEY_ALIAS") ?: "ezraseminary"
+                keyPassword System.getenv("EZRAAPP_UPLOAD_KEY_PASSWORD") ?: "ezraseminary"
+            }
+        }
     }
 
     lint {
@@ -156,9 +152,7 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            minifyEnabled false
-            signingConfig signingConfigs.debug
-            signingConfig signingConfigs.release
+            signingConfig hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             // Release builds: Only 64-bit architectures for 16KB page size support
