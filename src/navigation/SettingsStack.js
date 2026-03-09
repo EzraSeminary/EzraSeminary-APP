@@ -5,6 +5,7 @@ import UserProfileUpdateScreen from '../screens/Settings/UserProfileUpdateScreen
 import AppInfo from '../screens/Settings/AppInfo';
 import AccountSettings from '../screens/Settings/AccountSettings';
 import NotificationSettings from '../screens/Settings/NotificationSettings';
+import FavoriteDevotions from '../screens/Settings/FavoriteDevotions';
 import ExploreAdmin from '../screens/AdminScreens/ExploreAdmin';
 import ExploreCategoryForm from '../screens/AdminScreens/ExploreCategoryForm';
 import ExploreCategoryItems from '../screens/AdminScreens/ExploreCategoryItems';
@@ -38,6 +39,11 @@ const SettingsStack = () => {
       <Stack.Screen
         name="NotificationSettings"
         component={NotificationSettings}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="FavoriteDevotions"
+        component={FavoriteDevotions}
         options={{headerShown: false}}
       />
       <Stack.Screen

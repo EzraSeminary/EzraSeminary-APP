@@ -120,7 +120,7 @@ const Home = () => {
     isFetching: courseIsFetching,
     refetch: refetchCourses,
     error: courseError,
-  } = useGetPublishedCoursesQuery({limit: 1});
+  } = useGetPublishedCoursesQuery();
 
   // [DEVOTION FLOW] 1. Fetched from API (RTK Query)
   if (__DEV__) {
@@ -222,7 +222,9 @@ const Home = () => {
 
       // When network comes back online, refetch devotion plans and refresh home data
       if (networkState.isNowConnected) {
-        console.log('🌐 Network restored - Refetching devotion plans and home data...');
+        console.log(
+          '🌐 Network restored - Refetching devotion plans and home data...',
+        );
         try {
           await refetchAllDevotionPlans('network-restore');
           console.log('✅ Devotion plans refetched successfully');
@@ -284,25 +286,30 @@ const Home = () => {
     if (!resolvedPlan) return 0;
     if (typeof resolvedPlan.numItems === 'number') return resolvedPlan.numItems;
     if (typeof resolvedPlan.days === 'number') return resolvedPlan.days;
-    if (typeof resolvedPlan.totalDays === 'number') return resolvedPlan.totalDays;
-    if (typeof resolvedPlan.itemCount === 'number') return resolvedPlan.itemCount;
+    if (typeof resolvedPlan.totalDays === 'number')
+      return resolvedPlan.totalDays;
+    if (typeof resolvedPlan.itemCount === 'number')
+      return resolvedPlan.itemCount;
     if (Array.isArray(resolvedPlan.devotions)) {
       return resolvedPlan.devotions.length;
     }
     return null;
   }, []);
 
-  const hasValidPlanData = useCallback(plan => {
-    const resolvedPlan = plan?.plan || plan;
-    if (!resolvedPlan) return false;
-    const planId = resolvedPlan._id || resolvedPlan.id;
-    if (!planId) return false;
-    const daysCount = getPlanDaysCount(resolvedPlan);
-    if (daysCount == null) {
-      return true;
-    }
-    return daysCount >= 3;
-  }, [getPlanDaysCount]);
+  const hasValidPlanData = useCallback(
+    plan => {
+      const resolvedPlan = plan?.plan || plan;
+      if (!resolvedPlan) return false;
+      const planId = resolvedPlan._id || resolvedPlan.id;
+      if (!planId) return false;
+      const daysCount = getPlanDaysCount(resolvedPlan);
+      if (daysCount == null) {
+        return true;
+      }
+      return daysCount >= 3;
+    },
+    [getPlanDaysCount],
+  );
 
   const eligibleDevotionPlans = useMemo(
     () => (devotionPlans || []).filter(hasValidPlanData),
@@ -367,56 +374,62 @@ const Home = () => {
     return null;
   }, [dispatch, CACHE_KEY]);
 
-  const saveCachedData = useCallback(async (devotionsData, coursesData) => {
-    try {
-      const cacheData = {
-        devotions: devotionsData || [],
-        courses: coursesData || [],
-        lastCacheTime: new Date().toISOString(),
-      };
-      // Compact the data to reduce storage size
-      const compact = data =>
-        (data || []).map(d => ({
-          _id: d._id,
-          title: d.title,
-          month: d.month,
-          day: d.day,
-          image: d.image,
-          verse: d.verse,
-          chapter: d.chapter,
-          year: d.year,
-        }));
+  const saveCachedData = useCallback(
+    async (devotionsData, coursesData) => {
+      try {
+        const cacheData = {
+          devotions: devotionsData || [],
+          courses: coursesData || [],
+          lastCacheTime: new Date().toISOString(),
+        };
+        // Compact the data to reduce storage size
+        const compact = data =>
+          (data || []).map(d => ({
+            _id: d._id,
+            title: d.title,
+            month: d.month,
+            day: d.day,
+            image: d.image,
+            verse: d.verse,
+            chapter: d.chapter,
+            year: d.year,
+          }));
 
-      const minimized = {
-        devotions: compact(devotionsData),
-        courses: (coursesData || []).map(c => ({
-          _id: c._id,
-          title: c.title,
-          image: c.image,
-          published: c.published,
-        })),
-        lastCacheTime: cacheData.lastCacheTime,
-      };
+        const minimized = {
+          devotions: compact(devotionsData),
+          courses: (coursesData || []).map(c => ({
+            _id: c._id,
+            title: c.title,
+            image: c.image,
+            published: c.published,
+          })),
+          lastCacheTime: cacheData.lastCacheTime,
+        };
 
-      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(minimized));
-      setCachedData(minimized);
-      console.log('[Home] Devotion - Saved to cache:', {
-        count: cacheData.devotions?.length ?? 0,
-      });
-      console.log('[Home] Course - Saved to cache:', {
-        count: cacheData.courses?.length ?? 0,
-      });
-    } catch (error) {
-      // Handle SQLITE_FULL gracefully by purging cache
-      const message = String(error?.message || '');
-      if (message.includes('SQLITE_FULL') || message.includes('disk is full')) {
-        try {
-          await AsyncStorage.removeItem(CACHE_KEY);
-        } catch {}
+        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(minimized));
+        setCachedData(minimized);
+        console.log('[Home] Devotion - Saved to cache:', {
+          count: cacheData.devotions?.length ?? 0,
+        });
+        console.log('[Home] Course - Saved to cache:', {
+          count: cacheData.courses?.length ?? 0,
+        });
+      } catch (error) {
+        // Handle SQLITE_FULL gracefully by purging cache
+        const message = String(error?.message || '');
+        if (
+          message.includes('SQLITE_FULL') ||
+          message.includes('disk is full')
+        ) {
+          try {
+            await AsyncStorage.removeItem(CACHE_KEY);
+          } catch {}
+        }
+        console.error('Error saving cached data:', error);
       }
-      console.error('Error saving cached data:', error);
-    }
-  }, [CACHE_KEY]);
+    },
+    [CACHE_KEY],
+  );
 
   const handleButtonPress = id => {
     navigation.navigate('Course', {
@@ -558,7 +571,37 @@ const Home = () => {
   }
 
   // [COURSE FLOW] 4. Final display values
-  const lastCourse = coursesToDisplay ? coursesToDisplay[0] : null;
+  const findMostRecentCourse = courseList => {
+    if (!Array.isArray(courseList) || courseList.length === 0) {
+      return null;
+    }
+
+    const sortableCourses = courseList.filter(Boolean);
+    if (sortableCourses.length === 0) {
+      return null;
+    }
+
+    const hasDateField = sortableCourses.some(
+      course => course?.createdAt || course?.updatedAt,
+    );
+
+    if (hasDateField) {
+      return [...sortableCourses].sort((firstCourse, secondCourse) => {
+        const firstDate = new Date(
+          firstCourse?.createdAt || firstCourse?.updatedAt || 0,
+        ).getTime();
+        const secondDate = new Date(
+          secondCourse?.createdAt || secondCourse?.updatedAt || 0,
+        ).getTime();
+
+        return secondDate - firstDate;
+      })[0];
+    }
+
+    return sortableCourses[sortableCourses.length - 1];
+  };
+
+  const lastCourse = findMostRecentCourse(coursesToDisplay);
   const courseToFeature = lastCourse;
   if (__DEV__) {
     console.log('[Home] Course - Display:', {

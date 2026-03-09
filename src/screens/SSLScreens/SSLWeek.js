@@ -17,17 +17,13 @@ import {
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import DateConverter from './DateConverter';
-import HighlightableText from '../../components/HighlightableText';
 import {
   useGetSSLOfDayQuery,
   useGetSSLOfDayLessonQuery,
 } from '../../services/SabbathSchoolApi';
 import {useGetVideoLinkQuery} from '../../services/videoLinksApi';
 import {useNavigation} from '@react-navigation/native';
-import {
-  saveSSLLessonToCache,
-  getCachedSSLLesson,
-} from '../../utils/sslCache';
+import {saveSSLLessonToCache, getCachedSSLLesson} from '../../utils/sslCache';
 import networkManager from '../../utils/networkManager';
 import {
   ArrowSquareLeft,
@@ -37,13 +33,15 @@ import {
   CloudSlash,
   Warning,
 } from 'phosphor-react-native';
-import HTMLView from 'react-native-htmlview';
 import HtmlContent from '../../components/HtmlContent';
+import HighlightableHtmlBlocks from '../../components/HighlightableHtmlBlocks';
 import tw from './../../../tailwind';
 import LinearGradient from 'react-native-linear-gradient';
 import ErrorScreen from '../../components/ErrorScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {format} from 'date-fns';
+import usePersistentHighlights from '../../hooks/usePersistentHighlights';
+import {extractHtmlBlocks} from '../../utils/htmlBlocks';
 
 const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
   const [noteText, setNoteText] = useState(initialText || '');
@@ -158,7 +156,11 @@ const SSLWeek = ({route}) => {
   // Load from cache when offline or API fails
   useEffect(() => {
     const loadFromCache = async () => {
-      if ((!networkManager.isOnline || weekError || quarterError) && ssl && weekId) {
+      if (
+        (!networkManager.isOnline || weekError || quarterError) &&
+        ssl &&
+        weekId
+      ) {
         try {
           const cached = await getCachedSSLLesson(ssl, weekId);
           if (cached) {
@@ -198,6 +200,15 @@ const SSLWeek = ({route}) => {
   // Use cached data if available and API data is not
   const displaySSLWeek = SSLWeek || cachedSSLWeek;
   const displaySSLQuarter = SSLQuarter || cachedSSLQuarter;
+  const rawContent = displaySSLWeek?.content || '';
+  const sanitizedContent = useMemo(
+    () => rawContent.replace(/\n/g, ''),
+    [rawContent],
+  );
+  const contentBlocks = useMemo(
+    () => extractHtmlBlocks(sanitizedContent),
+    [sanitizedContent],
+  );
 
   const year = ssl.substring(0, 4);
   const quarter = ssl.substring(5, 7);
@@ -222,6 +233,12 @@ const SSLWeek = ({route}) => {
   }, [check]);
 
   const darkMode = useSelector(state => state.ui.darkMode);
+  const highlightCacheKey = useMemo(
+    () => `ssl:${ssl}:${weekId}:${check}`,
+    [check, ssl, weekId],
+  );
+  const {highlights, setHighlight, clearHighlight} =
+    usePersistentHighlights(highlightCacheKey);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
 
@@ -430,9 +447,6 @@ const SSLWeek = ({route}) => {
       </SafeAreaView>
     );
   }
-
-  const {content} = displaySSLWeek;
-  const sanitizedContent = content.replace(/\n/g, '');
 
   const styles = StyleSheet.create({
     text: tw`font-nokia-bold`,
@@ -738,7 +752,7 @@ const SSLWeek = ({route}) => {
   };
   const gradientColor = '#000000';
   const dateStyle = 'font-nokia-bold text-lg text-primary-6';
-  const modifiedContent = selectedVerseContent.replace(/<h2>/g, '<br><h2>');
+  const modifiedContent = selectedVerseContent;
 
   return (
     <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
@@ -755,7 +769,11 @@ const SSLWeek = ({route}) => {
         }>
         <View style={tw`flex`}>
           <ImageBackground
-            source={{uri: displaySSLQuarter?.lesson?.cover || displaySSLQuarter?.quarterly?.splash}}
+            source={{
+              uri:
+                displaySSLQuarter?.lesson?.cover ||
+                displaySSLQuarter?.quarterly?.splash,
+            }}
             style={tw`flex-5 flex-col justify-between py-6 px-4 h-80`}>
             <TouchableOpacity
               onPress={handleBackButtonPress}
@@ -804,11 +822,15 @@ const SSLWeek = ({route}) => {
           </ImageBackground>
 
           <View style={tw`flex flex-col gap-4 px-4 mt-2`}>
-            <HTMLView
-              value={sanitizedContent}
-              renderNode={renderNode}
+            <HighlightableHtmlBlocks
+              blocks={contentBlocks}
+              darkMode={darkMode}
+              highlights={highlights}
+              onSelectColor={setHighlight}
+              onClearHighlight={clearHighlight}
               stylesheet={styles}
-              addLineBreaks={false}
+              renderNode={renderNode}
+              blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
             />
             <View style={tw`flex flex-row justify-between`}>
               {check !== '01' && (
@@ -844,34 +866,72 @@ const SSLWeek = ({route}) => {
           style={tw`flex-1 justify-center items-center bg-secondary-9 bg-opacity-70`}>
           <View
             style={[
-              tw`max-h-80% bg-primary-2 p-4 rounded-lg w-11/12 max-w-lg border border-accent-8`,
+              tw`max-h-80% bg-primary-2 p-5 rounded-2xl w-11/12 max-w-lg border border-accent-8`,
               darkMode ? tw`bg-secondary-9` : null,
             ]}>
-            <ScrollView>
+            <ScrollView contentContainerStyle={tw`p-0`}>
               <HtmlContent
                 html={`<div>${modifiedContent}</div>`}
+                baseStyle={{
+                  fontFamily: 'Nokia Pure Headline Bold',
+                  color: darkMode ? '#F8FAFC' : '#1F2937',
+                  margin: 0,
+                  padding: 0,
+                }}
                 tagsStyles={{
                   p: {
-                    ...tw`text-secondary-6 font-nokia-bold text-justify`,
-                    ...(darkMode ? tw`text-primary-1` : {}),
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    textAlign: 'justify',
+                    marginTop: 0,
+                    marginBottom: 12,
+                    paddingTop: 0,
+                    paddingBottom: 0,
                   },
                   div: {
-                    ...tw`text-secondary-6 font-nokia-bold text-justify`,
-                    ...(darkMode ? tw`text-primary-1` : {}),
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    textAlign: 'justify',
+                    marginTop: 0,
+                    marginBottom: 0,
+                    paddingTop: 0,
+                    paddingBottom: 0,
                   },
-                  h2: {...tw`font-nokia-bold text-2xl text-accent-6`},
-                  sup: {...tw`text-xs font-nokia-bold text-superscript text-accent-6`},
+                  h2: {
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: '#EA9215',
+                    fontSize: 24,
+                    marginTop: 0,
+                    marginBottom: 12,
+                    paddingTop: 0,
+                  },
+                  sup: {
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    fontSize: 12,
+                    color: '#EA9215',
+                  },
                   ol: {
-                    ...tw`text-secondary-6 font-nokia-bold text-justify py-2`,
-                    ...(darkMode ? tw`text-primary-1` : {}),
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    textAlign: 'justify',
+                    marginTop: 0,
+                    marginBottom: 12,
+                    paddingLeft: 16,
                   },
                   ul: {
-                    ...tw`text-secondary-6 font-nokia-bold text-justify py-2`,
-                    ...(darkMode ? tw`text-primary-1` : {}),
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    textAlign: 'justify',
+                    marginTop: 0,
+                    marginBottom: 12,
+                    paddingLeft: 16,
                   },
                   li: {
-                    ...tw`text-secondary-6 font-nokia-bold text-justify py-1`,
-                    ...(darkMode ? tw`text-primary-1` : {}),
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    textAlign: 'justify',
+                    marginTop: 0,
+                    marginBottom: 8,
                   },
                 }}
               />

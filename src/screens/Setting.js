@@ -29,6 +29,7 @@ import {
   Bell,
   Sparkle,
   Folder,
+  Heart,
 } from 'phosphor-react-native';
 import {useGetSSLsQuery} from '../services/SabbathSchoolApi';
 import NotificationSettings from '../screens/Settings/NotificationSettings';
@@ -295,6 +296,12 @@ const Setting = ({navigation}) => {
                 icon={<UserCircle size={16} weight="fill" color={'#FFFFFF'} />}
                 title="Account Settings"
                 onPress={() => navigation.navigate('AccountSettings')}
+              />
+
+              <SettingItem
+                icon={<Heart size={16} weight="fill" color={'#FFFFFF'} />}
+                title="Favorite Devotions"
+                onPress={() => navigation.navigate('FavoriteDevotions')}
               />
             </Animated.View>
           )}

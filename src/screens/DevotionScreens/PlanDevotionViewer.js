@@ -20,7 +20,6 @@ import {
 } from 'phosphor-react-native';
 import tw from './../../../tailwind';
 import Toast from 'react-native-toast-message';
-import HTMLView from 'react-native-htmlview';
 import {
   useGetDevotionPlanByIdQuery,
   useGetDevotionPlanDevotionsQuery,
@@ -33,6 +32,11 @@ import {
   saveDevotionToCache,
   saveDevotionsToCache,
 } from '../../utils/devotionCache';
+import HighlightableBlock from '../../components/HighlightableBlock';
+import HighlightableHtmlBlocks from '../../components/HighlightableHtmlBlocks';
+import usePersistentHighlights from '../../hooks/usePersistentHighlights';
+import {extractHtmlBlocks} from '../../utils/htmlBlocks';
+import {getHighlightColors} from '../../utils/highlightPalette';
 
 // Completion Modal Component with Animation
 const CompletionModal = ({
@@ -273,6 +277,43 @@ const PlanDevotionViewer = () => {
     ? itemsCompleted.includes(currentDevotion._id)
     : false;
   const devotionNumber = currentDevotionIndex + 1;
+  const planHighlightKey = useMemo(
+    () =>
+      `devotional-plan:${planId}:${
+        currentDevotion?._id || currentDevotionIndex
+      }`,
+    [currentDevotion?._id, currentDevotionIndex, planId],
+  );
+  const {highlights, setHighlight, clearHighlight} =
+    usePersistentHighlights(planHighlightKey);
+  const currentDevotionBlocks = useMemo(
+    () => extractHtmlBlocks(currentDevotion?.body || []),
+    [currentDevotion?.body],
+  );
+  const verseHighlightStyle = useMemo(() => {
+    const colors = getHighlightColors(highlights['verse-card'], darkMode);
+    return colors
+      ? {
+          backgroundColor: colors.backgroundColor,
+          borderRadius: 8,
+          overflow: 'hidden',
+          paddingHorizontal: 4,
+          paddingVertical: 2,
+        }
+      : null;
+  }, [darkMode, highlights]);
+  const prayerHighlightStyle = useMemo(() => {
+    const colors = getHighlightColors(highlights['prayer-card'], darkMode);
+    return colors
+      ? {
+          backgroundColor: colors.backgroundColor,
+          borderRadius: 8,
+          overflow: 'hidden',
+          paddingHorizontal: 4,
+          paddingVertical: 2,
+        }
+      : null;
+  }, [darkMode, highlights]);
 
   // Call useCachedImage hook at the top level (before any early returns)
   const devotionImageUrl = currentDevotion?.image;
@@ -652,7 +693,7 @@ const PlanDevotionViewer = () => {
     p: [
       tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
       darkMode ? tw`text-primary-1` : null,
-      {marginVertical: -15},
+      {marginVertical: 0},
     ],
     a: tw`text-accent-6 font-nokia-bold text-sm underline`,
     h1: [
@@ -670,12 +711,12 @@ const PlanDevotionViewer = () => {
     ol: [
       tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
       darkMode ? tw`text-primary-1` : null,
-      {marginVertical: -15, paddingLeft: 20},
+      {marginVertical: 0, paddingLeft: 20},
     ],
     ul: [
       tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
       darkMode ? tw`text-primary-1` : null,
-      {marginVertical: -15, paddingLeft: 20},
+      {marginVertical: 0, paddingLeft: 20},
     ],
     li: [
       tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
@@ -795,54 +836,39 @@ const PlanDevotionViewer = () => {
                     tw`border border-accent-6 p-4 rounded-4 mb-4 bg-primary-5 shadow-lg`,
                     darkMode ? tw`bg-secondary-8` : null,
                   ]}>
-                  <Text
-                    selectable
-                    style={[
-                      tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
-                      darkMode ? tw`text-primary-1` : null,
-                    ]}>
-                    {currentDevotion.verse}
-                  </Text>
+                  <HighlightableBlock
+                    blockId="verse-card"
+                    text={currentDevotion.verse}
+                    darkMode={darkMode}
+                    activeColorId={highlights['verse-card']}
+                    onSelectColor={setHighlight}
+                    onClearHighlight={clearHighlight}
+                    style={tw`rounded-4 p-1`}>
+                    <Text
+                      selectable
+                      style={[
+                        tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
+                        darkMode ? tw`text-primary-1` : null,
+                        verseHighlightStyle,
+                      ]}>
+                      {currentDevotion.verse}
+                    </Text>
+                  </HighlightableBlock>
                 </View>
               )}
 
               {/* Body Paragraphs */}
               {currentDevotion.body && currentDevotion.body.length > 0 && (
                 <View style={tw`my-8`}>
-                  {Array.isArray(currentDevotion.body) ? (
-                    currentDevotion.body.map((paragraph, idx) => {
-                      // Convert plain text with \r\n to HTML format
-                      let htmlContent = paragraph || '';
-
-                      // Check if content is already HTML (contains HTML tags)
-                      const isHTML = /<[a-z][\s\S]*>/i.test(htmlContent);
-
-                      if (!isHTML) {
-                        // Convert \r\n to <br/> tags
-                        htmlContent = htmlContent.replace(/\r\n/g, '<br/>');
-                        htmlContent = htmlContent.replace(/\n/g, '<br/>');
-                        htmlContent = htmlContent.replace(/\r/g, '<br/>');
-
-                        // Wrap in <p> tags so stylesheet can apply
-                        htmlContent = `<p>${htmlContent}</p>`;
-                      }
-
-                      return (
-                        <HTMLView
-                          key={idx}
-                          value={htmlContent}
-                          stylesheet={tailwindStyles}
-                          linebreak={false}
-                        />
-                      );
-                    })
-                  ) : (
-                    <HTMLView
-                      value={currentDevotion.body}
-                      stylesheet={tailwindStyles}
-                      linebreak={false}
-                    />
-                  )}
+                  <HighlightableHtmlBlocks
+                    blocks={currentDevotionBlocks}
+                    darkMode={darkMode}
+                    highlights={highlights}
+                    onSelectColor={setHighlight}
+                    onClearHighlight={clearHighlight}
+                    stylesheet={tailwindStyles}
+                    blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
+                  />
                 </View>
               )}
 
@@ -853,10 +879,22 @@ const PlanDevotionViewer = () => {
                     tw`border border-accent-6 p-4 rounded-4 mb-4 bg-primary-4 shadow-sm`,
                     darkMode ? tw`bg-secondary-8` : null,
                   ]}>
-                  <Text
-                    style={tw`font-nokia-bold text-accent-6 text-sm leading-tight text-center`}>
-                    {currentDevotion.prayer}
-                  </Text>
+                  <HighlightableBlock
+                    blockId="prayer-card"
+                    text={currentDevotion.prayer}
+                    darkMode={darkMode}
+                    activeColorId={highlights['prayer-card']}
+                    onSelectColor={setHighlight}
+                    onClearHighlight={clearHighlight}
+                    style={tw`rounded-4 p-1`}>
+                    <Text
+                      style={[
+                        tw`font-nokia-bold text-accent-6 text-sm leading-tight text-center`,
+                        prayerHighlightStyle,
+                      ]}>
+                      {currentDevotion.prayer}
+                    </Text>
+                  </HighlightableBlock>
                 </View>
               )}
 

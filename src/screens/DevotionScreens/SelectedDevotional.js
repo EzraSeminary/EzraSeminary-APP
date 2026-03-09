@@ -25,7 +25,6 @@ import {
 } from 'phosphor-react-native';
 import ErrorScreen from '../../components/ErrorScreen';
 import PreviousDevotions from './PreviousDevotions';
-import HTMLView from 'react-native-htmlview';
 import tw from './../../../tailwind';
 import {
   useGetDevotionsQuery,
@@ -40,11 +39,16 @@ import Toast from 'react-native-toast-message';
 import DevotionalShareModal from '../../components/DevotionalShareModal';
 import CommentsModal from '../../components/CommentsModal';
 import networkManager from '../../utils/networkManager';
+import HighlightableBlock from '../../components/HighlightableBlock';
+import HighlightableHtmlBlocks from '../../components/HighlightableHtmlBlocks';
 import {
   saveDevotionToCache,
   getCachedDevotion,
 } from '../../utils/devotionCache';
 import {toEthiopian} from 'ethiopian-date';
+import usePersistentHighlights from '../../hooks/usePersistentHighlights';
+import {extractHtmlBlocks} from '../../utils/htmlBlocks';
+import {getHighlightColors} from '../../utils/highlightPalette';
 
 const SelectedDevotional = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -124,6 +128,7 @@ const SelectedDevotional = ({route}) => {
   }, [
     likesData,
     commentsData,
+    devotional,
     devotional?.isLiked,
     devotional?.likesCount,
     devotional?.sharesCount,
@@ -218,6 +223,40 @@ const SelectedDevotional = ({route}) => {
       {},
     [listForDisplay, devotionalId, cachedDevotional],
   );
+  const highlightCacheKey = useMemo(
+    () => `devotional:${devotional._id || devotionalId}`,
+    [devotional._id, devotionalId],
+  );
+  const {highlights, setHighlight, clearHighlight} =
+    usePersistentHighlights(highlightCacheKey);
+  const devotionalBodyBlocks = useMemo(
+    () => extractHtmlBlocks(devotional.body || []),
+    [devotional.body],
+  );
+  const verseHighlightStyle = useMemo(() => {
+    const colors = getHighlightColors(highlights['verse-card'], darkMode);
+    return colors
+      ? {
+          backgroundColor: colors.backgroundColor,
+          borderRadius: 8,
+          overflow: 'hidden',
+          paddingHorizontal: 4,
+          paddingVertical: 2,
+        }
+      : null;
+  }, [darkMode, highlights]);
+  const prayerHighlightStyle = useMemo(() => {
+    const colors = getHighlightColors(highlights['prayer-card'], darkMode);
+    return colors
+      ? {
+          backgroundColor: colors.backgroundColor,
+          borderRadius: 8,
+          overflow: 'hidden',
+          paddingHorizontal: 4,
+          paddingVertical: 2,
+        }
+      : null;
+  }, [darkMode, highlights]);
 
   // Load from cache when offline or API fails
   useEffect(() => {
@@ -300,7 +339,7 @@ const SelectedDevotional = ({route}) => {
       ...(darkMode
         ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
         : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
-      marginVertical: -15,
+      marginVertical: 0,
     },
     a: {
       ...tw`text-accent-6 font-nokia-bold text-sm underline`,
@@ -318,14 +357,14 @@ const SelectedDevotional = ({route}) => {
       ...(darkMode
         ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
         : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
-      marginVertical: -15,
+      marginVertical: 0,
       paddingLeft: 20,
     },
     ul: {
       ...(darkMode
         ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
         : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
-      marginVertical: -15,
+      marginVertical: 0,
       paddingLeft: 20,
     },
     li: {
@@ -566,8 +605,7 @@ const SelectedDevotional = ({route}) => {
           removeClippedSubviews>
           <View
             style={tw`flex flex-row justify-between items-center mt-4 mb-4`}>
-            <TouchableOpacity
-              onPress={goToDevotionalHome}>
+            <TouchableOpacity onPress={goToDevotionalHome}>
               <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
             </TouchableOpacity>
           </View>
@@ -612,31 +650,48 @@ const SelectedDevotional = ({route}) => {
               tw`border border-accent-6 p-4 rounded-4 mt-4 bg-primary-5 shadow-lg`,
               darkMode ? tw`bg-secondary-8` : null,
             ]}>
-            <Text
-              selectable
-              style={[
-                tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
-                darkMode ? tw`text-primary-1` : null,
-              ]}>
-              {verse}
-            </Text>
-            {reference && (
-              <View style={tw`border-t border-accent-6 mt-3 pt-3`}>
+            <HighlightableBlock
+              blockId="verse-card"
+              text={[verse, reference].filter(Boolean).join('\n')}
+              darkMode={darkMode}
+              activeColorId={highlights['verse-card']}
+              onSelectColor={setHighlight}
+              onClearHighlight={clearHighlight}
+              style={tw`rounded-4 p-1`}>
+              <>
                 <Text
+                  selectable
                   style={[
-                    tw`font-nokia-bold text-accent-6 text-lg leading-tight`,
-                    darkMode ? tw`text-accent-6` : null,
+                    tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
+                    darkMode ? tw`text-primary-1` : null,
+                    verseHighlightStyle,
                   ]}>
-                  {reference}
+                  {verse}
                 </Text>
-              </View>
-            )}
+                {reference && (
+                  <View style={tw`border-t border-accent-6 mt-3 pt-3`}>
+                    <Text
+                      style={[
+                        tw`font-nokia-bold text-accent-6 text-lg leading-tight`,
+                        darkMode ? tw`text-accent-6` : null,
+                        verseHighlightStyle,
+                      ]}>
+                      {reference}
+                    </Text>
+                  </View>
+                )}
+              </>
+            </HighlightableBlock>
           </View>
           <View style={tw`mt-8`}>
-            <HTMLView
-              value={devotional.body[0]} // Assuming body[0] contains HTML string
+            <HighlightableHtmlBlocks
+              blocks={devotionalBodyBlocks}
+              darkMode={darkMode}
+              highlights={highlights}
+              onSelectColor={setHighlight}
+              onClearHighlight={clearHighlight}
               stylesheet={tailwindStyles}
-              linebreak={false}
+              blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
             />
           </View>
           <View
@@ -644,10 +699,22 @@ const SelectedDevotional = ({route}) => {
               tw`border border-accent-6 p-4 rounded-4 mt-8 bg-primary-4 shadow-sm mb-2`,
               darkMode ? tw`bg-secondary-8` : null,
             ]}>
-            <Text
-              style={tw`font-nokia-bold text-accent-6 text-sm leading-tight text-center`}>
-              {devotional.prayer}
-            </Text>
+            <HighlightableBlock
+              blockId="prayer-card"
+              text={devotional.prayer || ''}
+              darkMode={darkMode}
+              activeColorId={highlights['prayer-card']}
+              onSelectColor={setHighlight}
+              onClearHighlight={clearHighlight}
+              style={tw`rounded-4 p-1`}>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-accent-6 text-sm leading-tight text-center`,
+                  prayerHighlightStyle,
+                ]}>
+                {devotional.prayer}
+              </Text>
+            </HighlightableBlock>
           </View>
 
           {/* Share Devotional Button */}

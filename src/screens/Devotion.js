@@ -41,7 +41,6 @@ import {
 } from '../redux/api-slices/apiSlice';
 import {useDispatch} from 'react-redux';
 import {toEthiopian} from 'ethiopian-date';
-import HTMLView from 'react-native-htmlview';
 import {useCachedImage} from '../utils/imageCache';
 import ErrorScreen from '../components/ErrorScreen';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
@@ -55,6 +54,11 @@ import {
   getCachedHomeScreen,
 } from '../utils/homeScreenCache';
 import networkManager from '../utils/networkManager';
+import HighlightableBlock from '../components/HighlightableBlock';
+import HighlightableHtmlBlocks from '../components/HighlightableHtmlBlocks';
+import usePersistentHighlights from '../hooks/usePersistentHighlights';
+import {extractHtmlBlocks} from '../utils/htmlBlocks';
+import {getHighlightColors} from '../utils/highlightPalette';
 
 const ethiopianMonths = [
   '',
@@ -271,6 +275,46 @@ const Devotion = () => {
   // Get cached image (must be called before conditional returns)
   const url = devotionToDisplay?.image ? `${devotionToDisplay.image}` : '';
   const cachedImage = useCachedImage(url);
+  const {verse, reference} = separateVerseAndReference(
+    devotionToDisplay?.verse,
+  );
+  const devotionHighlightKey = useMemo(
+    () =>
+      `devotional-home:${
+        devotionToDisplay?._id || `${ethYear}-${ethMonth}-${ethDay}`
+      }`,
+    [devotionToDisplay?._id, ethDay, ethMonth, ethYear],
+  );
+  const {highlights, setHighlight, clearHighlight} =
+    usePersistentHighlights(devotionHighlightKey);
+  const devotionBodyBlocks = useMemo(
+    () => extractHtmlBlocks(devotionToDisplay?.body || []),
+    [devotionToDisplay?.body],
+  );
+  const verseHighlightStyle = useMemo(() => {
+    const colors = getHighlightColors(highlights['verse-card'], darkMode);
+    return colors
+      ? {
+          backgroundColor: colors.backgroundColor,
+          borderRadius: 8,
+          overflow: 'hidden',
+          paddingHorizontal: 4,
+          paddingVertical: 2,
+        }
+      : null;
+  }, [darkMode, highlights]);
+  const prayerHighlightStyle = useMemo(() => {
+    const colors = getHighlightColors(highlights['prayer-card'], darkMode);
+    return colors
+      ? {
+          backgroundColor: colors.backgroundColor,
+          borderRadius: 8,
+          overflow: 'hidden',
+          paddingHorizontal: 4,
+          paddingVertical: 2,
+        }
+      : null;
+  }, [darkMode, highlights]);
 
   const {data: likesData, refetch: refetchLikes} = useGetDevotionLikesQuery(
     devotionToDisplay?._id,
@@ -433,7 +477,10 @@ const Devotion = () => {
   useEffect(() => {
     console.log('=== DEVOTION SCREEN DEBUG ===');
     console.log('currentMonth:', currentEthiopianMonth, 'day:', ethDay);
-    console.log('featuredMonthDevotions loaded:', featuredMonthDevotions?.length || 0);
+    console.log(
+      'featuredMonthDevotions loaded:',
+      featuredMonthDevotions?.length || 0,
+    );
     console.log('discoverDevotions loaded:', discoverDevotions?.length || 0);
     console.log('isFeaturedFetching:', isFeaturedFetching);
     console.log('isDiscoverFetching:', isDiscoverFetching);
@@ -473,7 +520,7 @@ const Devotion = () => {
       ...(darkMode
         ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
         : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
-      marginVertical: -15,
+      marginVertical: 0,
     },
     a: tw`text-accent-6 font-nokia-bold text-sm underline`,
     h1: darkMode
@@ -701,7 +748,7 @@ const Devotion = () => {
 
   // Extract the verse content and reference
   // Handle various quote types: double quotes, single quotes, and mixed quotes
-  const separateVerseAndReference = verseText => {
+  function separateVerseAndReference(verseText) {
     if (!verseText) {
       return {verse: '', reference: ''};
     }
@@ -736,9 +783,7 @@ const Devotion = () => {
     }
 
     return {verse, reference};
-  };
-
-  const {verse, reference} = separateVerseAndReference(devotionToDisplay.verse);
+  }
 
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
@@ -874,31 +919,48 @@ const Devotion = () => {
               tw`border border-accent-6 p-4 rounded-4 mt-4 bg-primary-5 shadow-lg`,
               darkMode ? tw`bg-secondary-8` : null,
             ]}>
-            <Text
-              selectable
-              style={[
-                tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
-                darkMode ? tw`text-primary-1` : null,
-              ]}>
-              {verse}
-            </Text>
-            {reference && (
-              <View style={tw`border-t border-accent-6 mt-3 pt-3`}>
+            <HighlightableBlock
+              blockId="verse-card"
+              text={[verse, reference].filter(Boolean).join('\n')}
+              darkMode={darkMode}
+              activeColorId={highlights['verse-card']}
+              onSelectColor={setHighlight}
+              onClearHighlight={clearHighlight}
+              style={tw`rounded-4 p-1`}>
+              <>
                 <Text
+                  selectable
                   style={[
-                    tw`font-nokia-bold text-accent-6 text-lg leading-tight`,
-                    darkMode ? tw`text-accent-6` : null,
+                    tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
+                    darkMode ? tw`text-primary-1` : null,
+                    verseHighlightStyle,
                   ]}>
-                  {reference}
+                  {verse}
                 </Text>
-              </View>
-            )}
+                {reference && (
+                  <View style={tw`border-t border-accent-6 mt-3 pt-3`}>
+                    <Text
+                      style={[
+                        tw`font-nokia-bold text-accent-6 text-lg leading-tight`,
+                        darkMode ? tw`text-accent-6` : null,
+                        verseHighlightStyle,
+                      ]}>
+                      {reference}
+                    </Text>
+                  </View>
+                )}
+              </>
+            </HighlightableBlock>
           </View>
           <View style={tw`mt-8`}>
-            <HTMLView
-              value={devotionToDisplay.body[0]} // Assuming body[0] contains HTML string
+            <HighlightableHtmlBlocks
+              blocks={devotionBodyBlocks}
+              darkMode={darkMode}
+              highlights={highlights}
+              onSelectColor={setHighlight}
+              onClearHighlight={clearHighlight}
               stylesheet={tailwindStyles}
-              linebreak={false}
+              blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
             />
           </View>
           <View
@@ -906,10 +968,22 @@ const Devotion = () => {
               tw`border border-accent-6 p-4 rounded-4 mt-8 bg-primary-4 shadow-sm mb-2`,
               darkMode ? tw`bg-secondary-8` : null,
             ]}>
-            <Text
-              style={tw`font-nokia-bold text-accent-6 text-sm leading-tight text-center`}>
-              {devotionToDisplay.prayer}
-            </Text>
+            <HighlightableBlock
+              blockId="prayer-card"
+              text={devotionToDisplay.prayer || ''}
+              darkMode={darkMode}
+              activeColorId={highlights['prayer-card']}
+              onSelectColor={setHighlight}
+              onClearHighlight={clearHighlight}
+              style={tw`rounded-4 p-1`}>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-accent-6 text-sm leading-tight text-center`,
+                  prayerHighlightStyle,
+                ]}>
+                {devotionToDisplay.prayer}
+              </Text>
+            </HighlightableBlock>
           </View>
 
           {/* Share Devotional Button */}

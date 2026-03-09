@@ -15,6 +15,8 @@ import {
   CaretCircleDown,
   BookOpen,
   MagnifyingGlass,
+  Compass,
+  ArrowRight,
 } from 'phosphor-react-native';
 import tw from './../../tailwind';
 import {useGetCoursesQuery} from './../redux/api-slices/apiSlice';
@@ -25,10 +27,7 @@ import NetInfo from '@react-native-community/netinfo';
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 import Explore from './Explore';
-import {
-  getCachedCourseList,
-  saveCourseListToCache,
-} from '../utils/courseCache';
+import {getCachedCourseList, saveCourseListToCache} from '../utils/courseCache';
 
 // Tab Switcher Component - matching Devotion screen style
 const TabSwitcher = ({activeTab, setActiveTab, darkMode}) => (
@@ -168,7 +167,9 @@ const Course = () => {
   }, [apiCourses]);
 
   const courses =
-    Array.isArray(apiCourses) && apiCourses.length > 0 ? apiCourses : cachedCourses;
+    Array.isArray(apiCourses) && apiCourses.length > 0
+      ? apiCourses
+      : cachedCourses;
 
   const onRefresh = useCallback(async () => {
     const netInfo = await NetInfo.fetch();
@@ -217,6 +218,43 @@ const Course = () => {
   const toggleSortOrder = () => {
     setSortByLatest(prev => !prev);
   };
+
+  const renderExploreSeparator = key => (
+    <TouchableOpacity
+      key={key}
+      onPress={() => setActiveTab('explore')}
+      activeOpacity={0.85}
+      style={[
+        tw`my-2 px-4 py-3 rounded-2xl flex-row items-center justify-between border`,
+        {
+          backgroundColor: darkMode ? '#1F2937' : '#FFF7ED',
+          borderColor: '#EA9215',
+        },
+      ]}>
+      <View style={tw`flex-row items-center flex-1 mr-3`}>
+        <View
+          style={[
+            tw`w-10 h-10 rounded-full items-center justify-center mr-3`,
+            {backgroundColor: '#EA9215'},
+          ]}>
+          <Compass size={18} color="#FFFFFF" weight="fill" />
+        </View>
+        <View style={tw`flex-1`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-base`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            More books and resources are in Explore
+          </Text>
+          <Text style={tw`font-nokia-bold text-accent-6 text-sm mt-1`}>
+            Open Explore section
+          </Text>
+        </View>
+      </View>
+      <ArrowRight size={18} color="#EA9215" weight="bold" />
+    </TouchableOpacity>
+  );
 
   function getProgressValue(courseId) {
     const userProgress =
@@ -294,7 +332,6 @@ const Course = () => {
               opacity: fadeAnim,
               transform: [{translateY: slideAnim}],
             }}>
-
             {/* Enhanced Search Bar */}
             <Animated.View
               style={[
@@ -343,9 +380,9 @@ const Course = () => {
               </TouchableOpacity>
             </View>
             {filteredData.length > 0 ? (
-              filteredData.map((course, index) => {
+              filteredData.flatMap((course, index) => {
                 const progressValue = getProgressValue(course._id);
-                return (
+                const items = [
                   <Animated.View
                     style={[
                       tw`my-4 rounded-3xl overflow-hidden`,
@@ -518,8 +555,16 @@ const Course = () => {
                         </Text>
                       </TouchableOpacity>
                     </View>
-                  </Animated.View>
-                );
+                  </Animated.View>,
+                ];
+
+                if ((index + 1) % 5 === 0 && index < filteredData.length - 1) {
+                  items.push(
+                    renderExploreSeparator(`explore-separator-${index}`),
+                  );
+                }
+
+                return items;
               })
             ) : (
               <Animated.View
