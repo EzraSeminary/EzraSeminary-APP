@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {TouchableOpacity, View} from 'react-native';
 import HighlightActionSheet from './HighlightActionSheet';
+import {getHighlightColors} from '../utils/highlightPalette';
 
 const HighlightableBlock = ({
   blockId,
@@ -9,11 +10,19 @@ const HighlightableBlock = ({
   activeColorId,
   onSelectColor,
   onClearHighlight,
+  isSelectionMode,
+  isSelected,
+  onLongPressBlock,
+  onPressBlock,
   style,
   children,
   disabled = false,
 }) => {
-  const [isSheetVisible, setIsSheetVisible] = useState(false);
+  const [showSingleSheet, setShowSingleSheet] = useState(false);
+  const highlightColors = getHighlightColors(activeColorId, darkMode);
+  const usesExternalSelection =
+    typeof onLongPressBlock === 'function' &&
+    typeof onPressBlock === 'function';
 
   return (
     <>
@@ -25,26 +34,62 @@ const HighlightableBlock = ({
           if (!text) {
             return;
           }
-          setIsSheetVisible(true);
+          if (usesExternalSelection) {
+            onLongPressBlock(blockId);
+            return;
+          }
+          setShowSingleSheet(true);
+        }}
+        onPress={() => {
+          if (!usesExternalSelection || !isSelectionMode) {
+            return;
+          }
+          onPressBlock(blockId);
         }}>
-        <View style={style}>{children}</View>
+        <View
+          style={[
+            style,
+            highlightColors
+              ? {
+                  backgroundColor: highlightColors.backgroundColor,
+                  borderColor: highlightColors.borderColor,
+                  borderWidth: 1,
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                }
+              : null,
+            isSelected
+              ? {
+                  borderColor: '#EA9215',
+                  borderWidth: 2,
+                }
+              : null,
+          ]}>
+          {children}
+        </View>
       </TouchableOpacity>
 
-      <HighlightActionSheet
-        visible={isSheetVisible}
-        darkMode={darkMode}
-        previewText={text}
-        activeColorId={activeColorId}
-        onClose={() => setIsSheetVisible(false)}
-        onSelectColor={async colorId => {
-          await onSelectColor(blockId, colorId);
-          setIsSheetVisible(false);
-        }}
-        onClearHighlight={async () => {
-          await onClearHighlight(blockId);
-          setIsSheetVisible(false);
-        }}
-      />
+      {usesExternalSelection ? null : (
+        <HighlightActionSheet
+          visible={showSingleSheet}
+          darkMode={darkMode}
+          selectedCount={1}
+          selectedText={text || ''}
+          onClose={() => setShowSingleSheet(false)}
+          onSelectColor={async colorId => {
+            if (onSelectColor) {
+              await onSelectColor(blockId, colorId);
+            }
+            setShowSingleSheet(false);
+          }}
+          onClearHighlights={async () => {
+            if (onClearHighlight) {
+              await onClearHighlight(blockId);
+            }
+            setShowSingleSheet(false);
+          }}
+        />
+      )}
     </>
   );
 };

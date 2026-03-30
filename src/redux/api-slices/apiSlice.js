@@ -1,16 +1,12 @@
 import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
-import {Platform} from 'react-native';
-import {
-  normalizeDevotionsResponse,
-  normalizeCoursesResponse,
-} from '../../utils/apiResponse';
+import {normalizeDevotionsResponse} from '../../utils/apiResponse';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Dynamic base URL: Production backend is at https://ezrabackend.online
+// Dynamic base URL: Production backend is at http://localhost:5100
 // For emulator/simulator testing, override via AsyncStorage key 'apiBaseUrl'
 // Android emulator: 'http://10.0.2.2:5100/'
 // iOS simulator: 'http://localhost:5100/'
-const DEFAULT_BASE_URL = 'https://ezrabackend.online/';
+const DEFAULT_BASE_URL = 'http://localhost:5100/';
 
 const dynamicBaseQuery = async (args, api, extraOptions) => {
   let baseUrl = DEFAULT_BASE_URL;
@@ -71,6 +67,19 @@ export const apiSlice = createApi({
           'Content-Type': 'application/json',
         },
         body: credentials,
+      }),
+    }),
+    getAuthProviders: builder.query({
+      query: () => '/users/auth/providers',
+    }),
+    socialAuth: builder.mutation({
+      query: body => ({
+        url: '/users/auth/social',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body,
       }),
     }),
     signup: builder.mutation({
@@ -325,7 +334,9 @@ export const apiSlice = createApi({
         `/devotion/year/${year}/month/${encodeURIComponent(month)}`,
       transformResponse: response => {
         // Backend returns array of devotions for the month
-        if (Array.isArray(response)) return response;
+        if (Array.isArray(response)) {
+          return response;
+        }
         if (response?.items && Array.isArray(response.items)) {
           return response.items;
         }
@@ -449,6 +460,8 @@ export const apiSlice = createApi({
 export const {
   useSignupMutation,
   useLoginMutation,
+  useGetAuthProvidersQuery,
+  useSocialAuthMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
   useGetDevotionsQuery,

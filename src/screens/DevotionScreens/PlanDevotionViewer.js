@@ -36,7 +36,6 @@ import HighlightableBlock from '../../components/HighlightableBlock';
 import HighlightableHtmlBlocks from '../../components/HighlightableHtmlBlocks';
 import usePersistentHighlights from '../../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../../utils/htmlBlocks';
-import {getHighlightColors} from '../../utils/highlightPalette';
 
 // Completion Modal Component with Animation
 const CompletionModal = ({
@@ -290,30 +289,6 @@ const PlanDevotionViewer = () => {
     () => extractHtmlBlocks(currentDevotion?.body || []),
     [currentDevotion?.body],
   );
-  const verseHighlightStyle = useMemo(() => {
-    const colors = getHighlightColors(highlights['verse-card'], darkMode);
-    return colors
-      ? {
-          backgroundColor: colors.backgroundColor,
-          borderRadius: 8,
-          overflow: 'hidden',
-          paddingHorizontal: 4,
-          paddingVertical: 2,
-        }
-      : null;
-  }, [darkMode, highlights]);
-  const prayerHighlightStyle = useMemo(() => {
-    const colors = getHighlightColors(highlights['prayer-card'], darkMode);
-    return colors
-      ? {
-          backgroundColor: colors.backgroundColor,
-          borderRadius: 8,
-          overflow: 'hidden',
-          paddingHorizontal: 4,
-          paddingVertical: 2,
-        }
-      : null;
-  }, [darkMode, highlights]);
 
   // Call useCachedImage hook at the top level (before any early returns)
   const devotionImageUrl = currentDevotion?.image;
@@ -849,7 +824,6 @@ const PlanDevotionViewer = () => {
                       style={[
                         tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
                         darkMode ? tw`text-primary-1` : null,
-                        verseHighlightStyle,
                       ]}>
                       {currentDevotion.verse}
                     </Text>
@@ -890,7 +864,6 @@ const PlanDevotionViewer = () => {
                     <Text
                       style={[
                         tw`font-nokia-bold text-accent-6 text-sm leading-tight text-center`,
-                        prayerHighlightStyle,
                       ]}>
                       {currentDevotion.prayer}
                     </Text>

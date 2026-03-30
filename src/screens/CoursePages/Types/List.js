@@ -1,5 +1,5 @@
 import React from 'react';
-import {FlatList, Text} from 'react-native';
+import {FlatList, Text, View} from 'react-native';
 import tw from '../../../../tailwind';
 
 const List = ({value}) => (
@@ -7,10 +7,14 @@ const List = ({value}) => (
     data={value}
     keyExtractor={(item, index) => `${item}-${index}`}
     renderItem={({item}) => (
-      <Text style={tw`font-nokia-bold text-sm text-primary-1`}>
-        {'\u2022 '}
-        {item}
-      </Text>
+      <View style={tw`flex-row items-start mb-2 pr-2`}>
+        <Text style={[tw`font-nokia-bold text-primary-1`, {width: 20}]}>
+          {'\u2022'}
+        </Text>
+        <Text style={[tw`font-nokia-bold text-sm text-primary-1 flex-1`]}>
+          {item}
+        </Text>
+      </View>
     )}
     scrollEnabled={false}
     removeClippedSubviews

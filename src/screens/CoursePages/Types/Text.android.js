@@ -3,6 +3,15 @@ import {Text, View, StyleSheet, Linking} from 'react-native';
 import tw from '../../../../tailwind';
 import parse, {domToReact} from 'html-react-parser';
 
+const renderListRow = (marker, content, fontSizeStyle, alignStyle, key) => (
+  <View key={key} style={[styles.listItem, alignStyle]}>
+    <Text style={[styles.listMarker, fontSizeStyle]}>{marker}</Text>
+    <Text style={[styles.textBase, styles.listItemText, fontSizeStyle]}>
+      {content}
+    </Text>
+  </View>
+);
+
 const TextComponent = ({value}) => {
   const handleLinkPress = url => {
     Linking.openURL(url).catch(err =>
@@ -51,14 +60,15 @@ const TextComponent = ({value}) => {
       if (domNode.name === 'ol' || domNode.name === 'ul') {
         return (
           <View style={[styles.listContainer, getAlignStyle()]}>
-            {domNode.children.map((item, index) => (
-              <View key={index} style={styles.listItem}>
-                <Text style={[styles.textBase, getFontSizeStyle()]}>
-                  {domNode.name === 'ol' ? `${index + 1}. ` : '• '}
-                  {domToReact(item.children, renderOptions)}
-                </Text>
-              </View>
-            ))}
+            {domNode.children.map((item, index) =>
+              renderListRow(
+                domNode.name === 'ol' ? `${index + 1}.` : '\u2022',
+                domToReact(item.children, renderOptions),
+                getFontSizeStyle(),
+                getAlignStyle(),
+                index,
+              ),
+            )}
           </View>
         );
       }
@@ -80,12 +90,12 @@ const TextComponent = ({value}) => {
 
       // Handle individual list items
       if (domNode.name === 'li') {
-        return (
-          <View style={[styles.listItem, getAlignStyle()]}>
-            <Text style={[styles.textBase, getFontSizeStyle()]}>
-              {domToReact(domNode.children, renderOptions)}
-            </Text>
-          </View>
+        return renderListRow(
+          '\u2022',
+          domToReact(domNode.children, renderOptions),
+          getFontSizeStyle(),
+          getAlignStyle(),
+          `${domNode.startIndex || 0}-${domNode.endIndex || 0}`,
         );
       }
 
@@ -132,8 +142,18 @@ const styles = StyleSheet.create({
   largeFont: tw`text-2xl font-nokia-bold`,
   smallFont: tw`text-sm font-nokia-bold`,
   underlineText: tw`underline font-nokia-bold`,
-  listContainer: tw`mt-2 font-nokia-bold`,
-  listItem: tw`flex-row items-start font-nokia-bold`,
+  listContainer: tw`mt-2 font-nokia-bold w-full`,
+  listItem: tw`flex-row items-start font-nokia-bold w-full mb-2 pr-2`,
+  listMarker: {
+    ...tw`text-primary-1 font-nokia-bold`,
+    width: 20,
+    paddingTop: 1,
+  },
+  listItemText: {
+    flex: 1,
+    flexWrap: 'wrap',
+    lineHeight: 24,
+  },
   centerText: {
     textAlign: 'center',
   },

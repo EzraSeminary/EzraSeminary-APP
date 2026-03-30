@@ -120,7 +120,7 @@ const Home = () => {
     isFetching: courseIsFetching,
     refetch: refetchCourses,
     error: courseError,
-  } = useGetPublishedCoursesQuery();
+  } = useGetPublishedCoursesQuery({limit: 10, sort: 'desc'});
 
   // [DEVOTION FLOW] 1. Fetched from API (RTK Query)
   if (__DEV__) {

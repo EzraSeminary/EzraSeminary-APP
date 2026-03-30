@@ -465,7 +465,7 @@ class NotificationService {
       }
 
       // 2) Fallback to API
-      let baseUrl = 'https://ezrabackend.online/';
+      let baseUrl = 'http://localhost:5100/';
       try {
         const override = await AsyncStorage.getItem('apiBaseUrl');
         if (override && typeof override === 'string') {

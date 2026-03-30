@@ -58,7 +58,6 @@ import HighlightableBlock from '../components/HighlightableBlock';
 import HighlightableHtmlBlocks from '../components/HighlightableHtmlBlocks';
 import usePersistentHighlights from '../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../utils/htmlBlocks';
-import {getHighlightColors} from '../utils/highlightPalette';
 
 const ethiopianMonths = [
   '',
@@ -291,30 +290,6 @@ const Devotion = () => {
     () => extractHtmlBlocks(devotionToDisplay?.body || []),
     [devotionToDisplay?.body],
   );
-  const verseHighlightStyle = useMemo(() => {
-    const colors = getHighlightColors(highlights['verse-card'], darkMode);
-    return colors
-      ? {
-          backgroundColor: colors.backgroundColor,
-          borderRadius: 8,
-          overflow: 'hidden',
-          paddingHorizontal: 4,
-          paddingVertical: 2,
-        }
-      : null;
-  }, [darkMode, highlights]);
-  const prayerHighlightStyle = useMemo(() => {
-    const colors = getHighlightColors(highlights['prayer-card'], darkMode);
-    return colors
-      ? {
-          backgroundColor: colors.backgroundColor,
-          borderRadius: 8,
-          overflow: 'hidden',
-          paddingHorizontal: 4,
-          paddingVertical: 2,
-        }
-      : null;
-  }, [darkMode, highlights]);
 
   const {data: likesData, refetch: refetchLikes} = useGetDevotionLikesQuery(
     devotionToDisplay?._id,
@@ -933,7 +908,6 @@ const Devotion = () => {
                   style={[
                     tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
                     darkMode ? tw`text-primary-1` : null,
-                    verseHighlightStyle,
                   ]}>
                   {verse}
                 </Text>
@@ -943,7 +917,6 @@ const Devotion = () => {
                       style={[
                         tw`font-nokia-bold text-accent-6 text-lg leading-tight`,
                         darkMode ? tw`text-accent-6` : null,
-                        verseHighlightStyle,
                       ]}>
                       {reference}
                     </Text>
@@ -979,7 +952,6 @@ const Devotion = () => {
               <Text
                 style={[
                   tw`font-nokia-bold text-accent-6 text-sm leading-tight text-center`,
-                  prayerHighlightStyle,
                 ]}>
                 {devotionToDisplay.prayer}
               </Text>

@@ -108,7 +108,7 @@ class RemotePushService {
     try {
       // Use the same backend URL as the main API
       // Allow override via AsyncStorage key 'apiBaseUrl' for testing
-      let serverUrl = 'https://ezrabackend.online';
+      let serverUrl = 'http://localhost:5100';
       try {
         const override = await AsyncStorage.getItem('apiBaseUrl');
         if (override && typeof override === 'string') {

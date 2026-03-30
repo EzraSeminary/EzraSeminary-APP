@@ -48,7 +48,6 @@ import {
 import {toEthiopian} from 'ethiopian-date';
 import usePersistentHighlights from '../../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../../utils/htmlBlocks';
-import {getHighlightColors} from '../../utils/highlightPalette';
 
 const SelectedDevotional = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -233,30 +232,6 @@ const SelectedDevotional = ({route}) => {
     () => extractHtmlBlocks(devotional.body || []),
     [devotional.body],
   );
-  const verseHighlightStyle = useMemo(() => {
-    const colors = getHighlightColors(highlights['verse-card'], darkMode);
-    return colors
-      ? {
-          backgroundColor: colors.backgroundColor,
-          borderRadius: 8,
-          overflow: 'hidden',
-          paddingHorizontal: 4,
-          paddingVertical: 2,
-        }
-      : null;
-  }, [darkMode, highlights]);
-  const prayerHighlightStyle = useMemo(() => {
-    const colors = getHighlightColors(highlights['prayer-card'], darkMode);
-    return colors
-      ? {
-          backgroundColor: colors.backgroundColor,
-          borderRadius: 8,
-          overflow: 'hidden',
-          paddingHorizontal: 4,
-          paddingVertical: 2,
-        }
-      : null;
-  }, [darkMode, highlights]);
 
   // Load from cache when offline or API fails
   useEffect(() => {
@@ -664,7 +639,6 @@ const SelectedDevotional = ({route}) => {
                   style={[
                     tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
                     darkMode ? tw`text-primary-1` : null,
-                    verseHighlightStyle,
                   ]}>
                   {verse}
                 </Text>
@@ -674,7 +648,6 @@ const SelectedDevotional = ({route}) => {
                       style={[
                         tw`font-nokia-bold text-accent-6 text-lg leading-tight`,
                         darkMode ? tw`text-accent-6` : null,
-                        verseHighlightStyle,
                       ]}>
                       {reference}
                     </Text>
@@ -710,7 +683,6 @@ const SelectedDevotional = ({route}) => {
               <Text
                 style={[
                   tw`font-nokia-bold text-accent-6 text-sm leading-tight text-center`,
-                  prayerHighlightStyle,
                 ]}>
                 {devotional.prayer}
               </Text>

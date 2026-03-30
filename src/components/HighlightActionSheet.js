@@ -1,14 +1,7 @@
 import React from 'react';
-import {
-  Modal,
-  ScrollView,
-  Share,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import {Modal, Share, Text, TouchableOpacity, View} from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
-import {Copy, Selection, ShareNetwork, X} from 'phosphor-react-native';
+import {Check, Copy, ShareNetwork, X} from 'phosphor-react-native';
 import Toast from 'react-native-toast-message';
 import tw from './../../tailwind';
 import {HIGHLIGHT_PALETTE} from '../utils/highlightPalette';
@@ -16,40 +9,48 @@ import {HIGHLIGHT_PALETTE} from '../utils/highlightPalette';
 const HighlightActionSheet = ({
   visible,
   darkMode,
-  previewText,
-  activeColorId,
+  selectedCount,
+  selectedText,
   onClose,
   onSelectColor,
-  onClearHighlight,
+  onClearHighlights,
 }) => {
-  const handleCopy = async () => {
-    try {
-      Clipboard.setString(previewText || '');
-      Toast.show({
-        type: 'success',
-        text1: 'Copied to clipboard',
-      });
-      onClose();
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Copy failed',
-        text2: 'Unable to copy this text.',
-      });
+  const ensureSelection = () => {
+    if (selectedCount > 0) {
+      return true;
     }
+
+    Toast.show({
+      type: 'info',
+      text1: 'Select text first',
+      text2: 'Long press and tap more paragraphs to expand selection.',
+    });
+    return false;
+  };
+
+  const handleCopy = () => {
+    if (!ensureSelection()) {
+      return;
+    }
+
+    Clipboard.setString(selectedText || '');
+    Toast.show({
+      type: 'success',
+      text1: 'Copied to clipboard',
+    });
   };
 
   const handleShare = async () => {
+    if (!ensureSelection()) {
+      return;
+    }
+
     try {
-      await Share.share({
-        message: previewText || '',
-      });
-      onClose();
+      await Share.share({message: selectedText || ''});
     } catch (error) {
       Toast.show({
         type: 'error',
         text1: 'Share failed',
-        text2: 'Unable to share this text.',
       });
     }
   };
@@ -59,61 +60,29 @@ const HighlightActionSheet = ({
       visible={visible}
       transparent
       animationType="slide"
+      statusBarTranslucent
       onRequestClose={onClose}>
-      <View style={tw`flex-1 justify-end bg-black bg-opacity-45`}>
+      <View style={tw`flex-1 justify-end`} pointerEvents="box-none">
         <View
           style={[
-            tw`rounded-t-3xl px-5 pt-4 pb-8`,
+            tw`mx-3 mb-3 rounded-3xl px-4 pt-3 pb-4`,
             {backgroundColor: darkMode ? '#111827' : '#FFFFFF'},
           ]}>
-          <View style={tw`flex-row items-center justify-between mb-4`}>
-            <View style={tw`flex-row items-center`}>
-              <Selection size={22} color="#EA9215" weight="bold" />
-              <Text
-                style={[
-                  tw`font-nokia-bold text-lg ml-2`,
-                  {color: darkMode ? '#F8FAFC' : '#111827'},
-                ]}>
-                Highlight Text
-              </Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={tw`p-2`}>
+          <View style={tw`flex-row items-center justify-between mb-3`}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm`,
+                {color: darkMode ? '#F8FAFC' : '#111827'},
+              ]}>
+              {selectedCount} selected
+            </Text>
+            <TouchableOpacity onPress={onClose} style={tw`p-1`}>
               <X size={20} color={darkMode ? '#F8FAFC' : '#111827'} />
             </TouchableOpacity>
           </View>
 
-          <View
-            style={[
-              tw`rounded-2xl px-4 py-3 mb-4 border`,
-              {
-                backgroundColor: darkMode ? '#1F2937' : '#F8FAFC',
-                borderColor: darkMode ? '#374151' : '#E5E7EB',
-              },
-            ]}>
-            <ScrollView
-              style={{maxHeight: 120}}
-              showsVerticalScrollIndicator={false}>
-              <Text
-                style={[
-                  tw`font-nokia-bold text-sm leading-6`,
-                  {color: darkMode ? '#E5E7EB' : '#374151'},
-                ]}>
-                {previewText}
-              </Text>
-            </ScrollView>
-          </View>
-
-          <Text
-            style={[
-              tw`font-nokia-bold text-sm mb-3`,
-              {color: darkMode ? '#CBD5E1' : '#475569'},
-            ]}>
-            Choose a color
-          </Text>
-
-          <View style={tw`flex-row flex-wrap justify-between mb-5`}>
+          <View style={tw`flex-row flex-wrap justify-between mb-3`}>
             {HIGHLIGHT_PALETTE.map(color => {
-              const isActive = color.id === activeColorId;
               const swatchColor = darkMode
                 ? color.darkBackground
                 : color.lightBackground;
@@ -124,14 +93,19 @@ const HighlightActionSheet = ({
               return (
                 <TouchableOpacity
                   key={color.id}
-                  onPress={() => onSelectColor(color.id)}
+                  onPress={async () => {
+                    if (!ensureSelection()) {
+                      return;
+                    }
+                    await onSelectColor(color.id);
+                  }}
                   style={[
-                    tw`rounded-full mb-3 items-center justify-center`,
+                    tw`rounded-full mb-2 items-center justify-center`,
                     {
                       width: 30,
                       height: 30,
                       backgroundColor: swatchColor,
-                      borderWidth: isActive ? 3 : 1.5,
+                      borderWidth: 2,
                       borderColor,
                     },
                   ]}
@@ -144,13 +118,13 @@ const HighlightActionSheet = ({
             <TouchableOpacity
               onPress={handleCopy}
               style={[
-                tw`flex-row items-center justify-center rounded-2xl px-4 py-3`,
+                tw`flex-row items-center justify-center rounded-2xl py-2`,
                 {
-                  backgroundColor: darkMode ? '#1F2937' : '#F8FAFC',
                   width: '31%',
+                  backgroundColor: darkMode ? '#1F2937' : '#F8FAFC',
                 },
               ]}>
-              <Copy size={18} color="#EA9215" weight="bold" />
+              <Copy size={16} color="#EA9215" weight="bold" />
               <Text
                 style={[
                   tw`font-nokia-bold ml-2`,
@@ -163,13 +137,13 @@ const HighlightActionSheet = ({
             <TouchableOpacity
               onPress={handleShare}
               style={[
-                tw`flex-row items-center justify-center rounded-2xl px-4 py-3`,
+                tw`flex-row items-center justify-center rounded-2xl py-2`,
                 {
-                  backgroundColor: darkMode ? '#1F2937' : '#F8FAFC',
                   width: '31%',
+                  backgroundColor: darkMode ? '#1F2937' : '#F8FAFC',
                 },
               ]}>
-              <ShareNetwork size={18} color="#EA9215" weight="bold" />
+              <ShareNetwork size={16} color="#EA9215" weight="bold" />
               <Text
                 style={[
                   tw`font-nokia-bold ml-2`,
@@ -180,16 +154,16 @@ const HighlightActionSheet = ({
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={onClearHighlight}
+              onPress={onClearHighlights}
               style={[
-                tw`items-center justify-center rounded-2xl px-4 py-3`,
+                tw`flex-row items-center justify-center rounded-2xl py-2`,
                 {
-                  backgroundColor: activeColorId ? '#EA9215' : '#9CA3AF',
                   width: '31%',
+                  backgroundColor: '#EA9215',
                 },
-              ]}
-              disabled={!activeColorId}>
-              <Text style={tw`font-nokia-bold text-white`}>Clear</Text>
+              ]}>
+              <Check size={16} color="#FFFFFF" weight="bold" />
+              <Text style={tw`font-nokia-bold ml-2 text-white`}>Clear</Text>
             </TouchableOpacity>
           </View>
         </View>

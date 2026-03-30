@@ -26,6 +26,24 @@ const getExtension = url => {
   return '.img';
 };
 
+export const getOptimizedImageUrl = (
+  url,
+  {width = 600, height, quality = 80} = {},
+) => {
+  if (!url) return url;
+
+  if (url.includes('ik.imagekit.io')) {
+    const separator = url.includes('?') ? '&' : '?';
+    const transforms = [`w-${width}`, `q-${quality}`];
+    if (height) {
+      transforms.push(`h-${height}`);
+    }
+    return `${url}${separator}tr=${transforms.join(',')}`;
+  }
+
+  return url;
+};
+
 export const getCachedImagePath = async url => {
   await ensureCacheDir();
   const filename = `${simpleHash(url)}${getExtension(url)}`;
@@ -71,5 +89,3 @@ export const useCachedImage = url => {
   }, [url]);
   return uri;
 };
-
-

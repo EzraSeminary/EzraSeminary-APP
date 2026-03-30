@@ -1,5 +1,6 @@
 import {createSlice} from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {clearGoogleProviderSession} from '../services/socialAuth';
 
 const initialState = {
   user: null,
@@ -104,6 +105,7 @@ export const signupUser = userData => async dispatch => {
 
 export const logoutUser = () => async dispatch => {
   try {
+    await clearGoogleProviderSession();
     // Clear all auth-related data
     await AsyncStorage.multiRemove([
       'token',
@@ -121,7 +123,7 @@ export const logoutUser = () => async dispatch => {
 
 export const deactivateUserAccount = id => async dispatch => {
   try {
-    await fetch(`https://ezrabackend.online/users/status/${id}`, {
+    await fetch(`http://localhost:5100/users/status/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

@@ -28,6 +28,7 @@ import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 import Explore from './Explore';
 import {getCachedCourseList, saveCourseListToCache} from '../utils/courseCache';
+import {getOptimizedImageUrl} from '../utils/imageCache';
 
 // Tab Switcher Component - matching Devotion screen style
 const TabSwitcher = ({activeTab, setActiveTab, darkMode}) => (
@@ -409,7 +410,13 @@ const Course = () => {
                     {/* Course Image with Gradient Overlay */}
                     <View style={tw`h-56 relative`}>
                       <Image
-                        source={{uri: `${course.image}`}}
+                        source={{
+                          uri: getOptimizedImageUrl(course.image, {
+                            width: 900,
+                            height: 500,
+                            quality: 72,
+                          }),
+                        }}
                         style={tw`w-full h-full`}
                         resizeMode="cover"
                       />

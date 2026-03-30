@@ -1,37 +1,8 @@
-import React from 'react';
+import React, {useMemo, useState} from 'react';
 import {View} from 'react-native';
 import HTMLView from 'react-native-htmlview';
 import HighlightableBlock from './HighlightableBlock';
-import {getHighlightColors} from '../utils/highlightPalette';
-
-const TEXT_TAGS = [
-  'p',
-  'a',
-  'h1',
-  'h2',
-  'h3',
-  'h4',
-  'h5',
-  'h6',
-  'ol',
-  'ul',
-  'li',
-  'blockquote',
-  'div',
-  'span',
-];
-
-const mergeHighlightIntoStyle = (existingStyle, highlightStyle) => {
-  if (Array.isArray(existingStyle)) {
-    return [...existingStyle, highlightStyle];
-  }
-
-  if (existingStyle) {
-    return [existingStyle, highlightStyle];
-  }
-
-  return highlightStyle;
-};
+import HighlightActionSheet from './HighlightActionSheet';
 
 const HighlightableHtmlBlocks = ({
   blocks,
@@ -43,53 +14,88 @@ const HighlightableHtmlBlocks = ({
   renderNode,
   blockContainerStyle,
 }) => {
-  return (
-    <View>
-      {blocks.map(block => {
-        const activeColorId = highlights[block.id];
-        const highlightColors = getHighlightColors(activeColorId, darkMode);
-        const highlightTextStyle = highlightColors
-          ? {
-              backgroundColor: highlightColors.backgroundColor,
-              borderRadius: 8,
-              overflow: 'hidden',
-              paddingHorizontal: 3,
-              paddingVertical: 2,
-            }
-          : null;
-        const mergedStylesheet = highlightTextStyle
-          ? TEXT_TAGS.reduce(
-              (accumulator, tag) => {
-                accumulator[tag] = mergeHighlightIntoStyle(
-                  stylesheet?.[tag],
-                  highlightTextStyle,
-                );
-                return accumulator;
-              },
-              {...stylesheet},
-            )
-          : stylesheet;
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedBlockIds, setSelectedBlockIds] = useState([]);
 
-        return (
-          <HighlightableBlock
-            key={block.id}
-            blockId={block.id}
-            text={block.text}
-            darkMode={darkMode}
-            activeColorId={activeColorId}
-            onSelectColor={onSelectColor}
-            onClearHighlight={onClearHighlight}
-            style={blockContainerStyle}>
-            <HTMLView
-              value={block.html}
-              stylesheet={mergedStylesheet}
-              linebreak={false}
-              renderNode={renderNode}
-            />
-          </HighlightableBlock>
-        );
-      })}
-    </View>
+  const selectedText = useMemo(
+    () =>
+      blocks
+        .filter(block => selectedBlockIds.includes(block.id))
+        .map(block => block.text)
+        .join('\n\n'),
+    [blocks, selectedBlockIds],
+  );
+
+  const toggleBlockSelection = blockId => {
+    setSelectedBlockIds(previous => {
+      if (previous.includes(blockId)) {
+        return previous.filter(id => id !== blockId);
+      }
+      return [...previous, blockId];
+    });
+  };
+
+  const clearSelectionMode = () => {
+    setIsSelectionMode(false);
+    setSelectedBlockIds([]);
+  };
+
+  return (
+    <>
+      <View>
+        {blocks.map(block => {
+          const activeColorId = highlights[block.id];
+
+          return (
+            <HighlightableBlock
+              key={block.id}
+              blockId={block.id}
+              text={block.text}
+              darkMode={darkMode}
+              activeColorId={activeColorId}
+              isSelectionMode={isSelectionMode}
+              isSelected={selectedBlockIds.includes(block.id)}
+              onLongPressBlock={blockId => {
+                setIsSelectionMode(true);
+                setSelectedBlockIds(previous =>
+                  previous.includes(blockId)
+                    ? previous
+                    : [...previous, blockId],
+                );
+              }}
+              onPressBlock={toggleBlockSelection}
+              style={blockContainerStyle}>
+              <HTMLView
+                value={block.html}
+                stylesheet={stylesheet}
+                linebreak={false}
+                renderNode={renderNode}
+              />
+            </HighlightableBlock>
+          );
+        })}
+      </View>
+
+      <HighlightActionSheet
+        visible={isSelectionMode}
+        darkMode={darkMode}
+        selectedCount={selectedBlockIds.length}
+        selectedText={selectedText}
+        onClose={clearSelectionMode}
+        onSelectColor={async colorId => {
+          for (const blockId of selectedBlockIds) {
+            await onSelectColor(blockId, colorId);
+          }
+          clearSelectionMode();
+        }}
+        onClearHighlights={async () => {
+          for (const blockId of selectedBlockIds) {
+            await onClearHighlight(blockId);
+          }
+          clearSelectionMode();
+        }}
+      />
+    </>
   );
 };
 

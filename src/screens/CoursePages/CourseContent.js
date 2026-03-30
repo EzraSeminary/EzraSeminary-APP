@@ -16,12 +16,14 @@ import {
   ArrowSquareLeft,
   CheckCircle,
   Circle,
-  Warning,
+  BookOpen,
 } from 'phosphor-react-native';
 import {useSelector} from 'react-redux';
 import ErrorScreen from '../../components/ErrorScreen';
 import NetInfo from '@react-native-community/netinfo';
 import {getCachedCourseById, saveCourseToCache} from '../../utils/courseCache';
+import LinearGradient from 'react-native-linear-gradient';
+import {getOptimizedImageUrl, useCachedImage} from '../../utils/imageCache';
 
 const CourseContent = ({route}) => {
   const {courseId} = route.params;
@@ -62,6 +64,13 @@ const CourseContent = ({route}) => {
   }, [apiCourseData, courseId]);
 
   const courseData = apiCourseData || cachedCourseData;
+  const courseImage = useCachedImage(
+    getOptimizedImageUrl(courseData?.image, {
+      width: 1200,
+      height: 700,
+      quality: 76,
+    }),
+  );
 
   const onRefresh = useCallback(async () => {
     try {
@@ -160,9 +169,13 @@ const CourseContent = ({route}) => {
           <View style={tw`flex-1 h-70`}>
             <ImageBackground
               source={{
-                uri: `${courseData.image}`,
+                uri: courseImage,
               }}
               style={tw`flex-5`}>
+              <LinearGradient
+                colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.72)']}
+                style={tw`absolute inset-0`}
+              />
               <TouchableOpacity onPress={backButtonPress}>
                 <ArrowSquareLeft
                   size={36}
@@ -171,20 +184,35 @@ const CourseContent = ({route}) => {
                   style={tw`px-8 mt-4`}
                 />
               </TouchableOpacity>
+              <View style={tw`absolute bottom-0 w-full px-5 pb-5`}>
+                <View
+                  style={[
+                    tw`self-start rounded-full px-3 py-1 mb-3`,
+                    {backgroundColor: 'rgba(234, 146, 21, 0.92)'},
+                  ]}>
+                  <Text style={tw`font-nokia-bold text-white text-sm`}>
+                    {courseData?.category || 'Course'}
+                  </Text>
+                </View>
+                <Text style={tw`font-nokia-bold text-primary-1 text-3xl`}>
+                  {courseData?.title}
+                </Text>
+              </View>
             </ImageBackground>
             <View
               style={[
-                tw`flex-1 bg-primary-7 flex-row gap-2 justify-center items-center`,
+                tw`flex-1 bg-primary-7 flex-row gap-3 justify-center items-center px-4`,
                 darkMode ? tw`bg-secondary-8` : null,
               ]}>
-              <View style={tw`p-1 bg-accent-6 rounded-1`}>
+              <View style={tw`px-3 py-1 bg-accent-6 rounded-full`}>
                 <Text style={tw`font-nokia-bold text-primary-1`}>
                   {progressValue()}%
                 </Text>
               </View>
+              <BookOpen size={18} color="#EA9215" weight="bold" />
               <Text
                 style={[
-                  tw`font-nokia-bold text-secondary-6 text-sm`,
+                  tw`font-nokia-bold text-secondary-6 text-sm flex-1`,
                   darkMode ? tw`text-primary-3` : null,
                 ]}>
                 Pass 100% of your lessons to complete this course
@@ -192,21 +220,22 @@ const CourseContent = ({route}) => {
             </View>
           </View>
           <View style={tw`flex mx-auto w-[92%]`}>
-            <Text
+            <View
               style={[
-                tw`font-nokia-bold text-secondary-6 text-2xl mt-2`,
-                darkMode ? tw`text-primary-3` : null,
+                tw`mt-4 mb-4 rounded-3xl border px-4 py-4`,
+                {
+                  backgroundColor: darkMode ? '#1F2937' : '#FFFFFF',
+                  borderColor: '#EA9215',
+                },
               ]}>
-              {courseData?.title}
-            </Text>
-            <Text
-              style={[
-                tw`font-nokia-bold text-secondary-6 text-justify text-lg leading-tight my-3`,
-                darkMode ? tw`text-primary-3` : null,
-              ]}>
-              {'    '}
-              {courseData?.description}
-            </Text>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-secondary-6 text-lg leading-7`,
+                  darkMode ? tw`text-primary-3` : null,
+                ]}>
+                {courseData?.description}
+              </Text>
+            </View>
             <View style={tw`flex flex-row items-center`}>
               <View style={tw`border-b-4 border-accent-6`}>
                 <Text
@@ -236,8 +265,17 @@ const CourseContent = ({route}) => {
                   // disabled={!unlocked}
                 >
                   <View
-                    style={tw`flex flex-row justify-between px-4 py-2 items-center`}>
+                    style={[
+                      tw`flex flex-row justify-between px-4 py-4 items-center rounded-2xl mt-3`,
+                      {
+                        backgroundColor: darkMode ? '#1F2937' : '#FFF7ED',
+                      },
+                    ]}>
                     <View style={tw`flex`}>
+                      <Text
+                        style={tw`font-nokia-bold text-accent-6 text-xs mb-1`}>
+                        Chapter {index + 1}
+                      </Text>
                       <Text
                         style={[
                           tw`font-nokia-bold text-secondary-6 text-lg`,
@@ -252,7 +290,6 @@ const CourseContent = ({route}) => {
                       <Circle size={20} color={'#EA9215'} />
                     )}
                   </View>
-                  <View style={tw`border-b border-accent-6 h-1 flex-grow`} />
                 </TouchableOpacity>
               );
             })}
