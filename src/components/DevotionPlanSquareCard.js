@@ -38,7 +38,9 @@ const DevotionPlanSquareCard = ({
     }
   };
 
-  const resolvedStatus = status || (isStarted ? 'completed' : 'new');
+  // Prefer explicit status (matches Devotion screen). Legacy isStarted alone means in progress, not completed.
+  const resolvedStatus =
+    status || (isStarted ? 'in_progress' : 'new');
   const isCompleted = resolvedStatus === 'completed';
   const isInProgress = resolvedStatus === 'in_progress';
   const isNew = resolvedStatus === 'new';

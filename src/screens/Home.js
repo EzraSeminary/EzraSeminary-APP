@@ -40,6 +40,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {prefetchImages} from '../utils/imageCache';
 import {ensureOnlineOrNotify} from '../utils/refreshCacheManager';
 import {
+  saveHomeScreenToCache,
+  getCachedHomeScreen,
+} from '../utils/homeScreenCache';
+import {
   BookOpen,
   Calendar,
   Users,
@@ -379,6 +383,27 @@ const Home = () => {
       }
 
       if (!cachedString) {
+        const homeScreenCache = await getCachedHomeScreen('Home');
+        if (
+          homeScreenCache &&
+          (homeScreenCache.devotions?.length > 0 ||
+            homeScreenCache.courses?.length > 0)
+        ) {
+          const fallback = {
+            devotions: homeScreenCache.devotions || [],
+            courses: homeScreenCache.courses || [],
+            lastCacheTime:
+              homeScreenCache.lastCacheTime || new Date().toISOString(),
+          };
+          setCachedData(fallback);
+          if (fallback.devotions?.length > 0) {
+            dispatch(setDevotions(fallback.devotions));
+          }
+          if (fallback.courses?.length > 0) {
+            dispatch(setCourses(fallback.courses));
+          }
+          return fallback;
+        }
         return null;
       }
 
@@ -607,6 +632,25 @@ const Home = () => {
     ? devotionsToDisplay
     : [];
   const devotionToDisplay = selectedDevotion || null;
+
+  useEffect(() => {
+    if (!networkManager.isOnline) {
+      return;
+    }
+
+    if (
+      Array.isArray(devotionsToDisplay) &&
+      devotionsToDisplay.length > 0 &&
+      Array.isArray(coursesToDisplay) &&
+      coursesToDisplay.length > 0
+    ) {
+      saveHomeScreenToCache('Home', {
+        devotions: devotionsToDisplay,
+        courses: coursesToDisplay,
+        lastCacheTime: new Date().toISOString(),
+      });
+    }
+  }, [devotionsToDisplay, coursesToDisplay]);
 
   // [DEVOTION FLOW] 4. Final display values
   if (__DEV__) {
@@ -1543,30 +1587,57 @@ const Home = () => {
                     .filter(plan => plan && (plan._id || plan.id))
                     .map((plan, index) => {
                       const planId = plan._id || plan.id;
-                      const isStarted =
-                        myDevotionPlans.some(
-                          p => (p.planId || p.plan?._id) === planId,
-                        ) ||
-                        completedPlans.some(
-                          p => (p.planId || p.plan?._id) === planId,
-                        );
+                      const inProgressEntry = myDevotionPlans.find(
+                        p => (p.planId || p.plan?._id) === planId,
+                      );
+                      const completedEntry = completedPlans.find(
+                        p => (p.planId || p.plan?._id) === planId,
+                      );
+                      const planStatus = completedEntry
+                        ? 'completed'
+                        : inProgressEntry
+                        ? 'in_progress'
+                        : 'new';
+                      const itemsCompleted = Array.isArray(
+                        inProgressEntry?.itemsCompleted,
+                      )
+                        ? inProgressEntry.itemsCompleted.length
+                        : 0;
+                      const totalItems =
+                        inProgressEntry?.progress?.total ||
+                        plan?.numItems ||
+                        0;
+                      const percentFromServer =
+                        inProgressEntry?.progress?.percent || 0;
+                      const derivedPercent =
+                        totalItems > 0
+                          ? Math.round((itemsCompleted / totalItems) * 100)
+                          : 0;
+                      const progressPercent =
+                        percentFromServer > 0
+                          ? percentFromServer
+                          : derivedPercent;
+                      const progressLabel =
+                        planStatus === 'in_progress'
+                          ? `Progress ${progressPercent}%`
+                          : null;
+
                       return (
                         <DevotionPlanSquareCard
                           key={planId || index}
                           plan={plan}
                           darkMode={darkMode}
-                          isStarted={isStarted}
+                          status={planStatus}
+                          progressLabel={progressLabel}
                           onPress={pressedPlan => {
                             const pressedPlanId =
                               pressedPlan._id || pressedPlan.id;
-                            if (isStarted) {
-                              // If plan is already started, navigate directly
+                            if (planStatus !== 'new') {
                               navigation.navigate('Devotional', {
                                 screen: 'PlanDevotionViewer',
                                 params: {planId: pressedPlanId},
                               });
                             } else {
-                              // If plan is not started, show modal
                               setSelectedPlan(pressedPlan);
                               setShowStartPlanModal(true);
                             }

@@ -214,6 +214,7 @@ class NotificationService {
         data: {
           type: 'daily-verse',
           ...(devotion._id && {devotionId: String(devotion._id)}),
+          ...(devotion.year && {year: String(devotion.year)}),
         },
         android: {
           channelId: 'daily-verse',
@@ -295,6 +296,7 @@ class NotificationService {
         data: {
           type: 'daily-verse',
           ...(devotion._id && {devotionId: String(devotion._id)}),
+          ...(devotion.year && {year: String(devotion.year)}),
         },
         android: {
           channelId: 'daily-verse',

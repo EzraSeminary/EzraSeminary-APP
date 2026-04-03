@@ -12,25 +12,35 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     login: (state, action) => {
-      state.user = action.payload;
+      const payload = action.payload || {};
+      const token = payload.token || state.user?.token || '';
+      state.user = {
+        ...(state.user || {}),
+        ...payload,
+        ...(token ? {token} : {}),
+      };
 
       // Store the token in AsyncStorage
-      AsyncStorage.setItem('token', action.payload.token || '');
-      AsyncStorage.setItem('user', JSON.stringify(action.payload));
+      AsyncStorage.setItem('token', token);
+      AsyncStorage.setItem('user', JSON.stringify(state.user));
     },
     signup: (state, action) => {
       state.user = action.payload;
     },
     updateUser: (state, action) => {
-      state.user = action.payload;
+      const payload = action.payload || {};
+      const token = payload.token || state.user?.token || '';
+      state.user = {
+        ...(state.user || {}),
+        ...payload,
+        ...(token ? {token} : {}),
+      };
 
       // Assuming the token is part of the payload, update it in local storage as well
-      if (action.payload.token) {
-        AsyncStorage.setItem('token', action.payload.token);
-      }
+      AsyncStorage.setItem('token', token);
 
       // Update the user details in local storage
-      AsyncStorage.setItem('user', JSON.stringify(action.payload));
+      AsyncStorage.setItem('user', JSON.stringify(state.user));
     },
     logout: state => {
       state.user = null;
@@ -67,10 +77,16 @@ const authSlice = createSlice({
     },
 
     setUser: (state, action) => {
-      state.user = action.payload;
+      const payload = action.payload || {};
+      const token = payload.token || state.user?.token || '';
+      state.user = {
+        ...(state.user || {}),
+        ...payload,
+        ...(token ? {token} : {}),
+      };
 
       // Store the token in AsyncStorage
-      AsyncStorage.setItem('token', action.payload.token || '');
+      AsyncStorage.setItem('token', token);
     },
     deactivateAccount: state => {
       state.user = null;

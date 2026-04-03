@@ -14,13 +14,46 @@ const toastTextStyles = {
 };
 
 const toastConfig = {
-  success: props => <BaseToast {...props} {...toastTextStyles} />,
-  error: props => <ErrorToast {...props} {...toastTextStyles} />,
-  info: props => <InfoToast {...props} {...toastTextStyles} />,
+  success: props => (
+    <BaseToast
+      {...props}
+      {...toastTextStyles}
+      text1NumberOfLines={2}
+      text2NumberOfLines={2}
+    />
+  ),
+  error: props => (
+    <ErrorToast
+      {...props}
+      {...toastTextStyles}
+      text1NumberOfLines={2}
+      text2NumberOfLines={2}
+    />
+  ),
+  info: props => (
+    <InfoToast
+      {...props}
+      {...toastTextStyles}
+      text1NumberOfLines={2}
+      text2NumberOfLines={2}
+    />
+  ),
 };
 
 const ToastComponent = forwardRef((props, ref) => {
-  return <Toast {...props} config={toastConfig} ref={ref} />;
+  return (
+    <Toast
+      {...props}
+      config={toastConfig}
+      ref={ref}
+      autoHide={true}
+      visibilityTime={2800}
+      topOffset={60}
+      bottomOffset={40}
+      position="top"
+      swipeable={true}
+    />
+  );
 });
 
 export default ToastComponent;

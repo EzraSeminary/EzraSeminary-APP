@@ -31,6 +31,11 @@ import Explore from './Explore';
 import {getCachedCourseList, saveCourseListToCache} from '../utils/courseCache';
 import {getOptimizedImageUrl} from '../utils/imageCache';
 import {ensureOnlineOrNotify} from '../utils/refreshCacheManager';
+import {
+  saveHomeScreenToCache,
+  getCachedHomeScreen,
+} from '../utils/homeScreenCache';
+import networkManager from '../utils/networkManager';
 
 // Tab Switcher Component - matching Devotion screen style
 const TabSwitcher = ({activeTab, setActiveTab, darkMode}) => (
@@ -174,6 +179,12 @@ const Course = () => {
       const cached = await getCachedCourseList({allowExpired: true});
       if (cached.length > 0) {
         setCachedCourses(cached);
+        return;
+      }
+
+      const cachedHome = await getCachedHomeScreen('Course');
+      if (Array.isArray(cachedHome?.courses) && cachedHome.courses.length > 0) {
+        setCachedCourses(cachedHome.courses);
       }
     };
     loadCachedCourses();
@@ -200,6 +211,12 @@ const Course = () => {
     if (Array.isArray(pagedCourses) && pagedCourses.length > 0) {
       setCachedCourses(pagedCourses);
       saveCourseListToCache(pagedCourses);
+      if (networkManager.isOnline) {
+        saveHomeScreenToCache('Course', {
+          courses: pagedCourses,
+          lastCacheTime: new Date().toISOString(),
+        });
+      }
     }
   }, [pagedCourses]);
 

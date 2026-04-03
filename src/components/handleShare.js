@@ -1,38 +1,59 @@
 import Share from 'react-native-share';
 import RNFS from 'react-native-fs';
-import {Platform} from 'react-native';
 
-export const handleShare = async (setIsSharing, imageURI) => {
+export const handleShare = async (setIsSharing, imageURI, options = {}) => {
   setIsSharing(true);
   try {
-    if (!imageURI) {
-      throw new Error('No image name provided');
+    const message =
+      typeof options.message === 'string' ? options.message : '';
+    const title =
+      typeof options.title === 'string' && options.title.trim()
+        ? options.title
+        : 'Share Devotional';
+
+    if (!imageURI && !message) {
+      throw new Error('No shareable image or text provided');
     }
 
-    const filename = 'devotional_image.jpg';
-    const localFile = `${RNFS.CachesDirectoryPath}/${filename}`;
+    if (imageURI) {
+      const filename = `devotional_image_${Date.now()}.jpg`;
+      const localFile = `${RNFS.CachesDirectoryPath}/${filename}`;
 
-    // Download the image file using native fetch API
-    const response = await fetch(imageURI);
-    if (!response.ok) {
-      throw new Error(`Network response was not ok for URI: ${imageURI}`);
+      // Download the image file using native fetch API
+      const response = await fetch(imageURI);
+      if (!response.ok) {
+        throw new Error(`Network response was not ok for URI: ${imageURI}`);
+      }
+      const imageBlob = await response.blob();
+
+      // Process the image blob and write to local file system
+      const base64data = await blobToBase64(imageBlob);
+      await RNFS.writeFile(localFile, base64data, 'base64');
+
+      await Share.open({
+        title,
+        message,
+        url: `file://${localFile}`,
+        type: 'image/jpeg',
+      });
+      return true;
     }
-    const imageBlob = await response.blob();
 
-    // Process the image blob and write to local file system
-    const base64data = await blobToBase64(imageBlob);
-    await RNFS.writeFile(localFile, base64data, 'base64');
-
-    // Share the image file using react-native-share
-    const shareOptions = {
-      title: 'Share Devotional',
-      url: `file://${localFile}`,
-      type: 'image/jpeg',
-    };
-
-    await Share.open(shareOptions);
+    await Share.open({
+      title,
+      message,
+    });
+    return true;
   } catch (error) {
-    console.error('Error during sharing:', error);
+    const lowerMessage = `${error?.message || ''}`.toLowerCase();
+    const isCancelled =
+      lowerMessage.includes('cancel') ||
+      lowerMessage.includes('dismiss') ||
+      lowerMessage.includes('did not share');
+    if (!isCancelled) {
+      console.error('Error during sharing:', error);
+    }
+    return false;
   } finally {
     setIsSharing(false);
   }

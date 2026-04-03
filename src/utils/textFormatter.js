@@ -1,6 +1,69 @@
 // Utility functions for text formatting and HTML cleanup
 import {Platform} from 'react-native';
 
+const IOS_APP_STORE_LINK = 'https://apps.apple.com/us/app/ezra-seminary/id6740612880';
+const ANDROID_PLAY_STORE_LINK =
+  'https://play.google.com/store/apps/details?id=com.ezraapp&pcampaignid=web_share';
+
+const isHttpUrl = value =>
+  typeof value === 'string' && /^https?:\/\/\S+/i.test(value.trim());
+
+const pickFirstUrl = candidates => {
+  for (const candidate of candidates) {
+    if (isHttpUrl(candidate)) {
+      return candidate.trim();
+    }
+  }
+  return '';
+};
+
+export const getDefaultAppShareLink = () =>
+  Platform.OS === 'ios' ? IOS_APP_STORE_LINK : ANDROID_PLAY_STORE_LINK;
+
+export const getDevotionalShareLink = devotional => {
+  if (!devotional || typeof devotional !== 'object') {
+    return getDefaultAppShareLink();
+  }
+
+  return (
+    pickFirstUrl([
+      devotional.shareUrl,
+      devotional.shareURL,
+      devotional.link,
+      devotional.url,
+      devotional.webUrl,
+      devotional.webURL,
+      devotional.deepLink,
+      devotional.permalink,
+      devotional.links?.share,
+      devotional.links?.web,
+      devotional.links?.mobile,
+    ]) || getDefaultAppShareLink()
+  );
+};
+
+export const getDevotionPlanShareLink = plan => {
+  if (!plan || typeof plan !== 'object') {
+    return getDefaultAppShareLink();
+  }
+
+  return (
+    pickFirstUrl([
+      plan.shareUrl,
+      plan.shareURL,
+      plan.link,
+      plan.url,
+      plan.webUrl,
+      plan.webURL,
+      plan.deepLink,
+      plan.permalink,
+      plan.links?.share,
+      plan.links?.web,
+      plan.links?.mobile,
+    ]) || getDefaultAppShareLink()
+  );
+};
+
 /**
  * Removes HTML tags and entities from text while preserving structure
  * @param {string} html - The HTML string to clean
@@ -175,7 +238,21 @@ export const stripHtmlTags = html => {
 export const formatDevotionalForSharing = devotional => {
   if (!devotional) return '';
 
-  const date = `${devotional.month} ${devotional.day}`;
+  const verse = devotional.verse?.trim() || '';
+  const link = getDevotionalShareLink(devotional);
+
+  if (verse) {
+    return `${verse}\n\n🔗 ${link}`;
+  }
+
+  const title = devotional.title?.trim() || 'Daily Devotional';
+  return `${title}\n\n🔗 ${link}`;
+};
+
+export const formatDevotionalForRichSharing = devotional => {
+  if (!devotional) return '';
+
+  const date = `${devotional.month || ''} ${devotional.day || ''}`.trim();
   const title = devotional.title || '';
   const chapter = devotional.chapter || '';
   const verse = devotional.verse || '';
@@ -184,51 +261,47 @@ export const formatDevotionalForSharing = devotional => {
 
   let formattedText = '';
 
-  // Add date
-  if (date.trim() !== ' ') {
+  if (date) {
     formattedText += `📅 ${date}\n\n`;
   }
 
-  // Add title
   if (title) {
     formattedText += `${title}\n`;
     formattedText += '━'.repeat(title.length) + '\n\n';
   }
 
-  // Add scripture reference
   if (chapter) {
     formattedText += `📖 የዕለቱ የመጽሐፍ ቅዱስ ንባብ ክፍል: ${chapter}\n\n`;
   }
 
-  // Add verse
   if (verse) {
     formattedText += `"${verse}"\n\n`;
   }
 
-  // Add body content
   if (body) {
     formattedText += `${body}\n\n`;
   }
 
-  // Add prayer
   if (prayer) {
     formattedText += `🙏 ጸሎት:\n${prayer}\n\n`;
   }
 
-  // Add footer
   formattedText += '────────────────\n';
   formattedText += '📱 Ezra Seminary - Daily Devotional\n';
-
-  // Add platform-specific app store link
-  if (Platform.OS === 'ios') {
-    // Add App Store link for iOS
-    formattedText +=
-      '🍎 Download on App Store: [https://apps.apple.com/us/app/ezra-seminary/id6740612880]';
-  } else if (Platform.OS === 'android') {
-    // Add Google Play Store link for Android
-    formattedText +=
-      '🤖 Get it on Google Play: [https://play.google.com/store/apps/details?id=com.ezraapp]';
-  }
+  formattedText += `🔗 ${getDefaultAppShareLink()}`;
 
   return formattedText;
+};
+
+export const formatDevotionPlanForSharing = plan => {
+  if (!plan) return '';
+
+  const title = plan.title?.trim() || 'Devotion Plan';
+  const description = stripHtmlTags(plan.description || '').trim();
+  const link = getDevotionPlanShareLink(plan);
+
+  if (description) {
+    return `${title}\n\n${description}\n\n🔗 ${link}`;
+  }
+  return `${title}\n\n🔗 ${link}`;
 };

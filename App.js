@@ -23,7 +23,7 @@ import HomeStack from './src/navigation/HomeStack';
 import DevotionalStack from './src/navigation/DevotionalStack';
 import SSLStack from './src/navigation/SSLStack';
 import {useGetCurrentUserQuery} from './src/redux/api-slices/apiSlice';
-import {login} from './src/redux/authSlice';
+import {login, updateUser} from './src/redux/authSlice';
 import {Login, Signup, Welcome, Setting, SSL} from './src/screens';
 import SettingsStack from './src/navigation/SettingsStack';
 import {navigationRef} from './src/navigation/NavigationRef';
@@ -47,7 +47,7 @@ const MainTabNavigator = () => {
   //save user data to redux
   useEffect(() => {
     if (userData) {
-      dispatch(login(userData)); // Dispatch the login action
+      dispatch(updateUser(userData));
     }
   }, [dispatch, userData]);
 
@@ -207,6 +207,11 @@ const App = () => {
     checkLoginStatus();
   }, []);
 
+  useEffect(() => {
+    // Ensure no stale toast blocks interactions after cold start / reinstall.
+    Toast.hide();
+  }, []);
+
   const handleSplashFinish = () => {
     setShowSplash(false);
   };
@@ -223,9 +228,15 @@ const App = () => {
       }
 
       if (devotionId) {
-        navigationRef.current.navigate('SelectedDevotional', {
-          devotionalId: String(devotionId),
-          ...(Number.isFinite(parsedYear) ? {year: parsedYear} : {}),
+        navigationRef.current.navigate('MainTab', {
+          screen: 'Devotional',
+          params: {
+            screen: 'SelectedDevotional',
+            params: {
+              devotionalId: String(devotionId),
+              ...(Number.isFinite(parsedYear) ? {year: parsedYear} : {}),
+            },
+          },
         });
         return;
       }
@@ -353,7 +364,7 @@ const App = () => {
           </Stack.Navigator>
         </NavigationContainer>
       </PersistGate>
-      <ToastComponent ref={ref => Toast.setRef(ref)} />
+      <ToastComponent />
     </Provider>
   );
 };

@@ -4,7 +4,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import Toast from 'react-native-toast-message';
 import {Copy, ShareNetwork, X} from 'phosphor-react-native';
 import tw from './../../tailwind';
-import {formatDevotionalForSharing} from '../utils/textFormatter';
+import {formatDevotionalForRichSharing} from '../utils/textFormatter';
 
 const DevotionalShareModal = ({
   visible,
@@ -14,7 +14,7 @@ const DevotionalShareModal = ({
 }) => {
   const handleCopyToClipboard = async () => {
     try {
-      const formattedText = formatDevotionalForSharing(devotional);
+      const formattedText = formatDevotionalForRichSharing(devotional);
       await Clipboard.setString(formattedText);
       Toast.show({
         type: 'success',
@@ -33,12 +33,11 @@ const DevotionalShareModal = ({
 
   const handleNativeShare = async () => {
     try {
-      const formattedText = formatDevotionalForSharing(devotional);
+      const formattedText = formatDevotionalForRichSharing(devotional);
       const result = await Share.share({
         message: formattedText,
-        title: `የዕለቱ መንፈሳዊ ትምህርት - ${devotional.title}`,
+        title: `የዕለቱ መንፈሳዊ ትምህርት - ${devotional?.title || ''}`,
       });
-
       if (result.action === Share.sharedAction) {
         onClose();
       }
@@ -140,7 +139,8 @@ const DevotionalShareModal = ({
                   darkMode ? tw`text-primary-2` : null,
                 ]}
                 numberOfLines={6}>
-                {formatDevotionalForSharing(devotional).substring(0, 500)}...
+                {formatDevotionalForRichSharing(devotional).substring(0, 500)}
+                ...
               </Text>
             </View>
           </View>

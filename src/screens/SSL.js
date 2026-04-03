@@ -17,6 +17,8 @@ import InVerseHome from './InVerseScreens/InVerseHome'; // Import the InVerseHom
 import {Globe} from 'phosphor-react-native';
 import NetInfo from '@react-native-community/netinfo';
 import Toast from 'react-native-toast-message';
+import {saveHomeScreenToCache, getCachedHomeScreen} from '../utils/homeScreenCache';
+import networkManager from '../utils/networkManager';
 
 const SSL = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -27,6 +29,29 @@ const SSL = ({navigation}) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
+
+  React.useEffect(() => {
+    const loadCachedSSLScreen = async () => {
+      const cached = await getCachedHomeScreen('SSLScreen');
+      if (cached?.activeTab) {
+        setActiveTab(cached.activeTab);
+      }
+    };
+
+    loadCachedSSLScreen();
+  }, []);
+
+  React.useEffect(() => {
+    if (!networkManager.isOnline) {
+      return;
+    }
+
+    saveHomeScreenToCache('SSLScreen', {
+      activeTab,
+      language,
+      lastCacheTime: new Date().toISOString(),
+    });
+  }, [activeTab, language]);
 
   const handleLanguageChange = selectedLanguage => {
     dispatch(setLanguage(selectedLanguage));

@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  Share as RNShare,
 } from 'react-native';
 import {useCachedImage} from '../../utils/imageCache';
 import {useSelector} from 'react-redux';
@@ -48,6 +47,7 @@ import {
 import {toEthiopian} from 'ethiopian-date';
 import usePersistentHighlights from '../../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../../utils/htmlBlocks';
+import {formatDevotionalForSharing} from '../../utils/textFormatter';
 
 const SelectedDevotional = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -169,34 +169,34 @@ const SelectedDevotional = ({route}) => {
     }
 
     try {
-      const result = await RNShare.share({
-        message: `Check out this daily devotional: ${devotional.title}\n\n${devotional.verse}`,
-        title: devotional.title,
+      const didShare = await handleShare(setIsSharing, devotional.image || '', {
+        message: formatDevotionalForSharing(devotional),
+        title: devotional.title || 'Daily Devotional',
       });
-
-      if (result.action === RNShare.sharedAction) {
-        // Track share on backend to increment share count
-        try {
-          const shareResult = await trackShare(devotional._id).unwrap();
-          // Update share count from backend response
-          if (shareResult?.sharesCount !== undefined) {
-            setSharesCount(shareResult.sharesCount);
-          } else {
-            // Fallback: optimistic update if backend doesn't return count
-            setSharesCount(prevCount => prevCount + 1);
-          }
-        } catch (shareError) {
-          // Even if tracking fails, still show success (share was successful)
-          console.error('Failed to track share:', shareError);
-          // Optimistic update
+      if (!didShare) {
+        return;
+      }
+      // Track share on backend to increment share count
+      try {
+        const shareResult = await trackShare(devotional._id).unwrap();
+        // Update share count from backend response
+        if (shareResult?.sharesCount !== undefined) {
+          setSharesCount(shareResult.sharesCount);
+        } else {
+          // Fallback: optimistic update if backend doesn't return count
           setSharesCount(prevCount => prevCount + 1);
         }
-
-        Toast.show({
-          type: 'success',
-          text1: 'Shared successfully',
-        });
+      } catch (shareError) {
+        // Even if tracking fails, still show success (share was successful)
+        console.error('Failed to track share:', shareError);
+        // Optimistic update
+        setSharesCount(prevCount => prevCount + 1);
       }
+
+      Toast.show({
+        type: 'success',
+        text1: 'Shared successfully',
+      });
     } catch (error) {
       Toast.show({
         type: 'error',

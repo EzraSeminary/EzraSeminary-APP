@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   FlatList,
   ScrollView,
+  Share,
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import {useNavigation} from '@react-navigation/native';
@@ -26,6 +27,7 @@ import {
   getCachedHomeScreen,
 } from '../../utils/homeScreenCache';
 import networkManager from '../../utils/networkManager';
+import {formatDevotionPlanForSharing} from '../../utils/textFormatter';
 
 const DevotionPlans = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -199,6 +201,21 @@ const DevotionPlans = () => {
     }
   };
 
+  const handleSharePlan = async plan => {
+    try {
+      await Share.share({
+        title: plan?.title || 'Devotion Plan',
+        message: formatDevotionPlanForSharing(plan),
+      });
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to Share Plan',
+        text2: 'Please try again.',
+      });
+    }
+  };
+
   const renderPlanCard = ({
     item,
     withProgress = false,
@@ -281,6 +298,14 @@ const DevotionPlans = () => {
           )}
 
           <View style={tw`flex-row gap-2`}>
+            <TouchableOpacity
+              style={tw`bg-primary-4 px-4 py-2 rounded-full`}
+              onPress={() => handleSharePlan(plan)}>
+              <Text
+                style={tw`text-secondary-7 font-nokia-bold text-sm text-center`}>
+                Share Link
+              </Text>
+            </TouchableOpacity>
             {isCompleted ? (
               <TouchableOpacity
                 style={tw`flex-1 bg-accent-6 px-4 py-2 rounded-full`}

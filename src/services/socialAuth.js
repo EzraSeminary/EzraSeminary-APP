@@ -34,11 +34,13 @@ export const signInWithGoogleProvider = async ({webClientId, iosClientId}) => {
       await GoogleSignin.hasPlayServices();
     }
 
-    // Reset any stale native session before starting a new interactive flow.
+    // Always clear stale native sessions so account picker appears consistently.
     try {
-      if (GoogleSignin.hasPreviousSignIn()) {
-        await GoogleSignin.signOut();
-      }
+      await GoogleSignin.signOut();
+    } catch {}
+
+    try {
+      await GoogleSignin.revokeAccess();
     } catch {}
 
     response = await GoogleSignin.signIn();
@@ -77,8 +79,9 @@ export const isSocialAuthCancelled = error =>
 
 export const clearGoogleProviderSession = async () => {
   try {
-    if (GoogleSignin.hasPreviousSignIn()) {
-      await GoogleSignin.signOut();
-    }
+    await GoogleSignin.signOut();
+  } catch {}
+  try {
+    await GoogleSignin.revokeAccess();
   } catch {}
 };

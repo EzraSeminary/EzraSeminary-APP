@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {View, Text, TouchableOpacity, ImageBackground, Share} from 'react-native';
+import {View, Text, TouchableOpacity, ImageBackground} from 'react-native';
 import {BookOpenText, Heart, ShareNetwork, ChatCircle} from 'phosphor-react-native';
 import {useSelector} from 'react-redux';
 import {useCachedImage} from '../utils/imageCache';
@@ -12,6 +12,8 @@ import {
 } from '../redux/api-slices/apiSlice';
 import CommentsModal from './CommentsModal';
 import Toast from 'react-native-toast-message';
+import {handleShare as shareWithImage} from './handleShare';
+import {formatDevotionalForSharing} from '../utils/textFormatter';
 
 const DevotionCard = ({devotion, darkMode, navigation}) => {
   const user = useSelector(state => state.auth.user);
@@ -22,6 +24,7 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
   const [commentsCount, setCommentsCount] = useState(
     devotion.commentsCount || 0,
   );
+  const [isSharing, setIsSharing] = useState(false);
 
   const {data: likesData, refetch: refetchLikes} = useGetDevotionLikesQuery(
     devotion._id,
@@ -108,34 +111,34 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
     }
 
     try {
-      const result = await Share.share({
-        message: `Check out this daily devotional: ${devotion.title}\n\n${devotion.verse}`,
-        title: devotion.title,
+      const didShare = await shareWithImage(setIsSharing, devotion.image || '', {
+        message: formatDevotionalForSharing(devotion),
+        title: devotion.title || 'Daily Devotional',
       });
-
-      if (result.action === Share.sharedAction) {
-        // Track share on backend to increment share count
-        try {
-          const shareResult = await trackShare(devotion._id).unwrap();
-          // Update share count from backend response
-          if (shareResult?.sharesCount !== undefined) {
-            setSharesCount(shareResult.sharesCount);
-          } else {
-            // Fallback: optimistic update if backend doesn't return count
-            setSharesCount(prevCount => prevCount + 1);
-          }
-        } catch (shareError) {
-          // Even if tracking fails, still show success (share was successful)
-          console.error('Failed to track share:', shareError);
-          // Optimistic update
+      if (!didShare) {
+        return;
+      }
+      // Track share on backend to increment share count
+      try {
+        const shareResult = await trackShare(devotion._id).unwrap();
+        // Update share count from backend response
+        if (shareResult?.sharesCount !== undefined) {
+          setSharesCount(shareResult.sharesCount);
+        } else {
+          // Fallback: optimistic update if backend doesn't return count
           setSharesCount(prevCount => prevCount + 1);
         }
-
-        Toast.show({
-          type: 'success',
-          text1: 'Shared successfully',
-        });
+      } catch (shareError) {
+        // Even if tracking fails, still show success (share was successful)
+        console.error('Failed to track share:', shareError);
+        // Optimistic update
+        setSharesCount(prevCount => prevCount + 1);
       }
+
+      Toast.show({
+        type: 'success',
+        text1: 'Shared successfully',
+      });
     } catch (error) {
       Toast.show({
         type: 'error',
@@ -264,7 +267,8 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
 
           <TouchableOpacity
             style={tw`flex-row items-center gap-1`}
-            onPress={handleShare}>
+            onPress={handleShare}
+            disabled={isTrackingShare || isSharing}>
             <ShareNetwork size={20} weight="regular" color="#FFFFFF" />
             <Text style={tw`font-nokia-bold text-primary-2 text-sm`}>
               {sharesCount || 0}
