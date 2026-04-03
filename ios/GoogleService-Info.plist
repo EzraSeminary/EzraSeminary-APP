@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CLIENT_ID</key>
+	<string>1096965053624-706nf9fvl7dkm94kkrdifv8d8n7brj05.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.1096965053624-706nf9fvl7dkm94kkrdifv8d8n7brj05</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>1096965053624-rrvr1ce3iomajdf64k3jcfer9uf55js1.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
 	<string>AIzaSyDXwVjlIURgnX7KCghv71y2Llt_JUgIKSQ</string>
 	<key>GCM_SENDER_ID</key>
@@ -9,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>org.reactjs.native.example.EzraApp</string>
+	<string>com.ezra.ezraseminary</string>
 	<key>PROJECT_ID</key>
 	<string>ezra-seminary-ffc4e</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1096965053624:ios:6d1113f7b5387036fb284d</string>
+	<string>1:1096965053624:ios:274b0bdfd78951a2fb284d</string>
 </dict>
 </plist>

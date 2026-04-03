@@ -38,6 +38,7 @@ import {setCourses} from '../redux/courseSlice';
 import {scheduleVerseOfTheDayNotification} from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {prefetchImages} from '../utils/imageCache';
+import {ensureOnlineOrNotify} from '../utils/refreshCacheManager';
 import {
   BookOpen,
   Calendar,
@@ -69,6 +70,7 @@ const {width} = Dimensions.get('window');
 const Home = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDeferredSections, setShowDeferredSections] = useState(false);
   const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
@@ -120,7 +122,7 @@ const Home = () => {
     isFetching: courseIsFetching,
     refetch: refetchCourses,
     error: courseError,
-  } = useGetPublishedCoursesQuery({limit: 10, sort: 'desc'});
+  } = useGetPublishedCoursesQuery({limit: 4, sort: 'desc', page: 1});
 
   // [DEVOTION FLOW] 1. Fetched from API (RTK Query)
   if (__DEV__) {
@@ -162,16 +164,22 @@ const Home = () => {
     data: myDevotionPlans = [],
     isLoading: myDevotionPlansLoading,
     refetch: refetchMyDevotionPlans,
-  } = useGetMyDevotionPlansQuery({
-    status: 'in_progress',
-  });
+  } = useGetMyDevotionPlansQuery(
+    {
+      status: 'in_progress',
+    },
+    {skip: !user},
+  );
   const {
     data: completedPlans = [],
     isLoading: completedPlansLoading,
     refetch: refetchCompletedPlans,
-  } = useGetMyDevotionPlansQuery({
-    status: 'completed',
-  });
+  } = useGetMyDevotionPlansQuery(
+    {
+      status: 'completed',
+    },
+    {skip: !user},
+  );
 
   const hasRefetchedPlansOnMount = useRef(false);
   const hasInitializedHomeRef = useRef(false);
@@ -339,35 +347,69 @@ const Home = () => {
   const CACHE_KEY = `home_data_cache_${yearToFetch}_${currentEthiopianMonth}`;
   const CACHE_EXPIRY_HOURS = 24; // Cache expires after 24 hours
 
-  const loadCachedData = useCallback(async () => {
+  const loadCachedData = useCallback(async ({allowExpired = true} = {}) => {
     try {
-      const cachedString = await AsyncStorage.getItem(CACHE_KEY);
-      if (cachedString) {
-        const cached = JSON.parse(cachedString);
-        const now = new Date().getTime();
-        const cacheTime = new Date(cached.lastCacheTime).getTime();
-        const isExpired = now - cacheTime > CACHE_EXPIRY_HOURS * 60 * 60 * 1000;
+      let cachedString = await AsyncStorage.getItem(CACHE_KEY);
 
-        if (!isExpired) {
-          setCachedData(cached);
-          // Update Redux store with cached data
-          if (cached.devotions?.length > 0) {
-            dispatch(setDevotions(cached.devotions));
-          }
-          if (cached.courses?.length > 0) {
-            dispatch(setCourses(cached.courses));
-          }
-          console.log('[Home] Devotion - Loaded from cache:', {
-            count: cached.devotions?.length ?? 0,
-            lastCacheTime: cached.lastCacheTime,
+      // Fallback to latest cached home payload if current month key is missing.
+      if (!cachedString) {
+        const keys = await AsyncStorage.getAllKeys();
+        const homeKeys = keys.filter(key => key.startsWith('home_data_cache_'));
+        if (homeKeys.length > 0) {
+          const keyValues = await AsyncStorage.multiGet(homeKeys);
+          let latest = null;
+          keyValues.forEach(([, raw]) => {
+            if (!raw) return;
+            try {
+              const parsed = JSON.parse(raw);
+              if (!parsed?.lastCacheTime) return;
+              if (
+                !latest ||
+                new Date(parsed.lastCacheTime).getTime() >
+                  new Date(latest.lastCacheTime || 0).getTime()
+              ) {
+                latest = parsed;
+              }
+            } catch {}
           });
-          console.log('[Home] Course - Loaded from cache:', {
-            count: cached.courses?.length ?? 0,
-            lastCacheTime: cached.lastCacheTime,
-          });
-          return cached;
+          if (latest) {
+            cachedString = JSON.stringify(latest);
+          }
         }
       }
+
+      if (!cachedString) {
+        return null;
+      }
+
+      const cached = JSON.parse(cachedString);
+      const now = new Date().getTime();
+      const cacheTime = new Date(cached.lastCacheTime || 0).getTime();
+      const isExpired = now - cacheTime > CACHE_EXPIRY_HOURS * 60 * 60 * 1000;
+
+      if (!allowExpired && isExpired) {
+        return null;
+      }
+
+      setCachedData(cached);
+      // Update Redux store with cached data
+      if (cached.devotions?.length > 0) {
+        dispatch(setDevotions(cached.devotions));
+      }
+      if (cached.courses?.length > 0) {
+        dispatch(setCourses(cached.courses));
+      }
+      console.log('[Home] Devotion - Loaded from cache:', {
+        count: cached.devotions?.length ?? 0,
+        lastCacheTime: cached.lastCacheTime,
+        isExpired,
+      });
+      console.log('[Home] Course - Loaded from cache:', {
+        count: cached.courses?.length ?? 0,
+        lastCacheTime: cached.lastCacheTime,
+        isExpired,
+      });
+      return cached;
     } catch (error) {
       console.error('Error loading cached data:', error);
     }
@@ -478,7 +520,7 @@ const Home = () => {
     }
 
     if (devotionsToUse && devotionsToUse.length > 0) {
-      // Exact match only: correct devotion for today's Ethiopian date
+      // Prefer exact match for today, fallback to first cached devotion.
       const normalizeMonth = month => String(month || '').trim();
       const todaysDevotion = devotionsToUse.find(
         devotion =>
@@ -486,15 +528,15 @@ const Home = () => {
             normalizeMonth(currentEthiopianMonth) &&
           Number(devotion.day) === ethDay,
       );
-      setSelectedDevotion(todaysDevotion || null);
+      setSelectedDevotion(todaysDevotion || devotionsToUse[0] || null);
       if (__DEV__) {
         console.log('[Home] Devotion - Selected devotion:', {
           isTodaysMatch: !!todaysDevotion,
-          selected: todaysDevotion
+          selected: (todaysDevotion || devotionsToUse[0])
             ? {
-                id: todaysDevotion._id,
-                month: todaysDevotion.month,
-                day: todaysDevotion.day,
+                id: (todaysDevotion || devotionsToUse[0])._id,
+                month: (todaysDevotion || devotionsToUse[0]).month,
+                day: (todaysDevotion || devotionsToUse[0]).day,
               }
             : null,
         });
@@ -534,8 +576,18 @@ const Home = () => {
       });
     } else {
       result = {
-        devotions: devotions?.length > 0 ? devotions : cachedData.devotions,
-        courses: courses?.length > 0 ? courses : cachedData.courses,
+        devotions:
+          devotions?.length > 0
+            ? devotions
+            : cachedData.devotions?.length > 0
+            ? cachedData.devotions
+            : persistedDevotions,
+        courses:
+          courses?.length > 0
+            ? courses
+            : cachedData.courses?.length > 0
+            ? cachedData.courses
+            : persistedCourses,
       };
       console.log('[Home] Devotion - getDataToDisplay (online):', {
         source: devotions?.length > 0 ? 'API' : 'cached',
@@ -626,6 +678,15 @@ const Home = () => {
   }, [hasAnyContent, hasInitialContent, isLoading]);
 
   useEffect(() => {
+    if (hasAnyContent && !showDeferredSections) {
+      const deferredTimer = setTimeout(() => {
+        setShowDeferredSections(true);
+      }, 300);
+      return () => clearTimeout(deferredTimer);
+    }
+  }, [hasAnyContent, showDeferredSections]);
+
+  useEffect(() => {
     if (!devotionsLoading && !courseIsFetching && isLoading) {
       setIsLoading(false);
     }
@@ -644,26 +705,24 @@ const Home = () => {
 
         // Check network connectivity first
         const netInfo = await NetInfo.fetch();
-        if (!netInfo.isConnected) {
+        const hasInternet =
+          netInfo.isConnected && netInfo.isInternetReachable !== false;
+        if (!hasInternet) {
           setIsOffline(true);
-          // If force refresh and offline, show error
-          if (opts.forceRefresh) {
-            setHasError(true);
-            setIsLoading(false);
-            Toast.show({
-              type: 'error',
-              text1: 'No Internet Connection',
-              text2: 'Please connect to the internet to reload.',
-            });
-            return;
-          }
-          const cached = await loadCachedData();
+          const cached = await loadCachedData({allowExpired: true});
           if (
             cached &&
             (cached.devotions?.length > 0 || cached.courses?.length > 0)
           ) {
             setHasError(false);
             setIsLoading(false);
+            if (opts.forceRefresh) {
+              Toast.show({
+                type: 'info',
+                text1: 'Offline Mode',
+                text2: 'Showing saved content. Connect to internet to update.',
+              });
+            }
             return;
           } else {
             setHasError(true);
@@ -674,11 +733,7 @@ const Home = () => {
 
         // If force refresh, invalidate RTK Query cache first
         if (opts.forceRefresh) {
-          console.log('Force refresh: clearing ALL caches');
-          // Clear AsyncStorage cache
-          await AsyncStorage.removeItem(CACHE_KEY);
-          setCachedData({devotions: [], courses: [], lastCacheTime: null});
-
+          console.log('Force refresh: invalidating query cache');
           // Invalidate RTK Query cache to force fresh fetch
           dispatch(apiSlice.util.invalidateTags(['Devotions', 'Courses']));
 
@@ -712,7 +767,7 @@ const Home = () => {
           } else if (persistedDevotions?.length > 0) {
             devotionsData = {data: persistedDevotions};
           } else {
-            devotionsData = null;
+            devotionsData = {data: []};
           }
         }
 
@@ -732,7 +787,7 @@ const Home = () => {
           } else if (persistedCourses?.length > 0) {
             coursesData = {data: persistedCourses};
           } else {
-            coursesData = null;
+            coursesData = {data: []};
           }
         }
         console.log(
@@ -744,7 +799,10 @@ const Home = () => {
 
         // Update Redux store with detailed logging
         console.log('Updating Redux store...');
-        if (devotionsData?.data && Array.isArray(devotionsData.data)) {
+        if (
+          Array.isArray(devotionsData?.data) &&
+          devotionsData.data.length > 0
+        ) {
           console.log(
             'Dispatching',
             devotionsData.data.length,
@@ -757,10 +815,12 @@ const Home = () => {
           if (cachedData.devotions?.length > 0) {
             console.log('Using cached devotions data');
             dispatch(setDevotions(cachedData.devotions));
+          } else if (persistedDevotions?.length > 0) {
+            dispatch(setDevotions(persistedDevotions));
           }
         }
 
-        if (coursesData?.data && Array.isArray(coursesData.data)) {
+        if (Array.isArray(coursesData?.data) && coursesData.data.length > 0) {
           console.log(
             'Dispatching',
             coursesData.data.length,
@@ -768,20 +828,29 @@ const Home = () => {
           );
           dispatch(setCourses(coursesData.data));
         } else {
-          console.warn('No course data to dispatch:', coursesData);
+          console.warn('Course response shape unexpected, using empty list');
           // If no new data but we have cached data, use that
           if (cachedData.courses?.length > 0) {
             console.log('Using cached courses data');
             dispatch(setCourses(cachedData.courses));
+          } else if (persistedCourses?.length > 0) {
+            dispatch(setCourses(persistedCourses));
+          } else {
+            dispatch(setCourses([]));
           }
         }
 
         // Save to cache (non-blocking) - only if we got new data
-        if (devotionsData?.data || coursesData?.data) {
+        const hasFreshDevotions =
+          Array.isArray(devotionsData?.data) && devotionsData.data.length > 0;
+        const hasFreshCourses =
+          Array.isArray(coursesData?.data) && coursesData.data.length > 0;
+        if (hasFreshDevotions || hasFreshCourses) {
           console.log('Saving to cache...');
-          saveCachedData(devotionsData?.data, coursesData?.data).catch(
-            console.error,
-          );
+          saveCachedData(
+            hasFreshDevotions ? devotionsData?.data : cachedData.devotions,
+            hasFreshCourses ? coursesData?.data : cachedData.courses,
+          ).catch(console.error);
         }
 
         // Prefetch a small set of images after initial interactions
@@ -818,7 +887,7 @@ const Home = () => {
           });
         } else {
           // Try to load cached data if network request fails
-          await loadCachedData();
+          await loadCachedData({allowExpired: true});
           // Don't set error if cache exists - UI will show cached data
           setHasError(false);
         }
@@ -922,15 +991,8 @@ const Home = () => {
   }, [fetchData, loadCachedData]);
 
   const onRefresh = useCallback(async () => {
-    // Use both NetInfo and networkManager so reload works after reconnect (NetInfo can be stale)
-    const netInfo = await NetInfo.fetch();
-    const connected = netInfo.isConnected ?? networkManager.isOnline;
-    if (!connected) {
-      Toast.show({
-        type: 'info',
-        text1: 'Internet Connection Required',
-        text2: 'Please connect to the internet to reload data.',
-      });
+    const hasInternet = await ensureOnlineOrNotify();
+    if (!hasInternet) {
       return;
     }
 
@@ -938,31 +1000,7 @@ const Home = () => {
       setIsRefreshing(true);
       setHasError(false);
       setIsOffline(false);
-
-      const [devotionsData, coursesData] = await Promise.all([
-        refetchDevotions(),
-        refetchCourses(),
-      ]);
-
-      console.log('[Home] Devotion - Refetched (onRefresh):', {
-        count: devotionsData?.data?.length ?? 0,
-      });
-      console.log('[Home] Course - Refetched (onRefresh):', {
-        count: coursesData?.data?.length ?? 0,
-      });
-
-      // Update Redux store
-      dispatch(setDevotions(devotionsData.data));
-      dispatch(setCourses(coursesData.data));
-
-      // Save to cache
-      await saveCachedData(devotionsData.data, coursesData.data);
-
-      Toast.show({
-        type: 'success',
-        text1: 'Data Updated',
-        text2: 'Latest content has been loaded and cached.',
-      });
+      await fetchData({forceRefresh: true});
     } catch (e) {
       console.error('Refresh error:', e);
       setHasError(true);
@@ -974,7 +1012,7 @@ const Home = () => {
     } finally {
       setIsRefreshing(false);
     }
-  }, [refetchDevotions, refetchCourses, dispatch, saveCachedData]);
+  }, [fetchData]);
 
   if (!hasInitialContent && isLoading) {
     return (
@@ -1068,6 +1106,45 @@ const Home = () => {
 
   // No full-screen errors - always show Home layout with inline error cards per section
 
+  const isDevotionSectionLoading =
+    !devotionToDisplay && (devotionsLoading || isLoading || isFetching);
+  const isCourseSectionLoading =
+    !courseToFeature && (courseIsFetching || isLoading || isFetching);
+  const isSSLSectionLoading = !showDeferredSections;
+  const isPlansSectionLoading =
+    !showDeferredSections ||
+    devotionPlansLoading ||
+    (user ? myDevotionPlansLoading || completedPlansLoading : false);
+
+  const renderSectionPlaceholder = title => (
+    <View
+      style={[
+        tw`border border-primary-7 rounded-2xl p-4 mb-4`,
+        darkMode ? tw`bg-secondary-8` : tw`bg-primary-3`,
+      ]}>
+      <Text
+        style={[
+          tw`font-nokia-bold text-base mb-3`,
+          darkMode ? tw`text-primary-2` : tw`text-secondary-7`,
+        ]}>
+        {title}
+      </Text>
+      <View
+        style={[
+          tw`h-4 rounded-full mb-2`,
+          darkMode ? tw`bg-secondary-6` : tw`bg-primary-6`,
+        ]}
+      />
+      <View
+        style={[
+          tw`h-4 rounded-full w-10/12`,
+          darkMode ? tw`bg-secondary-6` : tw`bg-primary-6`,
+        ]}
+      />
+      <ActivityIndicator size="small" color="#EA9215" style={tw`mt-4`} />
+    </View>
+  );
+
   return (
     <View style={darkMode ? tw`bg-secondary-9 flex-1` : tw`flex-1`}>
       <SafeAreaView style={tw`flex mx-auto w-11/12`}>
@@ -1075,7 +1152,7 @@ const Home = () => {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={isFetching}
+              refreshing={isRefreshing}
               onRefresh={onRefresh}
               colors={['#EA9215']}
               tintColor={'#EA9215'}
@@ -1148,7 +1225,9 @@ const Home = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              {devotionToDisplay ? (
+              {isDevotionSectionLoading ? (
+                renderSectionPlaceholder('Loading Devotion...')
+              ) : devotionToDisplay ? (
                 <Animated.View
                   style={{
                     transform: [{scale: scaleAnim}],
@@ -1262,7 +1341,9 @@ const Home = () => {
                 </TouchableOpacity>
               </View>
             </Animated.View>
-            {courseToFeature && (
+            {isCourseSectionLoading ? (
+              renderSectionPlaceholder('Loading Course...')
+            ) : courseToFeature ? (
               <Animated.View
                 style={{
                   transform: [{scale: scaleAnim}],
@@ -1273,6 +1354,20 @@ const Home = () => {
                   handleButtonPress={handleButtonPress}
                 />
               </Animated.View>
+            ) : (
+              <View
+                style={[
+                  tw`border border-accent-6 rounded-4 p-6 mb-2`,
+                  darkMode ? tw`bg-secondary-8` : tw`bg-primary-5`,
+                ]}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-center`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  No Course Available
+                </Text>
+              </View>
             )}
 
             {/* Enhanced Section Divider with Bible */}
@@ -1348,12 +1443,16 @@ const Home = () => {
                 </TouchableOpacity>
               </View>
             </Animated.View>
-            <Animated.View
-              style={{
-                transform: [{scale: scaleAnim}],
-              }}>
-              <HomeCurrentSSL />
-            </Animated.View>
+            {isSSLSectionLoading ? (
+              renderSectionPlaceholder('Loading Sabbath School...')
+            ) : (
+              <Animated.View
+                style={{
+                  transform: [{scale: scaleAnim}],
+                }}>
+                <HomeCurrentSSL />
+              </Animated.View>
+            )}
 
             {/* Enhanced Section Divider */}
             <View style={tw`flex-row items-center my-6`}>
@@ -1394,90 +1493,103 @@ const Home = () => {
             </View>
 
             {/* Devotion Plans Section - በእቅድ ያንብቡ */}
-            {eligibleDevotionPlans && eligibleDevotionPlans.length > 0 && (
-              <>
-                <Animated.View
+            <Animated.View
+              style={[
+                tw`p-4 rounded-2xl mb-4`,
+                {
+                  backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                  transform: [{scale: scaleAnim}],
+                },
+              ]}>
+              <View style={tw`flex flex-row justify-between items-center`}>
+                <View style={tw`flex-row items-center flex-1`}>
+                  <BookOpen size={24} color="#EA9215" weight="bold" />
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-lg ml-3`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                    ]}>
+                    በእቅድ ያንብቡ
+                  </Text>
+                </View>
+                <TouchableOpacity
                   style={[
-                    tw`p-4 rounded-2xl mb-4`,
-                    {
-                      backgroundColor: darkMode ? '#374151' : '#F9FAFB',
-                      transform: [{scale: scaleAnim}],
-                    },
-                  ]}>
-                  <View style={tw`flex flex-row justify-between items-center`}>
-                    <View style={tw`flex-row items-center flex-1`}>
-                      <BookOpen size={24} color="#EA9215" weight="bold" />
-                      <Text
-                        style={[
-                          tw`font-nokia-bold text-lg ml-3`,
-                          darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-                        ]}>
-                        በእቅድ ያንብቡ
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[
-                        tw`px-4 py-2 rounded-full flex-row items-center`,
-                        {backgroundColor: '#EA9215'},
-                      ]}
-                      onPress={() =>
-                        navigation.navigate('Devotional', {
-                          screen: 'DevotionPlans',
-                        })
-                      }>
-                      <Text
-                        style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
-                        All Plans
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </Animated.View>
-                <Animated.View
-                  style={{
-                    transform: [{scale: scaleAnim}],
-                  }}>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={tw`px-1 pb-2`}>
-                    {eligibleDevotionPlans
-                      .filter(plan => plan && (plan._id || plan.id))
-                      .map((plan, index) => {
-                        const planId = plan._id || plan.id;
-                        const isStarted =
-                          myDevotionPlans.some(
-                            p => (p.planId || p.plan?._id) === planId,
-                          ) ||
-                          completedPlans.some(
-                            p => (p.planId || p.plan?._id) === planId,
-                          );
-                        return (
-                          <DevotionPlanSquareCard
-                            key={planId || index}
-                            plan={plan}
-                            darkMode={darkMode}
-                            isStarted={isStarted}
-                            onPress={pressedPlan => {
-                              const pressedPlanId =
-                                pressedPlan._id || pressedPlan.id;
-                              if (isStarted) {
-                                // If plan is already started, navigate directly
-                                navigation.navigate('Devotional', {
-                                  screen: 'PlanDevotionViewer',
-                                  params: {planId: pressedPlanId},
-                                });
-                              } else {
-                                // If plan is not started, show modal
-                                setSelectedPlan(pressedPlan);
-                                setShowStartPlanModal(true);
-                              }
-                            }}
-                          />
+                    tw`px-4 py-2 rounded-full flex-row items-center`,
+                    {backgroundColor: '#EA9215'},
+                  ]}
+                  onPress={() =>
+                    navigation.navigate('Devotional', {
+                      screen: 'DevotionPlans',
+                    })
+                  }>
+                  <Text style={tw`font-nokia-bold text-primary-1 text-sm mr-1`}>
+                    All Plans
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+            {isPlansSectionLoading ? (
+              renderSectionPlaceholder('Loading Devotional Plans...')
+            ) : eligibleDevotionPlans && eligibleDevotionPlans.length > 0 ? (
+              <Animated.View
+                style={{
+                  transform: [{scale: scaleAnim}],
+                }}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={tw`px-1 pb-2`}>
+                  {eligibleDevotionPlans
+                    .filter(plan => plan && (plan._id || plan.id))
+                    .map((plan, index) => {
+                      const planId = plan._id || plan.id;
+                      const isStarted =
+                        myDevotionPlans.some(
+                          p => (p.planId || p.plan?._id) === planId,
+                        ) ||
+                        completedPlans.some(
+                          p => (p.planId || p.plan?._id) === planId,
                         );
-                      })}
-                  </ScrollView>
-                </Animated.View>
-              </>
+                      return (
+                        <DevotionPlanSquareCard
+                          key={planId || index}
+                          plan={plan}
+                          darkMode={darkMode}
+                          isStarted={isStarted}
+                          onPress={pressedPlan => {
+                            const pressedPlanId =
+                              pressedPlan._id || pressedPlan.id;
+                            if (isStarted) {
+                              // If plan is already started, navigate directly
+                              navigation.navigate('Devotional', {
+                                screen: 'PlanDevotionViewer',
+                                params: {planId: pressedPlanId},
+                              });
+                            } else {
+                              // If plan is not started, show modal
+                              setSelectedPlan(pressedPlan);
+                              setShowStartPlanModal(true);
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                </ScrollView>
+              </Animated.View>
+            ) : (
+              <View
+                style={[
+                  tw`border border-accent-6 rounded-4 p-6 mb-2`,
+                  darkMode ? tw`bg-secondary-8` : tw`bg-primary-5`,
+                ]}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-center`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  No devotional plans available yet.
+                </Text>
+              </View>
             )}
 
             {/* Previous devotions removed for faster startup */}

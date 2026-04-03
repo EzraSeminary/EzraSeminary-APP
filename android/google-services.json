@@ -12,7 +12,28 @@
           "package_name": "com.ezraapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1096965053624-rrvr1ce3iomajdf64k3jcfer9uf55js1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ezraapp",
+            "certificate_hash": "4c7675848ea4f6b230ec8c65d255b2bca462f231"
+          }
+        },
+        {
+          "client_id": "1096965053624-ular98l8ukjltc37o4qbradrusroh9tk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ezraapp",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "1096965053624-rofq5l7e014rf61ovlbo41b4e3ikp542.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCIYjhqUjz_rNQNAqL6sNtmpdirZbkeFD8"
@@ -20,7 +41,20 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1096965053624-rofq5l7e014rf61ovlbo41b4e3ikp542.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1096965053624-0s9424aemvmooamheaubm31d1sgblpm3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "org.reactjs.native.example.EzraApp",
+                "app_store_id": "6740612880"
+              }
+            }
+          ]
         }
       }
     }

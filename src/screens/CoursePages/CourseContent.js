@@ -154,7 +154,7 @@ const CourseContent = ({route}) => {
   }
 
   return (
-    <View style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
+    <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
       <SafeAreaView>
         <ScrollView
           showsVerticalScrollIndicator={false}

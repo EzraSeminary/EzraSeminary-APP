@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   linkText: {
     color: 'blue',
     textDecorationLine: 'underline',
-    fontFamily: 'NokiaPureText-Bold',
+    fontFamily: 'Nokia Pure Headline Bold',
   },
 });
 

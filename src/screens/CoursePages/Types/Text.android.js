@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     ...tw`text-primary-1 font-nokia-bold leading-snug`,
     flexWrap: 'wrap',
     textAlign: 'justify', // Default to justified text
-    fontFamily: 'NokiaPureText-Bold', // Add explicit font family
+    fontFamily: 'Nokia Pure Headline Bold',
   },
   defaultFont: tw`text-base font-nokia-bold`,
   hugeFont: tw`text-3xl font-nokia-bold`,
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   linkText: {
     color: 'blue',
     textDecorationLine: 'underline',
-    fontFamily: 'NokiaPureText-Bold', // Add explicit font family
+    fontFamily: 'Nokia Pure Headline Bold',
   },
 });
 

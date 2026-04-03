@@ -1,5 +1,6 @@
 import notifee, {
   AndroidImportance,
+  AuthorizationStatus,
   EventType,
   TriggerType,
   RepeatFrequency,
@@ -10,8 +11,44 @@ import {toEthiopian} from 'ethiopian-date';
 
 class NotificationService {
   constructor() {
+    this.lastScheduleError = null;
     this.configure();
     this.setupAppStateListener();
+  }
+
+  setLastScheduleError(error) {
+    if (!error) {
+      this.lastScheduleError = null;
+      return;
+    }
+    if (typeof error === 'string') {
+      this.lastScheduleError = error;
+      return;
+    }
+    this.lastScheduleError =
+      error?.message ||
+      error?.code ||
+      (typeof error === 'object' ? JSON.stringify(error) : String(error));
+  }
+
+  getLastScheduleError() {
+    return this.lastScheduleError;
+  }
+
+  async canUseExactAlarms() {
+    try {
+      if (Platform.OS !== 'android' || Platform.Version < 31) {
+        return true;
+      }
+      if (typeof notifee.canScheduleExactAlarms === 'function') {
+        return await notifee.canScheduleExactAlarms();
+      }
+      // Older Notifee versions do not expose this API.
+      return false;
+    } catch (error) {
+      console.warn('Failed to check exact alarm capability:', error);
+      return false;
+    }
   }
 
   async configure() {
@@ -72,9 +109,15 @@ class NotificationService {
       try {
         // Request notification permission for Android 13+
         if (Platform.Version >= 33) {
-          const granted = await PermissionsAndroid.request(
+          const alreadyGranted = await PermissionsAndroid.check(
             PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
           );
+          let granted = PermissionsAndroid.RESULTS.GRANTED;
+          if (!alreadyGranted) {
+            granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+            );
+          }
 
           if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
             console.log('POST_NOTIFICATIONS permission denied');
@@ -84,15 +127,15 @@ class NotificationService {
 
         // Check and request exact alarm permission for Android 12+
         if (Platform.Version >= 31) {
-          const canScheduleExactAlarms = await notifee.canScheduleExactAlarms();
+          const canScheduleExactAlarms = await this.canUseExactAlarms();
           if (!canScheduleExactAlarms) {
             console.log('Exact alarm scheduling not allowed');
             // For API 35, we'll use regular notifications instead of exact alarms
-            return true; // Still allow basic notifications
+            return this.checkPermissionStatus(); // Still allow basic notifications
           }
         }
 
-        return true;
+        return this.checkPermissionStatus();
       } catch (err) {
         console.warn('Permission request failed:', err);
         return false;
@@ -106,9 +149,9 @@ class NotificationService {
           sound: true,
         });
         console.log('iOS notification permission status:', settings);
-        // 1 = AUTHORIZED, 2 = PROVISIONAL, 0 = DENIED, -1 = NOT_DETERMINED
         const isAuthorized =
-          settings.authorizationStatus === 1 || settings.authorizationStatus === 2;
+          settings.authorizationStatus === AuthorizationStatus.AUTHORIZED ||
+          settings.authorizationStatus === AuthorizationStatus.PROVISIONAL;
         if (!isAuthorized) {
           console.log(
             'iOS notification permission denied. Status:',
@@ -126,22 +169,26 @@ class NotificationService {
   // Check current notification permission status
   async checkPermissionStatus() {
     try {
+      const settings = await notifee.getNotificationSettings();
+
       if (Platform.OS === 'ios') {
-        const settings = await notifee.getNotificationSettings();
         console.log('iOS notification settings:', settings);
         return (
-          settings.authorizationStatus === 1 || settings.authorizationStatus === 2
+          settings.authorizationStatus === AuthorizationStatus.AUTHORIZED ||
+          settings.authorizationStatus === AuthorizationStatus.PROVISIONAL
         );
-      } else {
-        // For Android, check if permission is granted
-        if (Platform.Version >= 33) {
-          const granted = await PermissionsAndroid.check(
-            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-          );
-          return granted;
-        }
-        return true; // For older Android versions, assume granted
       }
+
+      if (Platform.Version >= 33) {
+        const androidRuntimeGranted = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        );
+        if (!androidRuntimeGranted) {
+          return false;
+        }
+      }
+
+      return settings.authorizationStatus !== AuthorizationStatus.DENIED;
     } catch (error) {
       console.error('Error checking permission status:', error);
       return false;
@@ -151,7 +198,10 @@ class NotificationService {
   // Show immediate notification for testing
   async showTestNotification(devotion) {
     try {
-      const hasPermission = await this.requestPermissions();
+      let hasPermission = await this.checkPermissionStatus();
+      if (!hasPermission) {
+        hasPermission = await this.requestPermissions();
+      }
       if (!hasPermission) {
         console.log('Notification permissions not granted for test notification');
         return false;
@@ -196,10 +246,15 @@ class NotificationService {
 
   // Schedule daily verse notification
   async scheduleDailyVerseNotification(devotion, time = {hour: 8, minute: 0}) {
+    this.setLastScheduleError(null);
     try {
-      const hasPermission = await this.requestPermissions();
+      let hasPermission = await this.checkPermissionStatus();
+      if (!hasPermission) {
+        hasPermission = await this.requestPermissions();
+      }
       if (!hasPermission) {
         console.log('Notification permissions not granted');
+        this.setLastScheduleError('Notification permission is not granted.');
         return false;
       }
 
@@ -229,7 +284,7 @@ class NotificationService {
       // Check if we can use exact alarms (Android only)
       let canScheduleExactAlarms = true;
       if (Platform.OS === 'android' && Platform.Version >= 31) {
-        canScheduleExactAlarms = await notifee.canScheduleExactAlarms();
+        canScheduleExactAlarms = await this.canUseExactAlarms();
       }
 
       // Schedule notification
@@ -270,8 +325,11 @@ class NotificationService {
 
       // Only add alarmManager for Android
       if (Platform.OS === 'android') {
-        triggerConfig.alarmManager =
-          canScheduleExactAlarms && Platform.Version < 35; // Disable for API 35
+        if (canScheduleExactAlarms && Platform.Version < 35) {
+          triggerConfig.alarmManager = {
+            allowWhileIdle: true,
+          };
+        }
       }
 
       console.log('Creating trigger notification for iOS:', {
@@ -280,10 +338,30 @@ class NotificationService {
         platform: Platform.OS,
       });
 
-      const notificationId = await notifee.createTriggerNotification(
-        notificationConfig,
-        triggerConfig,
-      );
+      let notificationId;
+      try {
+        notificationId = await notifee.createTriggerNotification(
+          notificationConfig,
+          triggerConfig,
+        );
+      } catch (primaryError) {
+        // Android fallback: some devices reject repeating timestamp/alarm options.
+        if (Platform.OS !== 'android') {
+          throw primaryError;
+        }
+        console.warn(
+          'Primary Android schedule failed, retrying with fallback trigger:',
+          primaryError,
+        );
+        const fallbackTrigger = {
+          type: TriggerType.TIMESTAMP,
+          timestamp: notificationDate.getTime(),
+        };
+        notificationId = await notifee.createTriggerNotification(
+          notificationConfig,
+          fallbackTrigger,
+        );
+      }
 
       console.log(
         'Notification scheduled successfully with ID:',
@@ -297,6 +375,7 @@ class NotificationService {
       return true;
     } catch (error) {
       console.error('Error scheduling notification:', error);
+      this.setLastScheduleError(error);
       return false;
     }
   }
@@ -465,7 +544,7 @@ class NotificationService {
       }
 
       // 2) Fallback to API
-      let baseUrl = 'http://localhost:5100/';
+      let baseUrl = 'https://ezrabackend.online/';
       try {
         const override = await AsyncStorage.getItem('apiBaseUrl');
         if (override && typeof override === 'string') {

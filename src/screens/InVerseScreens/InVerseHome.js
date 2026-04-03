@@ -40,25 +40,16 @@ import {
   saveHomeScreenToCache,
   getCachedHomeScreen,
 } from '../../utils/homeScreenCache';
+import {
+  clearInVerseRefreshCache,
+  ensureOnlineOrNotify,
+} from '../../utils/refreshCacheManager';
 
 const InVerseHome = ({onReload}) => {
   const currentDate = new Date().toISOString().slice(0, 10);
   const [quarter, week, year] = useCalculateLessonIndex(currentDate);
   const [backgroundImage, setBackgroundImage] = useState('');
   const {data: InVerse, error, isLoading, refetch} = useGetInVersesQuery();
-
-  // Filter the data to include only items with an id or index ending in '-cq'
-  const filteredData = InVerse?.filter(item => {
-    if (
-      (item.id && typeof item.id === 'string' && item.id.endsWith('-cq')) ||
-      (item.index &&
-        typeof item.index === 'string' &&
-        item.index.endsWith('-cq'))
-    ) {
-      return true;
-    }
-    return false;
-  });
 
   const {
     data: lessonDetails,
@@ -80,13 +71,89 @@ const InVerseHome = ({onReload}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [reloadingLesson, setReloadingLesson] = useState(false);
   const [invalidateInVerseCache] = useInvalidateInVerseCacheMutation();
+  const [cachedHomeData, setCachedHomeData] = useState(null);
+  const [isUsingCache, setIsUsingCache] = useState(false);
 
   const lastDigitQuarter = parseInt(quarter?.slice(-1), 10);
+  const {
+    data: videoLink,
+    error: videoError,
+    isLoading: videoLoading,
+  } = useGetVideoLinkQuery({
+    year: year,
+    quarter: lastDigitQuarter,
+    lesson: week,
+  });
+
   useEffect(() => {
     if (lessonDetails) {
       setBackgroundImage(lessonDetails.lesson.cover);
     }
   }, [lessonDetails]);
+
+  // Cache home screen data when loaded with internet
+  useEffect(() => {
+    if (
+      networkManager.isOnline &&
+      InVerse &&
+      InVerse.length > 0 &&
+      lessonDetails &&
+      quarterDetails
+    ) {
+      const homeData = {
+        InVerse,
+        lessonDetails,
+        quarterDetails,
+        videoLink,
+      };
+      saveHomeScreenToCache('InVerseHome', homeData);
+    }
+  }, [InVerse, lessonDetails, quarterDetails, videoLink]);
+
+  // Load from cache when offline or API fails
+  useEffect(() => {
+    const loadFromCache = async () => {
+      if (
+        (!networkManager.isOnline || error) &&
+        (!InVerse || InVerse.length === 0)
+      ) {
+        try {
+          const cached = await getCachedHomeScreen('InVerseHome');
+          if (cached) {
+            setCachedHomeData(cached);
+            setIsUsingCache(true);
+            console.log('📦 Using cached InVerseHome data (offline/error)');
+          }
+        } catch (cacheError) {
+          console.error('Error loading cached InVerseHome data:', cacheError);
+        }
+      } else if (InVerse && InVerse.length > 0 && isUsingCache) {
+        setIsUsingCache(false);
+        setCachedHomeData(null);
+      }
+    };
+
+    loadFromCache();
+  }, [error, InVerse, isUsingCache]);
+
+  const displayInVerse =
+    InVerse && InVerse.length > 0 ? InVerse : cachedHomeData?.InVerse || [];
+  const displayLessonDetails =
+    lessonDetails || cachedHomeData?.lessonDetails || null;
+  const displayQuarterDetails =
+    quarterDetails || cachedHomeData?.quarterDetails || null;
+  // Filter the data to include only items with an id or index ending in '-cq'
+  const filteredData = displayInVerse?.filter(item => {
+    if (
+      (item.id && typeof item.id === 'string' && item.id.endsWith('-cq')) ||
+      (item.index &&
+        typeof item.index === 'string' &&
+        item.index.endsWith('-cq'))
+    ) {
+      return true;
+    }
+    return false;
+  });
 
   const onRefresh = useCallback(async () => {
     try {
@@ -94,12 +161,14 @@ const InVerseHome = ({onReload}) => {
       setLoadingTimeout(false);
       setNetworkError(false);
 
-      // Check network connectivity first
-      if (!networkManager.isOnline) {
+      const hasInternet = await ensureOnlineOrNotify();
+      if (!hasInternet) {
         setNetworkError(true);
         return;
       }
 
+      await clearInVerseRefreshCache();
+      await invalidateInVerseCache();
       await lessonRefetch();
       await quarterRefetch();
       await refetch();
@@ -108,7 +177,7 @@ const InVerseHome = ({onReload}) => {
     } finally {
       setIsRefreshing(false);
     }
-  }, [lessonRefetch, quarterRefetch, refetch]);
+  }, [lessonRefetch, quarterRefetch, refetch, invalidateInVerseCache]);
 
   // Add loading timeout effect
   useEffect(() => {
@@ -172,15 +241,6 @@ const InVerseHome = ({onReload}) => {
 
   const navigation = useNavigation();
   const darkMode = useSelector(state => state.ui.darkMode);
-  const {
-    data: videoLink,
-    error: videoError,
-    isLoading: videoLoading,
-  } = useGetVideoLinkQuery({
-    year: year,
-    quarter: lastDigitQuarter,
-    lesson: week,
-  });
 
   const handleRetry = async () => {
     setLoadingTimeout(false);
@@ -271,7 +331,11 @@ const InVerseHome = ({onReload}) => {
   };
 
   // Handle different error states
-  if (networkError && (!InVerse || InVerse.length === 0) && !cachedHomeData) {
+  if (
+    networkError &&
+    (!displayInVerse || displayInVerse.length === 0) &&
+    !cachedHomeData
+  ) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
         <View style={tw`flex-1 justify-center items-center px-6`}>
@@ -301,7 +365,7 @@ const InVerseHome = ({onReload}) => {
     );
   }
 
-  if (loadingTimeout && (!InVerse || InVerse.length === 0)) {
+  if (loadingTimeout && (!displayInVerse || displayInVerse.length === 0)) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
         <View style={tw`flex-1 justify-center items-center px-6`}>
@@ -330,7 +394,7 @@ const InVerseHome = ({onReload}) => {
     );
   }
 
-  if (isLoading && (!InVerse || InVerse.length === 0)) {
+  if (isLoading && (!displayInVerse || displayInVerse.length === 0)) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
@@ -349,7 +413,7 @@ const InVerseHome = ({onReload}) => {
     }
   };
 
-  if (error && (!InVerse || InVerse.length === 0)) {
+  if (error && (!displayInVerse || displayInVerse.length === 0)) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
 
@@ -544,10 +608,10 @@ const InVerseHome = ({onReload}) => {
     return <Text> Error: {quarterError}</Text>;
   }
 
-  if (!lessonDetails || !quarterDetails) {
+  if (!displayLessonDetails || !displayQuarterDetails) {
     console.error('Missing lesson or quarter details:', {
-      lessonDetails,
-      quarterDetails,
+      lessonDetails: displayLessonDetails,
+      quarterDetails: displayQuarterDetails,
     });
     return <Text>Loading...</Text>;
   }
@@ -588,14 +652,14 @@ const InVerseHome = ({onReload}) => {
                     {language === 'en' ? (
                       <Text style={tw`font-nokia-bold text-accent-6`}>
                         {formatDateRange(
-                          lessonDetails.lesson.start_date,
-                          lessonDetails.lesson.end_date,
+                          displayLessonDetails.lesson.start_date,
+                          displayLessonDetails.lesson.end_date,
                         )}
                       </Text>
                     ) : (
                       <View style={tw`flex flex-row items-center`}>
                         <DateConverter
-                          gregorianDate={lessonDetails.lesson.start_date}
+                          gregorianDate={displayLessonDetails.lesson.start_date}
                           textStyle={tw`font-nokia-bold text-accent-6`}
                         />
                         <Text style={tw`font-nokia-bold text-accent-6`}>
@@ -603,7 +667,7 @@ const InVerseHome = ({onReload}) => {
                           -{' '}
                         </Text>
                         <DateConverter
-                          gregorianDate={lessonDetails.lesson.end_date}
+                          gregorianDate={displayLessonDetails.lesson.end_date}
                           textStyle={tw`font-nokia-bold text-accent-6`}
                         />
                       </View>
@@ -616,17 +680,17 @@ const InVerseHome = ({onReload}) => {
 
           <View style={tw`my-2`}>
             <Text style={tw`font-nokia-bold text-accent-6`}>
-              {quarterDetails.quarterly.title}
+              {displayQuarterDetails.quarterly.title}
             </Text>
             <Text
               style={[
                 tw`font-nokia-bold text-secondary-6 text-2xl`,
                 darkMode ? tw`text-primary-1` : null,
               ]}>
-              {lessonDetails.lesson.title}
+              {displayLessonDetails.lesson.title}
             </Text>
             <Text style={tw`font-nokia-bold text-accent-6`}>
-              {quarterDetails.quarterly.human_date}
+              {displayQuarterDetails.quarterly.human_date}
             </Text>
           </View>
           <View style={tw`border-b border-accent-6 mb-1`} />
@@ -636,7 +700,7 @@ const InVerseHome = ({onReload}) => {
               darkMode ? tw`text-primary-1` : null,
             ]}>
             {'   '}
-            {quarterDetails.quarterly.description}
+            {displayQuarterDetails.quarterly.description}
           </Text>
           <View style={tw`flex flex-row mx-auto gap-2 items-center my-2`}>
             <TouchableOpacity

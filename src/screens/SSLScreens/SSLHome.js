@@ -41,6 +41,10 @@ import {
   saveHomeScreenToCache,
   getCachedHomeScreen,
 } from '../../utils/homeScreenCache';
+import {
+  clearSSLRefreshCache,
+  ensureOnlineOrNotify,
+} from '../../utils/refreshCacheManager';
 
 const SSLHome = ({onReload}) => {
   const currentDate = new Date().toISOString().slice(0, 10);
@@ -143,11 +147,13 @@ const SSLHome = ({onReload}) => {
       setLoadingTimeout(false);
       setNetworkError(false);
 
-      // Check network connectivity first
-      if (!networkManager.isOnline) {
+      const hasInternet = await ensureOnlineOrNotify();
+      if (!hasInternet) {
         setNetworkError(true);
         return;
       }
+
+      await clearSSLRefreshCache();
 
       // First invalidate all SSL caches to force fresh data
       await invalidateSSLCache();

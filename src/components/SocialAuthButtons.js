@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, ActivityIndicator} from 'react-native';
-import {AppleLogo, GoogleLogo} from 'phosphor-react-native';
+import {GoogleLogo} from 'phosphor-react-native';
 import tw from './../../tailwind';
 
 const SocialAuthButton = ({
@@ -60,12 +60,7 @@ const SocialAuthButton = ({
   </TouchableOpacity>
 );
 
-const SocialAuthButtons = ({
-  darkMode,
-  onGooglePress,
-  onApplePress,
-  activeProvider,
-}) => (
+const SocialAuthButtons = ({darkMode, onGooglePress, activeProvider}) => (
   <View style={tw`w-full`}>
     <View style={tw`flex-row justify-center mb-4`}>
       <View
@@ -78,18 +73,12 @@ const SocialAuthButtons = ({
           weight="fill"
           color={darkMode ? '#F59E0B' : '#EA9215'}
         />
-        <AppleLogo
-          size={20}
-          weight="fill"
-          color={darkMode ? '#F9FAFB' : '#111827'}
-          style={tw`ml-3`}
-        />
         <Text
           style={[
             tw`font-Lato-Bold text-sm ml-3`,
             {color: darkMode ? '#F9FAFB' : '#111827'},
           ]}>
-          Google and Apple sign in
+          Google sign in
         </Text>
       </View>
     </View>
@@ -105,21 +94,6 @@ const SocialAuthButtons = ({
           size={22}
           weight="fill"
           color={darkMode ? '#F59E0B' : '#EA9215'}
-        />
-      }
-    />
-    <SocialAuthButton
-      label="Continue with Apple"
-      subtitle="Use your Apple ID email and name for secure access."
-      darkMode={darkMode}
-      loading={activeProvider === 'apple'}
-      disabled={Boolean(activeProvider)}
-      onPress={onApplePress}
-      icon={
-        <AppleLogo
-          size={22}
-          weight="fill"
-          color={darkMode ? '#F9FAFB' : '#111827'}
         />
       }
     />

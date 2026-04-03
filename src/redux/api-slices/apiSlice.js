@@ -1,21 +1,11 @@
 import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
 import {normalizeDevotionsResponse} from '../../utils/apiResponse';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Dynamic base URL: Production backend is at http://localhost:5100
-// For emulator/simulator testing, override via AsyncStorage key 'apiBaseUrl'
-// Android emulator: 'http://10.0.2.2:5100/'
-// iOS simulator: 'http://localhost:5100/'
-const DEFAULT_BASE_URL = 'http://localhost:5100/';
+import {getApiBaseUrl} from '../../utils/apiBaseUrl';
+import {MOBILE_AUTH_PROVIDERS} from '../../config/authProviders';
 
 const dynamicBaseQuery = async (args, api, extraOptions) => {
-  let baseUrl = DEFAULT_BASE_URL;
-  try {
-    const override = await AsyncStorage.getItem('apiBaseUrl');
-    if (override && typeof override === 'string') {
-      baseUrl = override.endsWith('/') ? override : `${override}/`;
-    }
-  } catch {}
+  const baseUrl = await getApiBaseUrl();
 
   const rawBaseQuery = fetchBaseQuery({
     baseUrl,
@@ -70,16 +60,18 @@ export const apiSlice = createApi({
       }),
     }),
     getAuthProviders: builder.query({
-      query: () => '/users/auth/providers',
+      queryFn: async () => ({data: MOBILE_AUTH_PROVIDERS}),
     }),
     socialAuth: builder.mutation({
       query: body => ({
-        url: '/users/auth/social',
+        url: '/users/auth/google/verify',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body,
+        body: {
+          token: body?.idToken || body?.token,
+        },
       }),
     }),
     signup: builder.mutation({
@@ -125,22 +117,48 @@ export const apiSlice = createApi({
       query: () => '/users/current',
     }),
     getCourses: builder.query({
-      query: () => 'course/getall',
+      query: ({limit, sort, page} = {}) => ({
+        url: 'course/getall',
+        params: {
+          ...(limit ? {limit} : {}),
+          ...(sort ? {sort} : {}),
+          ...(page ? {page} : {}),
+        },
+      }),
+      transformResponse: response => {
+        if (Array.isArray(response)) {
+          return response;
+        }
+        if (Array.isArray(response?.items)) {
+          return response.items;
+        }
+        if (Array.isArray(response?.courses)) {
+          return response.courses;
+        }
+        return [];
+      },
       providesTags: ['Courses'],
     }),
     getPublishedCourses: builder.query({
-      query: ({limit, sort} = {}) => {
-        const queryParams = new URLSearchParams();
-        if (limit) {
-          queryParams.append('limit', limit);
+      query: ({limit, sort, page} = {}) => ({
+        url: 'course/get/published',
+        params: {
+          ...(limit ? {limit} : {}),
+          ...(sort ? {sort} : {}),
+          ...(page ? {page} : {}),
+        },
+      }),
+      transformResponse: response => {
+        if (Array.isArray(response)) {
+          return response;
         }
-        if (sort) {
-          queryParams.append('sort', sort);
+        if (Array.isArray(response?.items)) {
+          return response.items;
         }
-        return {
-          url: 'course/get/published',
-          params: queryParams.toString(),
-        };
+        if (Array.isArray(response?.courses)) {
+          return response.courses;
+        }
+        return [];
       },
       providesTags: ['Courses'],
     }),

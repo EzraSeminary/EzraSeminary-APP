@@ -246,16 +246,10 @@ const App = () => {
 
     const initializeNotifications = async () => {
       try {
-        // Run startup notification tasks without blocking app interaction.
-        NotificationService.requestPermissions().catch(error =>
-          console.warn('Failed to request notification permissions:', error),
-        );
-        NotificationService.rescheduleNotificationsIfNeeded().catch(error =>
-          console.warn('Failed to reschedule notifications:', error),
-        );
-        RemotePush.init().catch(error =>
-          console.warn('RemotePush init failed:', error),
-        );
+        // Run notification startup tasks in sequence to avoid Android permission race conditions.
+        await NotificationService.requestPermissions();
+        await NotificationService.rescheduleNotificationsIfNeeded();
+        await RemotePush.init();
 
         const initialNotification = await notifee.getInitialNotification();
         if (initialNotification?.notification) {

@@ -123,7 +123,7 @@ export const logoutUser = () => async dispatch => {
 
 export const deactivateUserAccount = id => async dispatch => {
   try {
-    await fetch(`http://localhost:5100/users/status/${id}`, {
+    await fetch(`https://ezrabackend.online/users/status/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

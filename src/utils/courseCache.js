@@ -43,12 +43,15 @@ export const saveCourseListToCache = async courses => {
   }
 };
 
-export const getCachedCourseList = async () => {
+export const getCachedCourseList = async ({allowExpired = true} = {}) => {
   try {
     const raw = await AsyncStorage.getItem(COURSE_LIST_CACHE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!parsed?.data || isExpired(parsed.cachedAt)) {
+    if (!parsed?.data) {
+      return [];
+    }
+    if (!allowExpired && isExpired(parsed.cachedAt)) {
       return [];
     }
     return parsed.data;
@@ -74,18 +77,39 @@ export const saveCourseToCache = async (courseId, course) => {
   }
 };
 
-export const getCachedCourseById = async courseId => {
+export const getCachedCourseById = async (
+  courseId,
+  {allowExpired = true} = {},
+) => {
   try {
     if (!courseId) return null;
     const raw = await AsyncStorage.getItem(`${COURSE_CACHE_PREFIX}${courseId}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed?.data || isExpired(parsed.cachedAt)) {
+    if (!parsed?.data) {
+      return null;
+    }
+    if (!allowExpired && isExpired(parsed.cachedAt)) {
       return null;
     }
     return parsed.data;
   } catch (error) {
     console.error('Error reading course cache:', error);
     return null;
+  }
+};
+
+export const clearCourseCache = async () => {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const courseKeys = keys.filter(
+      key =>
+        key === COURSE_LIST_CACHE_KEY || key.startsWith(COURSE_CACHE_PREFIX),
+    );
+    if (courseKeys.length > 0) {
+      await AsyncStorage.multiRemove(courseKeys);
+    }
+  } catch (error) {
+    console.error('Error clearing course cache:', error);
   }
 };

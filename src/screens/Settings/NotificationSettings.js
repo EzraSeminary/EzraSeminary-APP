@@ -49,12 +49,15 @@ const NotificationSettings = () => {
 
   const initializeNotifications = async () => {
     try {
-      // Request permissions
-      const hasPermission = await NotificationService.requestPermissions();
+      // Check permissions first to avoid unnecessary prompts
+      let hasPermission = await NotificationService.checkPermissionStatus();
+      if (!hasPermission) {
+        hasPermission = await NotificationService.requestPermissions();
+      }
       if (!hasPermission) {
         Alert.alert(
           'Permission Required',
-          'Please enable notifications in your device settings to receive daily verses.',
+          'Notifications are blocked. Please enable them in Android Settings > Apps > Ezra Seminary > Notifications.',
           [{text: 'OK'}],
         );
         return;
@@ -138,9 +141,12 @@ const NotificationSettings = () => {
             [{text: 'OK'}],
           );
         } else {
+          const detailedError = NotificationService.getLastScheduleError();
           Alert.alert(
             'Error',
-            'Failed to schedule notification. Please try again.',
+            detailedError
+              ? `Failed to schedule notification.\n\n${detailedError}`
+              : 'Failed to schedule notification. Please try again.',
             [{text: 'OK'}],
           );
         }
@@ -180,7 +186,7 @@ const NotificationSettings = () => {
         } else {
           Alert.alert(
             'Permission Required',
-            'Please enable notifications in your device settings to receive test notifications.',
+            'Notifications are blocked. Please enable them in Android Settings > Apps > Ezra Seminary > Notifications.',
             [{text: 'OK'}],
           );
         }

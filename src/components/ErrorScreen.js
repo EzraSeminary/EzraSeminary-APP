@@ -15,7 +15,9 @@ const ErrorScreen = ({refetch, darkMode}) => {
 
   const handleReload = async () => {
     const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
+    const hasInternet =
+      netInfo.isConnected && netInfo.isInternetReachable !== false;
+    if (!hasInternet) {
       Toast.show({
         type: 'info',
         text1: 'Internet Connection Required',

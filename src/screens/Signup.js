@@ -1,36 +1,55 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
+  Alert,
+  ActivityIndicator,
   View,
   Text,
   Image,
+  TextInput,
   TouchableOpacity,
   ScrollView,
   Animated,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {Sparkle} from 'phosphor-react-native';
 import {useDispatch, useSelector} from 'react-redux';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import tw from './../../tailwind';
-import SocialAuthButtons from '../components/SocialAuthButtons';
 import {
+  useSignupMutation,
   useGetAuthProvidersQuery,
   useSocialAuthMutation,
 } from '../redux/api-slices/apiSlice';
 import {login} from '../redux/authSlice';
 import {
   isSocialAuthCancelled,
-  signInWithAppleProvider,
   signInWithGoogleProvider,
 } from '../services/socialAuth';
+import {
+  buildDetailedAuthError,
+  normalizeAuthError,
+  persistAuthenticatedUser,
+  validateEmailAddress,
+  validateName,
+  validatePassword,
+} from '../services/mobileAuth';
 
 const Signup = ({navigation}) => {
   const dispatch = useDispatch();
   const darkMode = useSelector(state => state.ui.darkMode);
-  const {data: authProviders} = useGetAuthProvidersQuery();
+  const {
+    data: authProviders,
+    isLoading: isAuthProvidersLoading,
+    isFetching: isAuthProvidersFetching,
+  } = useGetAuthProvidersQuery();
   const [socialAuth] = useSocialAuthMutation();
+  const [signupUser, {isLoading: isEmailSignupLoading}] = useSignupMutation();
   const [activeProvider, setActiveProvider] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState({});
+  const [focusedField, setFocusedField] = useState('');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -78,31 +97,39 @@ const Signup = ({navigation}) => {
 
   const finishAuthentication = async providerPayload => {
     const result = await socialAuth(providerPayload).unwrap();
-    await AsyncStorage.setItem('user', JSON.stringify(result));
-    dispatch(login(result));
+    await persistAuthenticatedUser({result, dispatch, login});
     navigation.reset({
       index: 0,
       routes: [{name: 'MainTab'}],
     });
   };
 
-  const handleProviderAuth = async provider => {
+  const handleProviderAuth = async () => {
+    if (isAuthProvidersLoading || isAuthProvidersFetching) {
+      Toast.show({
+        type: 'info',
+        text1: 'Setting up sign in',
+        text2: 'Please wait a moment and try again.',
+      });
+      return;
+    }
+
+    if (!authProviders?.google?.webClientId) {
+      Toast.show({
+        type: 'error',
+        text1: 'Sign-in unavailable',
+        text2: 'Google sign-in is not configured for mobile yet.',
+      });
+      return;
+    }
+
     try {
-      setActiveProvider(provider);
+      setActiveProvider('google');
 
-      let providerPayload;
-
-      if (provider === 'google') {
-        providerPayload = await signInWithGoogleProvider({
-          webClientId: authProviders?.google?.webClientId,
-          iosClientId: authProviders?.google?.iosClientId,
-        });
-      } else {
-        providerPayload = await signInWithAppleProvider({
-          serviceId: authProviders?.apple?.serviceId,
-          redirectUri: authProviders?.apple?.redirectUri,
-        });
-      }
+      const providerPayload = await signInWithGoogleProvider({
+        webClientId: authProviders?.google?.webClientId,
+        iosClientId: authProviders?.google?.iosClientId,
+      });
 
       if (!providerPayload) {
         return;
@@ -119,18 +146,106 @@ const Signup = ({navigation}) => {
         return;
       }
 
+      const detailedMessage = buildDetailedAuthError(error);
+      console.error('Google signup error:', detailedMessage, error);
+      Alert.alert('Google Sign-In Error', detailedMessage);
+
       Toast.show({
         type: 'error',
         text1: 'Unable to continue',
-        text2:
-          error?.data?.error ||
-          error?.message ||
-          'Provider sign-in failed. Please try again.',
+        text2: normalizeAuthError(error),
       });
     } finally {
       setActiveProvider('');
     }
   };
+
+  const handleEmailSignup = async () => {
+    const nextErrors = {
+      firstName: validateName(firstName, 'First name'),
+      lastName: validateName(lastName, 'Last name'),
+      email: validateEmailAddress(email),
+      password: validatePassword(password),
+    };
+
+    setErrors(nextErrors);
+
+    if (
+      nextErrors.firstName ||
+      nextErrors.lastName ||
+      nextErrors.email ||
+      nextErrors.password
+    ) {
+      Toast.show({
+        type: 'info',
+        text1: 'Check your details',
+        text2: 'Fix the highlighted fields and try again.',
+      });
+      return;
+    }
+
+    try {
+      const result = await signupUser({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      }).unwrap();
+      await persistAuthenticatedUser({result, dispatch, login});
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'MainTab'}],
+      });
+      Toast.show({
+        type: 'success',
+        text1: 'Account ready',
+        text2: 'Your account has been created and signed in.',
+      });
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Unable to sign up',
+        text2: normalizeAuthError(error),
+      });
+    }
+  };
+
+  const updateFieldError = (field, value) => {
+    if (field === 'firstName') {
+      setErrors(prev => ({
+        ...prev,
+        firstName: validateName(value, 'First name'),
+      }));
+      return;
+    }
+
+    if (field === 'lastName') {
+      setErrors(prev => ({
+        ...prev,
+        lastName: validateName(value, 'Last name'),
+      }));
+      return;
+    }
+
+    if (field === 'email') {
+      setErrors(prev => ({...prev, email: validateEmailAddress(value)}));
+      return;
+    }
+
+    if (field === 'password') {
+      setErrors(prev => ({...prev, password: validatePassword(value)}));
+    }
+  };
+
+  const inputStyle = hasError => [
+    tw`rounded-2 px-4 py-3 font-Lato-Regular`,
+    {
+      backgroundColor: darkMode ? '#111827' : '#FFFFFF',
+      color: darkMode ? '#F9FAFB' : '#111827',
+      borderWidth: 1,
+      borderColor: hasError ? '#DC2626' : darkMode ? '#374151' : '#E5E7EB',
+    },
+  ];
 
   return (
     <SafeAreaView
@@ -148,32 +263,35 @@ const Signup = ({navigation}) => {
             },
           ]}>
           <TouchableOpacity
-            style={tw`flex flex-row justify-center mb-4`}
+            style={[
+              tw`rounded-full px-4 py-3 items-center mb-3`,
+              {
+                backgroundColor: darkMode ? '#111827' : '#FFFFFF',
+                borderWidth: 1,
+                borderColor: darkMode ? '#374151' : '#E5E7EB',
+              },
+            ]}
             onPress={() => navigation.navigate('MainTab')}>
             <Text
-              style={tw`font-nokia-bold text-accent-6 px-4 py-2 border border-accent-6 rounded-full`}>
+              style={[
+                tw`font-Lato-Bold text-sm`,
+                {color: darkMode ? '#F9FAFB' : '#111827'},
+              ]}>
               Continue without account
             </Text>
           </TouchableOpacity>
 
           <Animated.View
-            style={[
-              tw`mb-6 p-6 rounded-2xl items-center`,
-              {
-                backgroundColor: darkMode ? '#374151' : '#F9FAFB',
-                transform: [{scale: scaleAnim}],
-                elevation: 8,
-              },
-            ]}>
+            style={[tw`mb-5 items-center`, {transform: [{scale: scaleAnim}]}]}>
             <Animated.View
               style={[
-                tw`mb-4`,
+                tw`mb-3`,
                 {
                   transform: [
                     {
                       scale: sparkleAnim.interpolate({
                         inputRange: [0, 0.5, 1],
-                        outputRange: [1, 1.1, 1],
+                        outputRange: [1, 1.06, 1],
                       }),
                     },
                   ],
@@ -187,54 +305,240 @@ const Signup = ({navigation}) => {
             </Animated.View>
             <Text
               style={[
-                tw`font-nokia-bold text-4xl text-secondary-6 text-center mb-2`,
-                darkMode ? tw`text-accent-6` : null,
+                tw`font-nokia-bold text-3xl text-center`,
+                {color: darkMode ? '#F9FAFB' : '#1F2937'},
               ]}>
-              እንኳን ደህና መጡ!
+              Create Account
             </Text>
             <Text
               style={[
-                tw`font-Lato-Black text-2xl text-secondary-6 text-center mb-2`,
-                darkMode ? tw`text-primary-1` : null,
+                tw`font-Lato-Regular text-sm text-center mt-2`,
+                {color: darkMode ? '#D1D5DB' : '#6B7280'},
               ]}>
-              Create your account
-            </Text>
-            <Text
-              style={[
-                tw`font-Lato-Regular text-sm text-secondary-6 text-center opacity-70`,
-                darkMode ? tw`text-primary-3` : null,
-              ]}>
-              Sign up with Google or Apple to keep your Ezra Seminary profile
-              simple and secure.
+              Use Google or complete the form below.
             </Text>
           </Animated.View>
 
           <View
             style={[
-              tw`rounded-2xl p-5`,
-              {backgroundColor: darkMode ? '#374151' : '#FFFFFF'},
+              tw`rounded-3 p-5`,
+              {
+                backgroundColor: darkMode ? '#1F2937' : '#FFFDFC',
+                borderWidth: 1,
+                borderColor: darkMode ? '#374151' : '#F3E8D7',
+              },
             ]}>
-            <View style={tw`flex-row items-center justify-center mb-4`}>
-              <Sparkle
-                size={18}
-                color={darkMode ? '#FBBF24' : '#D97706'}
-                weight="fill"
-              />
+            <TouchableOpacity
+              style={[
+                tw`px-4 py-4 rounded-full mb-4 relative`,
+                {
+                  backgroundColor:
+                    Boolean(activeProvider) || isEmailSignupLoading
+                      ? darkMode
+                        ? '#6B7280'
+                        : '#D1D5DB'
+                      : '#EA9215',
+                },
+              ]}
+              disabled={Boolean(activeProvider) || isEmailSignupLoading}
+              onPress={handleProviderAuth}>
+              <View style={tw`flex-row items-center justify-center`}>
+                <View
+                  style={[
+                    tw`items-center justify-center rounded-full`,
+                    {backgroundColor: '#FFFFFF', width: 36, height: 36},
+                  ]}>
+                  <Image
+                    source={require('../assets/gmail_logo.webp')}
+                    style={tw`w-6 h-6`}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text
+                  style={[
+                    tw`font-Lato-Bold text-lg ml-3`,
+                    {color: '#FFFFFF'},
+                  ]}>
+                  Continue with Google
+                </Text>
+              </View>
+              {activeProvider === 'google' ? (
+                <View style={[tw`absolute right-4`, {top: "50%", marginTop: -10}]}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                </View>
+              ) : (
+                <View />
+              )}
+            </TouchableOpacity>
+
+            <View style={tw`mb-2`}>
               <Text
                 style={[
-                  tw`font-Lato-Bold text-sm ml-2`,
-                  {color: darkMode ? '#F9FAFB' : '#111827'},
+                  tw`font-Lato-Bold text-xs uppercase tracking-widest mb-3`,
+                  {color: darkMode ? '#9CA3AF' : '#92400E'},
                 ]}>
-                Choose a sign-in provider
+                Sign up with email
               </Text>
+              <TextInput
+                value={firstName}
+                onChangeText={value => {
+                  setFirstName(value);
+                  updateFieldError('firstName', value);
+                }}
+                onFocus={() => setFocusedField('firstName')}
+                onBlur={() => {
+                  setFocusedField('');
+                  updateFieldError('firstName', firstName);
+                }}
+                placeholder="First name"
+                placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                style={inputStyle(Boolean(errors.firstName))}
+              />
+              {errors.firstName ? (
+                <Text
+                  style={[
+                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                    {color: '#DC2626'},
+                  ]}>
+                  {errors.firstName}
+                </Text>
+              ) : focusedField === 'firstName' ? (
+                <Text
+                  style={[
+                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                    {color: darkMode ? '#9CA3AF' : '#6B7280'},
+                  ]}>
+                  Use your real first name. Minimum 2 letters.
+                </Text>
+              ) : (
+                <View style={tw`mb-3`} />
+              )}
+              <TextInput
+                value={lastName}
+                onChangeText={value => {
+                  setLastName(value);
+                  updateFieldError('lastName', value);
+                }}
+                onFocus={() => setFocusedField('lastName')}
+                onBlur={() => {
+                  setFocusedField('');
+                  updateFieldError('lastName', lastName);
+                }}
+                placeholder="Last name"
+                placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                style={inputStyle(Boolean(errors.lastName))}
+              />
+              {errors.lastName ? (
+                <Text
+                  style={[
+                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                    {color: '#DC2626'},
+                  ]}>
+                  {errors.lastName}
+                </Text>
+              ) : focusedField === 'lastName' ? (
+                <Text
+                  style={[
+                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                    {color: darkMode ? '#9CA3AF' : '#6B7280'},
+                  ]}>
+                  Use your family or last name.
+                </Text>
+              ) : (
+                <View style={tw`mb-3`} />
+              )}
+              <TextInput
+                value={email}
+                onChangeText={value => {
+                  setEmail(value);
+                  updateFieldError('email', value);
+                }}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => {
+                  setFocusedField('');
+                  updateFieldError('email', email);
+                }}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                placeholder="Email address"
+                placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                style={inputStyle(Boolean(errors.email))}
+              />
+              {errors.email ? (
+                <Text
+                  style={[
+                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                    {color: '#DC2626'},
+                  ]}>
+                  {errors.email}
+                </Text>
+              ) : focusedField === 'email' ? (
+                <Text
+                  style={[
+                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                    {color: darkMode ? '#9CA3AF' : '#6B7280'},
+                  ]}>
+                  Format: `name@example.com`
+                </Text>
+              ) : (
+                <View style={tw`mb-3`} />
+              )}
+              <TextInput
+                value={password}
+                onChangeText={value => {
+                  setPassword(value);
+                  updateFieldError('password', value);
+                }}
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => {
+                  setFocusedField('');
+                  updateFieldError('password', password);
+                }}
+                secureTextEntry
+                placeholder="Password"
+                placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                style={inputStyle(Boolean(errors.password))}
+              />
+              {errors.password ? (
+                <Text
+                  style={[
+                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                    {color: '#DC2626'},
+                  ]}>
+                  {errors.password}
+                </Text>
+              ) : focusedField === 'password' ? (
+                <Text
+                  style={[
+                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                    {color: darkMode ? '#9CA3AF' : '#6B7280'},
+                  ]}>
+                  Use at least 6 characters.
+                </Text>
+              ) : (
+                <View style={tw`mb-3`} />
+              )}
+              <TouchableOpacity
+                style={[
+                  tw`rounded-full px-4 py-4 items-center`,
+                  {
+                    backgroundColor:
+                      isEmailSignupLoading || activeProvider
+                        ? darkMode
+                          ? '#6B7280'
+                          : '#D1D5DB'
+                        : '#EA9215',
+                  },
+                ]}
+                disabled={isEmailSignupLoading || Boolean(activeProvider)}
+                onPress={handleEmailSignup}>
+                <Text style={tw`font-Lato-Black text-white text-base`}>
+                  {isEmailSignupLoading
+                    ? 'Creating account...'
+                    : 'Create Account'}
+                </Text>
+              </TouchableOpacity>
             </View>
-
-            <SocialAuthButtons
-              darkMode={darkMode}
-              activeProvider={activeProvider}
-              onGooglePress={() => handleProviderAuth('google')}
-              onApplePress={() => handleProviderAuth('apple')}
-            />
           </View>
 
           <View style={tw`flex-row justify-center my-5`}>

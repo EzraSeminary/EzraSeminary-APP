@@ -3,29 +3,55 @@ import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
-    // baseUrl: 'http://localhost:5100/',
-    baseUrl: 'http://localhost:5100/',
+    // baseUrl: 'https://ezrabackend.online/',
+    baseUrl: 'https://ezrabackend.online/',
   }),
   endpoints: builder => ({
     getCourses: builder.query({
-      query: () => 'course/getall',
+      query: ({limit, sort, page} = {}) => ({
+        url: 'course/getall',
+        params: {
+          ...(limit ? {limit} : {}),
+          ...(sort ? {sort} : {}),
+          ...(page ? {page} : {}),
+        },
+      }),
+      transformResponse: response => {
+        if (Array.isArray(response)) {
+          return response;
+        }
+        if (Array.isArray(response?.items)) {
+          return response.items;
+        }
+        if (Array.isArray(response?.courses)) {
+          return response.courses;
+        }
+        return [];
+      },
     }),
     getCourseById: builder.query({
       query: id => `course/get/${id}`,
     }),
     getPublishedCourses: builder.query({
-      query: ({limit, sort} = {}) => {
-        const queryParams = new URLSearchParams();
-        if (limit) {
-          queryParams.append('limit', limit);
+      query: ({limit, sort, page} = {}) => ({
+        url: 'course/get/published',
+        params: {
+          ...(limit ? {limit} : {}),
+          ...(sort ? {sort} : {}),
+          ...(page ? {page} : {}),
+        },
+      }),
+      transformResponse: response => {
+        if (Array.isArray(response)) {
+          return response;
         }
-        if (sort) {
-          queryParams.append('sort', sort);
+        if (Array.isArray(response?.items)) {
+          return response.items;
         }
-        return {
-          url: 'course/get/published',
-          params: queryParams.toString(),
-        };
+        if (Array.isArray(response?.courses)) {
+          return response.courses;
+        }
+        return [];
       },
       providesTags: ['Courses'],
     }),

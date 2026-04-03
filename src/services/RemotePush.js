@@ -1,6 +1,7 @@
 import notifee, { AndroidImportance } from '@notifee/react-native';
-import { Platform } from 'react-native';
+import { Platform, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {getApiBaseUrl} from '../utils/apiBaseUrl';
 
 // Dynamically import messaging to avoid errors if Firebase isn't properly linked
 let messaging = null;
@@ -53,12 +54,50 @@ class RemotePushService {
       return false;
     }
     try {
-      const authStatus = await messaging().requestPermission();
-      const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      if (Platform.OS === 'android') {
+        if (Platform.Version < 33) {
+          return true;
+        }
 
-      console.log('Push permission status:', authStatus);
+        const hasAndroidPermission = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        );
+        if (hasAndroidPermission) {
+          return true;
+        }
+
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        );
+        const isGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
+        console.log('Android POST_NOTIFICATIONS permission:', granted);
+        return isGranted;
+      }
+
+      // Check existing permission first to avoid unnecessary iOS prompts.
+      const currentStatus = await messaging().hasPermission();
+      const isAlreadyEnabled =
+        currentStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        currentStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      if (isAlreadyEnabled) {
+        console.log('Push permission status:', currentStatus);
+        return true;
+      }
+
+      // If denied, do not keep requesting. User can enable from Settings.
+      if (currentStatus === messaging.AuthorizationStatus.DENIED) {
+        console.log('Push permission status:', currentStatus);
+        return false;
+      }
+
+      // Request permission when not determined / ephemeral states.
+      const requestedStatus = await messaging().requestPermission();
+      const enabled =
+        requestedStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        requestedStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      console.log('Push permission status:', requestedStatus);
       return enabled;
     } catch (error) {
       console.error('Error requesting push permission:', error);
@@ -75,13 +114,6 @@ class RemotePushService {
       return null;
     }
     try {
-      if (Platform.OS === 'ios') {
-        try {
-          await messaging().registerDeviceForRemoteMessages();
-        } catch (e) {
-          console.warn('Failed to register device for remote messages:', e);
-        }
-      }
       const enabled = await this.requestPushPermission();
       if (!enabled) {
         console.log('Push notifications not authorized');
@@ -106,17 +138,9 @@ class RemotePushService {
    */
   async saveTokenToBackend(token) {
     try {
-      // Use the same backend URL as the main API
-      // Allow override via AsyncStorage key 'apiBaseUrl' for testing
-      let serverUrl = 'http://localhost:5100';
-      try {
-        const override = await AsyncStorage.getItem('apiBaseUrl');
-        if (override && typeof override === 'string') {
-          serverUrl = override.endsWith('/') ? override.slice(0, -1) : override;
-        }
-      } catch (e) {
-        // Use default if AsyncStorage fails
-      }
+      // Use the same backend URL resolver as the main API layer
+      const baseUrl = await getApiBaseUrl();
+      const serverUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 
       // Get auth token if user is logged in
       let authToken = '';
@@ -310,8 +334,20 @@ class RemotePushService {
       return false;
     }
     try {
+      if (Platform.OS === 'android') {
+        if (Platform.Version < 33) {
+          return true;
+        }
+        return PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        );
+      }
+
       const authStatus = await messaging().hasPermission();
-      return authStatus === messaging.AuthorizationStatus.AUTHORIZED;
+      return (
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL
+      );
     } catch (error) {
       console.error('Error checking notification status:', error);
       return false;

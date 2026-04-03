@@ -54,6 +54,10 @@ import {
   getCachedHomeScreen,
 } from '../utils/homeScreenCache';
 import networkManager from '../utils/networkManager';
+import {
+  clearDevotionRefreshCache,
+  ensureOnlineOrNotify,
+} from '../utils/refreshCacheManager';
 import HighlightableBlock from '../components/HighlightableBlock';
 import HighlightableHtmlBlocks from '../components/HighlightableHtmlBlocks';
 import usePersistentHighlights from '../hooks/usePersistentHighlights';
@@ -155,6 +159,12 @@ const Devotion = () => {
   const [activeTab, setActiveTab] = useState('devotional'); // 'devotional' or 'plan'
   const [cachedHomeData, setCachedHomeData] = useState(null);
   const [isUsingCache, setIsUsingCache] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setActiveTab('devotional');
+    }, []),
+  );
 
   // Cache home screen data when loaded with internet
   useEffect(() => {
@@ -514,20 +524,17 @@ const Devotion = () => {
     setLoadingTimeout(false);
     setNetworkError(false);
 
-    // Check network connectivity first
-    if (!networkManager.isOnline) {
+    const hasInternet = await ensureOnlineOrNotify();
+    if (!hasInternet) {
       setNetworkError(true);
       setIsRefreshing(false);
-      Toast.show({
-        type: 'error',
-        text1: 'No Internet Connection',
-        text2: 'Please connect to the internet to reload.',
-      });
       return;
     }
 
     try {
       console.log('Devotion screen: Invalidating cache and refetching...');
+      await clearDevotionRefreshCache();
+
       // Invalidate RTK Query cache to force fresh fetch
       dispatch(apiSlice.util.invalidateTags(['Devotions']));
 
@@ -1117,21 +1124,49 @@ const Devotion = () => {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={tw`px-1 pb-2`}>
                   {displayDevotionPlans.slice(0, 5).map((plan, index) => {
-                    const isStarted =
-                      displayMyDevotionPlans.some(
-                        p => (p.planId || p.plan?._id) === plan._id,
-                      ) ||
-                      displayCompletedPlans.some(
-                        p => (p.planId || p.plan?._id) === plan._id,
-                      );
+                    const inProgressEntry = displayMyDevotionPlans.find(
+                      p => (p.planId || p.plan?._id) === plan._id,
+                    );
+                    const completedEntry = displayCompletedPlans.find(
+                      p => (p.planId || p.plan?._id) === plan._id,
+                    );
+
+                    const planStatus = completedEntry
+                      ? 'completed'
+                      : inProgressEntry
+                      ? 'in_progress'
+                      : 'new';
+                    const itemsCompleted = Array.isArray(
+                      inProgressEntry?.itemsCompleted,
+                    )
+                      ? inProgressEntry.itemsCompleted.length
+                      : 0;
+                    const totalItems =
+                      inProgressEntry?.progress?.total || plan?.numItems || 0;
+                    const percentFromServer =
+                      inProgressEntry?.progress?.percent || 0;
+                    const derivedPercent =
+                      totalItems > 0
+                        ? Math.round((itemsCompleted / totalItems) * 100)
+                        : 0;
+                    const progressPercent =
+                      percentFromServer > 0
+                        ? percentFromServer
+                        : derivedPercent;
+                    const progressLabel =
+                      planStatus === 'in_progress'
+                        ? `Progress ${progressPercent}%`
+                        : null;
+
                     return (
                       <DevotionPlanSquareCard
                         key={plan._id || index}
                         plan={plan}
                         darkMode={darkMode}
-                        isStarted={isStarted}
+                        status={planStatus}
+                        progressLabel={progressLabel}
                         onPress={plan => {
-                          if (isStarted) {
+                          if (planStatus !== 'new') {
                             // If plan is already started, navigate directly
                             navigation.navigate('Devotional', {
                               screen: 'PlanDevotionViewer',

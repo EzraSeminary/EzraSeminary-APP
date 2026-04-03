@@ -19,16 +19,18 @@ import {
   ArrowRight,
 } from 'phosphor-react-native';
 import tw from './../../tailwind';
-import {useGetCoursesQuery} from './../redux/api-slices/apiSlice';
+import {
+  apiSlice,
+  useGetPublishedCoursesQuery,
+} from './../redux/api-slices/apiSlice';
 import {useNavigation} from '@react-navigation/native';
-import {useSelector} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 import ErrorScreen from '../components/ErrorScreen';
-import NetInfo from '@react-native-community/netinfo';
-import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 import Explore from './Explore';
 import {getCachedCourseList, saveCourseListToCache} from '../utils/courseCache';
 import {getOptimizedImageUrl} from '../utils/imageCache';
+import {ensureOnlineOrNotify} from '../utils/refreshCacheManager';
 
 // Tab Switcher Component - matching Devotion screen style
 const TabSwitcher = ({activeTab, setActiveTab, darkMode}) => (
@@ -92,12 +94,28 @@ const TabSwitcher = ({activeTab, setActiveTab, darkMode}) => (
 );
 
 const Course = () => {
+  const PAGE_SIZE = 4;
   const [activeTab, setActiveTab] = useState('course'); // 'course' or 'explore'
-  const {data: apiCourses, error, isLoading, refetch} = useGetCoursesQuery();
+  const [page, setPage] = useState(1);
+  const [pagedCourses, setPagedCourses] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const {
+    data: apiCoursesBatch,
+    error,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetPublishedCoursesQuery({
+    limit: PAGE_SIZE,
+    sort: 'desc',
+    page,
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortByLatest, setSortByLatest] = useState(false);
   const [cachedCourses, setCachedCourses] = useState([]);
+  const dispatch = useDispatch();
   const darkMode = useSelector(state => state.ui.darkMode);
   const navigation = useNavigation();
   const currentUser = useSelector(state => state.auth.user);
@@ -107,6 +125,7 @@ const Course = () => {
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const sparkleAnim = useRef(new Animated.Value(0)).current;
+  const loadMoreLockRef = useRef(false);
 
   useEffect(() => {
     if (!isLoading) {
@@ -152,7 +171,7 @@ const Course = () => {
 
   useEffect(() => {
     const loadCachedCourses = async () => {
-      const cached = await getCachedCourseList();
+      const cached = await getCachedCourseList({allowExpired: true});
       if (cached.length > 0) {
         setCachedCourses(cached);
       }
@@ -161,35 +180,51 @@ const Course = () => {
   }, []);
 
   useEffect(() => {
-    if (Array.isArray(apiCourses) && apiCourses.length > 0) {
-      setCachedCourses(apiCourses);
-      saveCourseListToCache(apiCourses);
+    const batch = Array.isArray(apiCoursesBatch) ? apiCoursesBatch : [];
+    if (page === 1) {
+      setPagedCourses(batch);
+    } else if (batch.length > 0) {
+      setPagedCourses(prev => {
+        const seen = new Set(prev.map(course => course?._id));
+        const nextItems = batch.filter(course => !seen.has(course?._id));
+        return [...prev, ...nextItems];
+      });
     }
-  }, [apiCourses]);
+
+    setHasMore(batch.length === PAGE_SIZE);
+    setIsLoadingMore(false);
+    loadMoreLockRef.current = false;
+  }, [apiCoursesBatch, page]);
+
+  useEffect(() => {
+    if (Array.isArray(pagedCourses) && pagedCourses.length > 0) {
+      setCachedCourses(pagedCourses);
+      saveCourseListToCache(pagedCourses);
+    }
+  }, [pagedCourses]);
 
   const courses =
-    Array.isArray(apiCourses) && apiCourses.length > 0
-      ? apiCourses
+    Array.isArray(pagedCourses) && pagedCourses.length > 0
+      ? pagedCourses
       : cachedCourses;
 
   const onRefresh = useCallback(async () => {
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      Toast.show({
-        type: 'info',
-        text1: 'Internet Connection Required',
-        text2: 'Please connect to the internet to reload data.',
-      });
+    const hasInternet = await ensureOnlineOrNotify();
+    if (!hasInternet) {
       setIsRefreshing(false);
       return;
     }
     try {
       setIsRefreshing(true);
+      setHasMore(true);
+      setIsLoadingMore(false);
+      setPage(1);
+      dispatch(apiSlice.util.invalidateTags(['Courses']));
       await refetch();
     } finally {
       setIsRefreshing(false);
     }
-  }, [refetch]);
+  }, [dispatch, refetch]);
 
   const handleSearch = text => {
     setSearchTerm(text);
@@ -211,6 +246,28 @@ const Course = () => {
       filteredData = [...filteredData].reverse();
     }
   }
+  const filteredCount = Array.isArray(filteredData) ? filteredData.length : 0;
+
+  const handleLoadMore = () => {
+    if (!hasMore || isFetching || isLoadingMore || loadMoreLockRef.current) {
+      return;
+    }
+    loadMoreLockRef.current = true;
+    setIsLoadingMore(true);
+    setPage(prev => prev + 1);
+  };
+
+  const handleCourseScroll = ({nativeEvent}) => {
+    const {layoutMeasurement, contentOffset, contentSize} = nativeEvent;
+    const paddingToBottom = 180;
+    const isNearBottom =
+      layoutMeasurement.height + contentOffset.y >=
+      contentSize.height - paddingToBottom;
+
+    if (isNearBottom) {
+      handleLoadMore();
+    }
+  };
 
   const handleButtonPress = id => {
     navigation.navigate('CourseContent', {courseId: id});
@@ -281,11 +338,48 @@ const Course = () => {
 
   if (isLoading && courses.length === 0) {
     return (
-      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
-        <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
-        <Text style={tw`font-nokia-bold text-lg text-accent-6 text-center`}>
-          Loading
-        </Text>
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
+        <ScrollView contentContainerStyle={tw`px-4 pt-4 pb-8`}>
+          {[0, 1, 2, 3].map(item => (
+            <View
+              key={`course-skeleton-${item}`}
+              style={[
+                tw`rounded-3xl p-5 mb-4`,
+                {backgroundColor: darkMode ? '#374151' : '#FFFFFF'},
+              ]}>
+              <View
+                style={[
+                  tw`h-44 rounded-2xl mb-4`,
+                  {backgroundColor: darkMode ? '#4B5563' : '#E5E7EB'},
+                ]}
+              />
+              <View
+                style={[
+                  tw`h-4 rounded-full mb-3 w-8/12`,
+                  {backgroundColor: darkMode ? '#6B7280' : '#D1D5DB'},
+                ]}
+              />
+              <View
+                style={[
+                  tw`h-4 rounded-full mb-3 w-10/12`,
+                  {backgroundColor: darkMode ? '#6B7280' : '#D1D5DB'},
+                ]}
+              />
+              <View
+                style={[
+                  tw`h-11 rounded-2xl mt-2`,
+                  {backgroundColor: 'rgba(234, 146, 21, 0.35)'},
+                ]}
+              />
+            </View>
+          ))}
+          <View style={tw`items-center mt-2`}>
+            <ActivityIndicator size="small" color="#EA9215" />
+            <Text style={tw`font-nokia-bold text-accent-6 text-sm mt-2`}>
+              Loading courses...
+            </Text>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -311,7 +405,7 @@ const Course = () => {
   }
 
   return (
-    <View style={darkMode ? tw`bg-secondary-9` : null}>
+    <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
       <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
         <TabSwitcher
           activeTab={activeTab}
@@ -320,6 +414,8 @@ const Course = () => {
         />
         <ScrollView
           showsVerticalScrollIndicator={false}
+          onScroll={handleCourseScroll}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -329,10 +425,13 @@ const Course = () => {
             />
           }>
           <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{translateY: slideAnim}],
-            }}>
+            style={[
+              tw`mb-48`,
+              {
+                opacity: fadeAnim,
+                transform: [{translateY: slideAnim}],
+              },
+            ]}>
             {/* Enhanced Search Bar */}
             <Animated.View
               style={[
@@ -380,7 +479,7 @@ const Course = () => {
                 <CaretCircleDown size={24} weight="fill" color={'#EA9215'} />
               </TouchableOpacity>
             </View>
-            {filteredData.length > 0 ? (
+            {filteredCount > 0 ? (
               filteredData.flatMap((course, index) => {
                 const progressValue = getProgressValue(course._id);
                 const items = [
@@ -604,6 +703,18 @@ const Course = () => {
                   Try adjusting your search terms
                 </Text>
               </Animated.View>
+            )}
+            {(isFetching || isLoadingMore) && filteredCount > 0 && (
+              <View style={tw`py-4 items-center`}>
+                <ActivityIndicator size="small" color="#EA9215" />
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-sm mt-2`,
+                    darkMode ? tw`text-primary-2` : tw`text-secondary-7`,
+                  ]}>
+                  Loading more courses...
+                </Text>
+              </View>
             )}
           </Animated.View>
         </ScrollView>

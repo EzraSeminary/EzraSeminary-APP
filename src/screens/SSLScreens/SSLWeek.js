@@ -23,7 +23,11 @@ import {
 } from '../../services/SabbathSchoolApi';
 import {useGetVideoLinkQuery} from '../../services/videoLinksApi';
 import {useNavigation} from '@react-navigation/native';
-import {saveSSLLessonToCache, getCachedSSLLesson} from '../../utils/sslCache';
+import {
+  saveSSLLessonToCache,
+  getCachedSSLLesson,
+  clearSSLCache,
+} from '../../utils/sslCache';
 import networkManager from '../../utils/networkManager';
 import {
   ArrowSquareLeft,
@@ -42,6 +46,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {format} from 'date-fns';
 import usePersistentHighlights from '../../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../../utils/htmlBlocks';
+import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
 
 const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
   const [noteText, setNoteText] = useState(initialText || '');
@@ -281,7 +286,12 @@ const SSLWeek = ({route}) => {
   };
 
   const onRefresh = async () => {
+    const hasInternet = await ensureOnlineOrNotify();
+    if (!hasInternet) {
+      return;
+    }
     setIsRefreshing(true);
+    await clearSSLCache();
     await refetch();
     setIsRefreshing(false);
   };

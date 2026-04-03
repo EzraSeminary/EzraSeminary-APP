@@ -112,8 +112,7 @@ export const getHomeScreenCacheStats = async () => {
 
     // Find oldest and newest
     const sortedByDate = screens.sort(
-      (a, b) =>
-        new Date(a.cachedAt || 0) - new Date(b.cachedAt || 0),
+      (a, b) => new Date(a.cachedAt || 0) - new Date(b.cachedAt || 0),
     );
     const oldest = sortedByDate[0];
     const newest = sortedByDate[sortedByDate.length - 1];
@@ -147,6 +146,23 @@ export const clearHomeScreenCache = async () => {
     console.log('✅ Cleared home screen cache');
   } catch (error) {
     console.error('Error clearing home screen cache:', error);
+  }
+};
+
+/**
+ * Clear a specific cached home screen entry
+ * @param {String} screenName - Name of the home screen to clear
+ */
+export const clearCachedHomeScreen = async screenName => {
+  try {
+    if (!screenName) return;
+    const cache = await getHomeScreenCache();
+    if (!cache || !cache[screenName]) return;
+    delete cache[screenName];
+    await AsyncStorage.setItem(HOME_SCREEN_CACHE_KEY, JSON.stringify(cache));
+    console.log(`✅ Cleared home screen cache entry: ${screenName}`);
+  } catch (error) {
+    console.error('Error clearing cached home screen entry:', error);
   }
 };
 

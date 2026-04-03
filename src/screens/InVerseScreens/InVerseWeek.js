@@ -29,6 +29,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import ErrorScreen from '../../components/ErrorScreen';
 import {format} from 'date-fns';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
 
 // Replace the NoteBox component with this simpler version
 const NoteInput = ({darkMode}) => {
@@ -254,6 +255,10 @@ const InVerseWeek = ({route}) => {
   }, []);
 
   const onRefresh = useCallback(async () => {
+    const hasInternet = await ensureOnlineOrNotify();
+    if (!hasInternet) {
+      return;
+    }
     setIsRefreshing(true);
     await refetch();
     setIsRefreshing(false);
@@ -640,7 +645,7 @@ const InVerseWeek = ({route}) => {
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
-              onRefresh={refetch}
+              onRefresh={onRefresh}
               colors={['#EA9215']}
               tintColor="#EA9215"
             />
@@ -820,7 +825,9 @@ const InVerseWeek = ({route}) => {
                     ...(darkMode ? tw`text-primary-1` : {}),
                   },
                   h2: {...tw`font-nokia-bold text-2xl text-accent-6`},
-                  sup: {...tw`text-xs font-nokia-bold text-superscript text-accent-6`},
+                  sup: {
+                    ...tw`text-xs font-nokia-bold text-superscript text-accent-6`,
+                  },
                   ol: {
                     ...tw`text-secondary-6 font-nokia-bold text-justify py-2`,
                     ...(darkMode ? tw`text-primary-1` : {}),

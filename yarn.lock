@@ -1654,11 +1654,6 @@
   resolved "https://registry.npmjs.org/@humanwhocodes/object-schema/-/object-schema-2.0.2.tgz"
   integrity sha512-6EwiSjwWYP7pTckG6I5eyFANjPhmPjUX9JRLUSfNPC7FX7zK9gyZAfUEaECL6ALTpGX5AjnBq3C9XmVWPitNpw==
 
-"@invertase/react-native-apple-authentication@^2.5.1":
-  version "2.5.1"
-  resolved "https://registry.npmjs.org/@invertase/react-native-apple-authentication/-/react-native-apple-authentication-2.5.1.tgz"
-  integrity sha512-KPKKc0wtRYpH4J0RkDfHzoKSZ+dYPEHmCXhpPdgHsT2MbK5AIkW1cYurjhAgev/kL7nOHFmWITjY1At5WhFEMQ==
-
 "@isaacs/cliui@^8.0.2":
   version "8.0.2"
   resolved "https://registry.npmjs.org/@isaacs/cliui/-/cliui-8.0.2.tgz"

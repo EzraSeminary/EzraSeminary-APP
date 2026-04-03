@@ -2,6 +2,7 @@
 #import <RNCPushNotificationIOS.h>
 #import <Firebase.h>
 #import <FirebaseMessaging/FirebaseMessaging.h>
+#import <RNGoogleSignin/RNGoogleSignin.h>
 #import "AppDelegate.h"
 
 #import <React/RCTBundleURLProvider.h>
@@ -45,6 +46,17 @@
 #else
   return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
 #endif
+}
+
+- (BOOL)application:(UIApplication *)application
+            openURL:(NSURL *)url
+            options:(NSDictionary<UIApplicationOpenURLOptionsKey, id> *)options
+{
+  if ([RNGoogleSignin application:application openURL:url options:options]) {
+    return YES;
+  }
+
+  return [super application:application openURL:url options:options];
 }
 
 - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
