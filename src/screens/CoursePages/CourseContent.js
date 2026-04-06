@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import React, {useState, useCallback, useEffect} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from './../../../tailwind';
 import {useGetCourseByIdQuery} from './../../services/api';
 import {useNavigation} from '@react-navigation/native';
@@ -18,16 +19,19 @@ import {
   Circle,
   BookOpen,
 } from 'phosphor-react-native';
-import {useSelector} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 import ErrorScreen from '../../components/ErrorScreen';
 import NetInfo from '@react-native-community/netinfo';
 import {getCachedCourseById, saveCourseToCache} from '../../utils/courseCache';
 import LinearGradient from 'react-native-linear-gradient';
 import {getOptimizedImageUrl, useCachedImage} from '../../utils/imageCache';
+import {syncPendingCourseProgressForCourse} from '../../utils/courseProgress';
+import {updateUser} from '../../redux/authSlice';
 
 const CourseContent = ({route}) => {
   const {courseId} = route.params;
   const navigation = useNavigation();
+  const dispatch = useDispatch();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const darkMode = useSelector(state => state.ui.darkMode);
   const currentUser = useSelector(state => state.auth.user);
@@ -91,6 +95,40 @@ const CourseContent = ({route}) => {
 
   const data = courseData?.chapters || [];
 
+  useEffect(() => {
+    const syncPendingProgress = async () => {
+      try {
+        if (!courseId || !currentUser?._id) {
+          return;
+        }
+
+        const network = await NetInfo.fetch();
+        if (!network.isConnected) {
+          return;
+        }
+
+        const token = await AsyncStorage.getItem('token');
+        if (!token) {
+          return;
+        }
+
+        const syncResult = await syncPendingCourseProgressForCourse({
+          courseId,
+          userId: currentUser._id,
+          token,
+        });
+
+        if (syncResult.synced && syncResult.user) {
+          dispatch(updateUser(syncResult.user));
+        }
+      } catch (syncError) {
+        console.error('Error syncing pending course progress:', syncError);
+      }
+    };
+
+    syncPendingProgress();
+  }, [courseId, currentUser?._id, dispatch]);
+
   // Find user progress for the specific course
   const userProgress = currentUser?.progress?.find(
     p => p.courseId === courseId,
@@ -125,14 +163,55 @@ const CourseContent = ({route}) => {
     return index <= userProgress.currentChapter; // Check if the chapter index is less than or equal to the current chapter
   };
 
+  const isChapterCompleted = index => {
+    if (!userProgress || !Array.isArray(data) || !data[index]?.slides?.length) {
+      return false;
+    }
+
+    if (index < userProgress.currentChapter) {
+      return true;
+    }
+
+    if (index > userProgress.currentChapter) {
+      return false;
+    }
+
+    const lastSlideIndex = Math.max((data[index]?.slides?.length || 1) - 1, 0);
+    return (userProgress.currentSlide ?? 0) >= lastSlideIndex;
+  };
+
   const backButtonPress = () => {
     navigation.navigate('CourseHome');
   };
 
   const progressValue = () => {
-    if (userProgress && userProgress.currentChapter !== undefined) {
+    if (
+      userProgress &&
+      userProgress.currentChapter !== undefined &&
+      Array.isArray(data) &&
+      data.length > 0
+    ) {
+      const totalSlides = data.reduce(
+        (sum, chapter) => sum + (chapter?.slides?.length || 0),
+        0,
+      );
+      if (totalSlides === 0) {
+        return '0';
+      }
+
+      const completedBeforeChapter = data
+        .slice(0, userProgress.currentChapter)
+        .reduce((sum, chapter) => sum + (chapter?.slides?.length || 0), 0);
+
+      const slidesInCurrentChapter =
+        data[userProgress.currentChapter]?.slides?.length || 0;
+      const currentSlide = Math.min(
+        Math.max(userProgress.currentSlide ?? 0, 0),
+        Math.max(slidesInCurrentChapter - 1, 0),
+      );
       const progressPercent =
-        ((userProgress.currentChapter + 1) / totalDataNumber) * 100;
+        ((completedBeforeChapter + currentSlide + 1) / totalSlides) * 100;
+
       return progressPercent.toFixed();
     }
     return '0'; // if there's no progress, return 0
@@ -250,6 +329,7 @@ const CourseContent = ({route}) => {
             </View>
             {data.map((chapter, index) => {
               const unlocked = isSlideUnlocked(index);
+              const completed = isChapterCompleted(index);
               return (
                 <TouchableOpacity
                   onPress={() => {
@@ -284,7 +364,7 @@ const CourseContent = ({route}) => {
                         {chapter.chapter}
                       </Text>
                     </View>
-                    {unlocked ? (
+                    {completed ? (
                       <CheckCircle size={20} weight="fill" color={'#EA9215'} />
                     ) : (
                       <Circle size={20} color={'#EA9215'} />

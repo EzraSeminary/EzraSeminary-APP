@@ -3,6 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const READER_FONT_SCALE_KEY = 'reader_font_scale_v1';
 const FONT_SCALE_STEPS = [1, 1.1, 1.2, 1.3, 1.4];
+const listeners = new Set();
+let sharedFontScale = FONT_SCALE_STEPS[0];
+let hasHydratedSharedScale = false;
 
 const normalizeScale = value => {
   const parsed = Number(value);
@@ -16,18 +19,34 @@ const normalizeScale = value => {
   return closest;
 };
 
+const notifyScaleChange = nextScale => {
+  listeners.forEach(listener => {
+    listener(nextScale);
+  });
+};
+
 const useReaderFontScale = () => {
-  const [readerFontScale, setReaderFontScale] = useState(FONT_SCALE_STEPS[0]);
+  const [readerFontScale, setReaderFontScale] = useState(sharedFontScale);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+    const handleScaleChange = nextScale => {
+      setReaderFontScale(nextScale);
+    };
+    listeners.add(handleScaleChange);
 
     const loadScale = async () => {
       try {
-        const stored = await AsyncStorage.getItem(READER_FONT_SCALE_KEY);
-        if (isMounted && stored) {
-          setReaderFontScale(normalizeScale(stored));
+        if (!hasHydratedSharedScale) {
+          const stored = await AsyncStorage.getItem(READER_FONT_SCALE_KEY);
+          if (stored) {
+            sharedFontScale = normalizeScale(stored);
+          }
+          hasHydratedSharedScale = true;
+          notifyScaleChange(sharedFontScale);
+        } else if (isMounted) {
+          setReaderFontScale(sharedFontScale);
         }
       } catch (error) {
         console.error('Failed to load reader font scale:', error);
@@ -42,12 +61,14 @@ const useReaderFontScale = () => {
 
     return () => {
       isMounted = false;
+      listeners.delete(handleScaleChange);
     };
   }, []);
 
   const setAndPersistScale = useCallback(async nextScale => {
     const normalized = normalizeScale(nextScale);
-    setReaderFontScale(normalized);
+    sharedFontScale = normalized;
+    notifyScaleChange(normalized);
     try {
       await AsyncStorage.setItem(READER_FONT_SCALE_KEY, String(normalized));
     } catch (error) {

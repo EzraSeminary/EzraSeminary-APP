@@ -14,6 +14,9 @@ import {
   TextInput,
   Dimensions,
   useWindowDimensions,
+  Platform,
+  KeyboardAvoidingView,
+  Pressable,
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import DateConverter from './DateConverter';
@@ -52,6 +55,10 @@ import useReaderFontScale from '../../hooks/useReaderFontScale';
 const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
   const [noteText, setNoteText] = useState(initialText || '');
 
+  useEffect(() => {
+    setNoteText(initialText || '');
+  }, [initialText, isVisible]);
+
   const handleSave = () => {
     onSave(noteText);
     onClose();
@@ -62,52 +69,79 @@ const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
       animationType="slide"
       transparent={true}
       visible={isVisible}
+      statusBarTranslucent
+      presentationStyle="overFullScreen"
       onRequestClose={onClose}>
-      <View
-        style={tw`flex-1 justify-center items-center bg-secondary-9 bg-opacity-80`}>
-        <View
-          style={[
-            tw`w-11/12 bg-primary-2 p-4 rounded-2 border border-accent-8`,
-            darkMode ? tw`bg-secondary-9` : null,
-          ]}>
-          <TextInput
-            multiline
-            value={noteText}
-            onChangeText={setNoteText}
-            placeholder="Write your note here..."
-            placeholderTextColor="#AAB0B4"
-            style={[
-              tw`border border-accent-6 rounded-2 px-3 py-2 min-h-[120px] mb-4`,
-              darkMode
-                ? tw`text-primary-1 bg-secondary-7`
-                : tw`text-secondary-6 bg-primary-2`,
-              tw`font-nokia-bold text-base`,
-            ]}
-            textAlignVertical="top"
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={tw`flex-1`}>
+        <View style={tw`flex-1 justify-center items-center px-4`}>
+          <Pressable
+            onPress={onClose}
+            style={tw`absolute inset-0 bg-secondary-9 bg-opacity-80`}
           />
-          <View style={tw`flex-row justify-end gap-4`}>
-            <TouchableOpacity
-              onPress={onClose}
-              style={tw`px-4 py-2 rounded-lg border border-accent-6`}>
-              <Text
-                style={[
-                  tw`font-nokia-bold`,
-                  darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                ]}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleSave}
-              style={tw`px-4 py-2 rounded-lg bg-accent-6`}>
-              <Text style={tw`font-nokia-bold text-primary-1`}>Save</Text>
-            </TouchableOpacity>
+          <View
+            style={{
+              width: '100%',
+              maxWidth: 520,
+              maxHeight: '72%',
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: '#EA9215',
+              padding: 18,
+              backgroundColor: darkMode ? '#111827' : '#FFFFFF',
+            }}>
+            <Text
+              style={[
+                tw`font-nokia-bold mb-3`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                {fontSize: 18},
+              ]}>
+              Add Note
+            </Text>
+            <TextInput
+              multiline
+              value={noteText}
+              onChangeText={setNoteText}
+              placeholder="Write your note here..."
+              placeholderTextColor="#AAB0B4"
+              style={[
+                tw`border border-accent-6 px-3 py-3 mb-4`,
+                darkMode
+                  ? tw`text-primary-1 bg-secondary-7`
+                  : tw`text-secondary-6 bg-primary-2`,
+                tw`font-nokia-bold text-base`,
+                {
+                  minHeight: Platform.OS === 'android' ? 180 : 160,
+                  borderRadius: 14,
+                  textAlignVertical: 'top',
+                },
+              ]}
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+            />
+            <View style={tw`flex-row justify-end gap-3`}>
+              <TouchableOpacity
+                onPress={onClose}
+                style={tw`px-5 py-3 rounded-lg border border-accent-6`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                  ]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSave}
+                style={tw`px-5 py-3 rounded-lg bg-accent-6`}>
+                <Text style={tw`font-nokia-bold text-primary-1`}>Save</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -717,10 +751,18 @@ const SSLWeek = ({route}) => {
       return (
         <View
           key={noteId}
-          style={[{width: containerWidth, maxWidth: containerWidth}]}>
+          collapsable={false}
+          style={[
+            {
+              width: containerWidth,
+              maxWidth: containerWidth,
+              marginTop: scaled(8),
+              marginBottom: scaled(18),
+            },
+          ]}>
           <View
             style={[
-              tw`rounded-lg p-2`,
+              tw`rounded-lg p-3`,
               {
                 backgroundColor: darkMode ? '#333' : '#f5f5f5',
                 width: '100%',
@@ -768,9 +810,14 @@ const SSLWeek = ({route}) => {
                 })}
               </Text>
             </View>
-          </View>
-          <View>
-            <View>
+            <View
+              style={{
+                marginTop: scaled(12),
+                paddingTop: scaled(10),
+                borderTopWidth: 1,
+                borderTopColor: darkMode ? '#4B5563' : '#D1D5DB',
+                gap: scaled(8),
+              }}>
               <View style={tw`w-full`}>
                 <Text
                   style={[
@@ -789,7 +836,7 @@ const SSLWeek = ({route}) => {
               </View>
               <TouchableOpacity
                 onPress={() => setActiveNoteId(noteId)}
-                style={tw`self-start px-3 py-1 rounded-full bg-accent-6 mt-2`}>
+                style={tw`self-start px-3 py-1 rounded-full bg-accent-6`}>
                 <Text
                   style={[
                     tw`font-nokia-bold text-primary-1`,
@@ -799,14 +846,14 @@ const SSLWeek = ({route}) => {
                 </Text>
               </TouchableOpacity>
             </View>
-            <NoteModal
-              isVisible={activeNoteId === noteId}
-              onClose={() => setActiveNoteId(null)}
-              onSave={text => handleSaveNote(noteId, text)}
-              initialText={noteText}
-              darkMode={darkMode}
-            />
           </View>
+          <NoteModal
+            isVisible={activeNoteId === noteId}
+            onClose={() => setActiveNoteId(null)}
+            onSave={text => handleSaveNote(noteId, text)}
+            initialText={noteText}
+            darkMode={darkMode}
+          />
         </View>
       );
     }

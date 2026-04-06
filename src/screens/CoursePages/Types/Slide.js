@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {Dimensions, Text, View, TouchableOpacity} from 'react-native';
 import tw from '../../../../tailwind';
 import Carousel, {Pagination} from 'react-native-snap-carousel';
@@ -26,9 +26,11 @@ const Slide = ({value, setIsSlideComplete}) => {
     }
   };
 
-  if (value.length < 2) {
-    setIsSlideComplete(true);
-  }
+  useEffect(() => {
+    if (value.length < 2) {
+      setIsSlideComplete(true);
+    }
+  }, [value.length, setIsSlideComplete]);
 
   return (
     <View style={tw`items-center justify-center`}>

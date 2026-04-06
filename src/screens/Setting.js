@@ -35,6 +35,7 @@ import {useGetSSLsQuery} from '../services/SabbathSchoolApi';
 import NotificationSettings from '../screens/Settings/NotificationSettings';
 import UserAvatar from '../components/UserAvatar';
 import CacheChecker from '../components/CacheChecker';
+import useReaderFontScale from '../hooks/useReaderFontScale';
 
 const Setting = ({navigation}) => {
   const dispatch = useDispatch();
@@ -44,6 +45,11 @@ const Setting = ({navigation}) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [showCacheChecker, setShowCacheChecker] = useState(false);
   const {refetch} = useGetSSLsQuery();
+  const {
+    readerFontScalePercentage,
+    increaseFontScale,
+    decreaseFontScale,
+  } = useReaderFontScale();
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -377,6 +383,33 @@ const Setting = ({navigation}) => {
               icon={<Bell size={16} weight="fill" color={'#FFFFFF'} />}
               title="Notification Settings"
               onPress={() => navigation.navigate('NotificationSettings')}
+            />
+
+            <SettingItem
+              icon={<Pencil size={16} weight="fill" color={'#FFFFFF'} />}
+              title="Reading Font Size"
+              hasArrow={false}
+              rightComponent={
+                <View style={tw`flex-row items-center`}>
+                  <TouchableOpacity
+                    onPress={() => void decreaseFontScale()}
+                    style={tw`bg-accent-6 px-2 py-1 rounded`}>
+                    <Text style={tw`text-primary-1 font-nokia-bold text-sm`}>
+                      A-
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={tw`font-nokia-bold text-accent-6 text-sm mx-2`}>
+                    {readerFontScalePercentage}%
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => void increaseFontScale()}
+                    style={tw`bg-accent-6 px-2 py-1 rounded`}>
+                    <Text style={tw`text-primary-1 font-nokia-bold text-sm`}>
+                      A+
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              }
             />
           </Animated.View>
 

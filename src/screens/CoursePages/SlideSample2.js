@@ -1,6 +1,5 @@
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
 import NetInfo from '@react-native-community/netinfo';
 import {
   Text,
@@ -19,13 +18,12 @@ import {
   DotsThreeOutlineVertical,
 } from 'phosphor-react-native';
 import {useDispatch, useSelector} from 'react-redux';
-import {setProgress} from '../../redux/authSlice';
+import {setProgress, selectCurrentUser, updateUser} from '../../redux/authSlice';
 import {useFocusEffect} from '@react-navigation/native';
 import {useGetCourseByIdQuery} from './../../services/api';
 import {useNavigation} from '@react-navigation/core';
 import {ActivityIndicator} from 'react-native';
 import FullScreenMenu from './FullScreenMenu';
-import {selectCurrentUser} from '../../redux/authSlice';
 import List from './Types/List';
 import Slide from './Types/Slide';
 import Quiz from './Types/Quiz';
@@ -48,17 +46,21 @@ import AudioPlayer from './Types/Audio';
 import Toast from 'react-native-toast-message';
 import ScrollMix from './Types/ScrollMix';
 import {getCachedCourseById, saveCourseToCache} from '../../utils/courseCache';
+import {
+  saveProgressForLaterSync,
+  syncPendingCourseProgressForCourse,
+} from '../../utils/courseProgress';
 
-const INTERACTIVE_ELEMENT_TYPES = new Set([
+const INTERACTIVE_ELEMENT_TYPES = [
   'quiz',
   'accordion',
   'sequence',
-  'reveal',
   'slide',
+  'reveal',
   'range',
   'dnd',
-  'main-verse',
-]);
+  'verse',
+];
 
 const SlideSample2 = ({route}) => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -78,7 +80,6 @@ const SlideSample2 = ({route}) => {
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [progressLoading, setProgressLoading] = useState(false);
   const currentUser = useSelector(selectCurrentUser);
   const dispatch = useDispatch();
   const [triggerNext, setTriggerNext] = useState(false);
@@ -87,8 +88,10 @@ const SlideSample2 = ({route}) => {
   const [isAccordionExpanded, setIsAccordionExpanded] = useState(false);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const [isRangeComplete, setIsRangeComplete] = useState(false);
-  const [isMainVerseComplete, setIsMainVerseComplete] = useState(false);
+  const [isVerseComplete, setIsVerseComplete] = useState(false);
   const [isNextButtonVisible, setIsNextButtonVisible] = useState(false);
+  const [interactionMessage, setInteractionMessage] = useState('');
+  const initializedProgressKeyRef = useRef('');
 
   const handleImageLoad = () => {
     setIsImageLoaded(true);
@@ -109,11 +112,8 @@ const SlideSample2 = ({route}) => {
     reveal: 'እባክዎ ጽሁፎቹን(ሳጥኖቹን) በመንካት ሁሉንም ጽሁፎች አንብበው ይርጨሱ።',
     range: 'እባክዎ ቀስቱን በማንሸራተት ጥያቄውን ይመልሱ',
     dnd: 'እባክዎ ጥያቄውን ይመልሱ።',
-    'main-verse': 'እባክዎ ዋናውን ጥቅስ በመንካት ያንብቡ።',
+    verse: 'እባክዎ ጥቅሱን በመንካት ያንብቡ።',
   };
-
-  const [nextButtonOpacity, setNextButtonOpacity] = useState(0.5);
-  const [interactionMessage, setInteractionMessage] = useState('');
 
   useEffect(() => {
     const loadCachedCourse = async () => {
@@ -135,17 +135,51 @@ const SlideSample2 = ({route}) => {
   }, [apiCourseData, courseId]);
 
   const courseData = apiCourseData || cachedCourseData;
+  const chapter = courseData?.chapters?.find(chap => chap._id === chapterId);
+  const chapterIndex = courseData?.chapters?.findIndex(
+    chap => chap._id === chapterId,
+  );
+  const data = chapter?.slides ?? [];
+  const onLastSlide = activeIndex === data.length - 1;
+  const currentSlideElements = data[activeIndex]?.elements ?? [];
+  const currentSlideSignature = currentSlideElements
+    .map(element => `${element._id}:${element.type}`)
+    .join('|');
+  const requiredInteractiveTypes = [
+    ...new Set(
+      currentSlideElements
+        .map(element => element.type)
+        .filter(type => INTERACTIVE_ELEMENT_TYPES.includes(type)),
+    ),
+  ];
 
   useEffect(() => {
-    const hasInteractiveElements = data[activeIndex]?.elements.some(element =>
-      ['quiz', 'accordion', 'sequence', 'reveal', 'range', 'dnd'].includes(
-        element.type,
-      ),
-    );
+    if (!data.length || chapterIndex === undefined || chapterIndex === -1) {
+      return;
+    }
 
-    setNextButtonOpacity(hasInteractiveElements ? 0.5 : 1);
-    setIsNextButtonVisible(true);
-  }, [activeIndex]);
+    const initKey = `${courseId}:${chapterId}:${data.length}`;
+    if (initializedProgressKeyRef.current === initKey) {
+      return;
+    }
+    initializedProgressKeyRef.current = initKey;
+
+    const savedProgress = currentUser?.progress?.find(p => p.courseId === courseId);
+    const isSameChapter =
+      savedProgress &&
+      savedProgress.currentChapter !== undefined &&
+      savedProgress.currentChapter === chapterIndex;
+
+    const startIndex = isSameChapter
+      ? Math.min(
+          Math.max(savedProgress.currentSlide ?? 0, 0),
+          Math.max(data.length - 1, 0),
+        )
+      : 0;
+
+    setActiveIndex(startIndex);
+    setUnlockedIndex(startIndex);
+  }, [courseId, chapterId, chapterIndex, data.length, currentUser?.progress]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -154,34 +188,17 @@ const SlideSample2 = ({route}) => {
     }, []),
   );
 
-  const [user, setUser] = useState(null);
-
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem('user');
-        if (storedUser !== null) {
-          setUser(JSON.parse(storedUser));
-        }
-      } catch (error) {
-        console.log('Error retrieving user from AsyncStorage:', error);
-      }
-    };
-
-    fetchUser();
-  }, []);
-
-  useEffect(() => {
-    setIsNextButtonVisible(false);
-    // Reset all interaction states for the new slide
     setIsSlideComplete(false);
     setIsSequenceComplete(false);
     setIsAccordionExpanded(false);
     setIsRevealComplete(false);
     setIsRangeComplete(false);
+    setIsVerseComplete(false);
     setIsAnswerChecked(false);
+    setIsNextButtonVisible(false);
+    setInteractionMessage('');
 
-    // Additional logic to check if the slide is non-interactive
     const nonInteractiveTypes = [
       'title',
       'sub',
@@ -191,49 +208,49 @@ const SlideSample2 = ({route}) => {
       'list',
       'video',
       'audio',
-      'verse',
-      'main-verse',
     ];
 
-    const allNonInteractive = data[activeIndex]?.elements.every(element =>
+    const allNonInteractive = currentSlideElements.every(element =>
       nonInteractiveTypes.includes(element.type),
     );
-
     if (allNonInteractive) {
-      setIsSlideComplete(true);
-      setIsNextButtonVisible(true); // Automatically show the "Next" button if all elements are non-interactive
+      setIsNextButtonVisible(true);
     }
-  }, [activeIndex]);
+  }, [activeIndex, currentSlideSignature]);
 
   useEffect(() => {
-    const shouldShowButton =
-      (!onLastSlide && isSlideComplete) ||
-      isSequenceComplete ||
-      isAccordionExpanded ||
-      isRevealComplete ||
-      isRangeComplete ||
-      isAnswerChecked;
+    const completionByType = {
+      quiz: isAnswerChecked,
+      dnd: isAnswerChecked,
+      accordion: isAccordionExpanded,
+      sequence: isSequenceComplete,
+      slide: isSlideComplete,
+      reveal: isRevealComplete,
+      range: isRangeComplete,
+      verse: isVerseComplete,
+    };
+    const allInteractionsDone =
+      requiredInteractiveTypes.length === 0 ||
+      requiredInteractiveTypes.every(type => completionByType[type]);
 
     if (onLastSlide) {
       setIsNextButtonVisible(true);
-    } else if (shouldShowButton !== isNextButtonVisible) {
-      setIsNextButtonVisible(shouldShowButton);
+    } else if (allInteractionsDone !== isNextButtonVisible) {
+      setIsNextButtonVisible(allInteractionsDone);
     }
   }, [
-    isSlideComplete,
-    isSequenceComplete,
+    isAnswerChecked,
     isAccordionExpanded,
+    isSequenceComplete,
+    isSlideComplete,
     isRevealComplete,
     isRangeComplete,
-    isAnswerChecked,
+    isVerseComplete,
+    requiredInteractiveTypes,
     onLastSlide,
     isNextButtonVisible,
   ]);
 
-  const chapter = courseData?.chapters.find(chap => chap._id === chapterId);
-  const chapterIndex = courseData?.chapters.findIndex(
-    chap => chap._id === chapterId,
-  );
   // If the chapter is not found, handle accordingly
   if (courseData && !chapter) {
     return (
@@ -246,115 +263,63 @@ const SlideSample2 = ({route}) => {
     );
   }
 
-  // Setting the data to slides if the chapter is found
-  const data = chapter?.slides || [];
   const currentDataNumber = activeIndex + 1;
   const totalDataNumber = data.length;
 
   const updateIndex = newIndex => {
-    setActiveIndex(
-      newIndex >= data.length ? data.length - 1 : Math.max(newIndex, 0),
-    );
-    if (newIndex > unlockedIndex) {
-      setUnlockedIndex(newIndex);
+    const boundedIndex =
+      newIndex >= data.length ? data.length - 1 : Math.max(newIndex, 0);
+
+    setActiveIndex(boundedIndex);
+    if (boundedIndex > unlockedIndex) {
+      setUnlockedIndex(boundedIndex);
     }
-    updateProgress();
+
+    if (courseID && chapterIndex !== undefined && chapterIndex !== -1) {
+      dispatch(
+        setProgress({
+          courseId: courseID,
+          currentChapter: chapterIndex,
+          currentSlide: boundedIndex,
+        }),
+      );
+      void saveAndSyncProgressInBackground(boundedIndex);
+    }
   };
   const onFirstSlide = activeIndex === 0;
-  const onLastSlide = activeIndex === data.length - 1;
 
   const handleButtonPress = () => {
     setTriggerNext(true);
 
-    const hasInteractiveElements = data[activeIndex]?.elements.some(element =>
-      [
-        'quiz',
-        'accordion',
-        'sequence',
-        'reveal',
-        'slide',
-        'range',
-        'dnd',
-      ].includes(element.type),
-    );
-
-    if (hasInteractiveElements) {
-      const interactiveElement = data[activeIndex].elements.find(element =>
-        [
-          'quiz',
-          'accordion',
-          'sequence',
-          'slide',
-          'reveal',
-          'range',
-          'dnd',
-        ].includes(element.type),
+    if (requiredInteractiveTypes.length > 0) {
+      const completionByType = {
+        quiz: isAnswerChecked,
+        dnd: isAnswerChecked,
+        accordion: isAccordionExpanded,
+        sequence: isSequenceComplete,
+        slide: isSlideComplete,
+        reveal: isRevealComplete,
+        range: isRangeComplete,
+        verse: isVerseComplete,
+      };
+      const firstIncompleteType = requiredInteractiveTypes.find(
+        type => !completionByType[type],
       );
 
-      if (interactiveElement) {
-        let interactionComplete = false;
-
-        switch (interactiveElement.type) {
-          case 'quiz':
-            interactionComplete = isAnswerChecked;
-            break;
-          case 'accordion':
-            interactionComplete = isAccordionExpanded;
-            break;
-          case 'sequence':
-            interactionComplete = isSequenceComplete;
-            break;
-          case 'reveal':
-            interactionComplete = isRevealComplete;
-            break;
-          case 'slide':
-            interactionComplete = isSlideComplete;
-            break;
-          case 'range':
-            interactionComplete = isRangeComplete;
-            break;
-          case 'dnd':
-            interactionComplete = isAnswerChecked;
-            break;
-          default:
-            interactionComplete = false;
-        }
-
-        if (!interactionComplete) {
-          setInteractionMessage(interactionMessages[interactiveElement.type]);
-          Toast.show({
-            type: 'info',
-            text1: 'ከመቀጠልዎ በፊት!',
-            text2: interactionMessages[interactiveElement.type],
-          });
-          return;
-        }
+      if (firstIncompleteType) {
+        setInteractionMessage(interactionMessages[firstIncompleteType]);
+        Toast.show({
+          type: 'info',
+          text1: 'ከመቀጠልዎ በፊት!',
+          text2: interactionMessages[firstIncompleteType],
+        });
+        return;
       }
     }
 
     if (onLastSlide) {
-      NetInfo.fetch().then(state => {
-        if (state.isConnected) {
-          if (currentUser) {
-            submitProgress();
-          } else {
-            Toast.show({
-              type: 'info',
-              text1: 'Login Required',
-              text2: 'Login or create an account to save your progress.',
-            });
-            navigation.navigate('CourseContent', {courseId: courseId});
-          }
-        } else {
-          Toast.show({
-            type: 'error',
-            text1: 'No Internet Connection',
-            text2:
-              'Progress is not saved because there is no internet connection.',
-          });
-          navigation.navigate('CourseContent', {courseId: courseId});
-        }
-      });
+      void saveAndSyncProgressInBackground(activeIndex);
+      navigation.navigate('CourseContent', {courseId: courseId});
     } else {
       setIsNextButtonVisible(false);
       goToNextSlide();
@@ -378,68 +343,43 @@ const SlideSample2 = ({route}) => {
 
   const courseID = courseData && courseData._id ? courseData._id : '';
 
-  const updateProgress = () => {
-    if (chapterIndex !== undefined && chapterIndex !== -1) {
-      dispatch(
-        setProgress({
-          courseId: courseID,
-          currentChapter: chapterIndex,
-          currentSlide: activeIndex,
-        }),
-      );
-    }
-  };
-
-  const submitProgress = async () => {
+  const saveAndSyncProgressInBackground = async slideIndex => {
     try {
-      setProgressLoading(true);
-      // Get the token from AsyncStorage
-      const token = await AsyncStorage.getItem('token');
-      // Update the progress in the Redux store
-      dispatch(
-        setProgress({
-          courseId,
-          currentChapter: chapterIndex,
-          currentSlide: activeIndex,
-        }),
-      );
-      // Send the updated progress to the server
-      const response = await axios.put(
-        `https://ezrabackend.online/users/profile/${currentUser._id}`,
-        {
-          userId: currentUser._id,
-          progress: currentUser.progress,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      setProgressLoading(false);
+      if (!courseID || chapterIndex === undefined || chapterIndex === -1) {
+        return;
+      }
 
-      navigation.navigate('Course', {
-        screen: 'CourseContent',
-        params: {courseId: courseId},
+      const progressEntry = {
+        courseId: courseID,
+        currentChapter: chapterIndex,
+        currentSlide: slideIndex,
+      };
+
+      await saveProgressForLaterSync(progressEntry);
+
+      const network = await NetInfo.fetch();
+      if (!network.isConnected || !currentUser?._id) {
+        return;
+      }
+
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        return;
+      }
+
+      const syncResult = await syncPendingCourseProgressForCourse({
+        courseId: courseID,
+        userId: currentUser._id,
+        token,
       });
+
+      if (syncResult.synced && syncResult.user) {
+        dispatch(updateUser(syncResult.user));
+      }
     } catch (err) {
-      console.error('Error updating progress:', err.message);
-      setProgressLoading(false);
+      console.error('Error saving background progress:', err.message);
     }
   };
-  if (progressLoading) {
-    return (
-      <View
-        style={[
-          tw`flex-1 items-center justify-center bg-primary-1`,
-          darkMode ? tw`bg-secondary-9` : null,
-        ]}>
-        <ActivityIndicator size="large" color="#EA9215" />
-        <Text style={tw`font-nokia-bold text-accent-6 text-xl`}>Saving</Text>
-      </View>
-    );
-  }
 
   if (isLoading && !courseData) {
     return (
@@ -623,6 +563,7 @@ const SlideSample2 = ({route}) => {
                               <VerseSection
                                 key={element._id}
                                 value={element.value}
+                                setIsVerseComplete={setIsVerseComplete}
                               />
                             );
                           case 'main-verse':

@@ -13,6 +13,7 @@ import {
   Linking,
   TextInput,
   Dimensions,
+  Platform,
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import DateConverter from './DateConverter';
@@ -544,11 +545,20 @@ const InVerseWeek = ({route}) => {
 
         const screenWidth = Dimensions.get('window').width;
         const containerWidth = screenWidth - 32;
+        const androidNoteSpacing =
+          Platform.OS === 'android' ? scaleTextSize(42) : 0;
 
         return (
           <View
             key={noteId}
-            style={[{width: containerWidth, maxWidth: containerWidth}]}>
+            style={[
+              {
+                width: containerWidth,
+                maxWidth: containerWidth,
+                marginTop: scaleTextSize(8),
+                marginBottom: scaleTextSize(18) + androidNoteSpacing,
+              },
+            ]}>
             <View
               style={[
                 tw`rounded-lg p-2`,
@@ -600,8 +610,12 @@ const InVerseWeek = ({route}) => {
                 </Text>
               </View>
             </View>
-            <View>
-              <View>
+            <View
+              style={{
+                marginTop: scaleTextSize(8),
+                paddingBottom: scaleTextSize(6) + androidNoteSpacing,
+              }}>
+              <View style={{gap: scaleTextSize(6)}}>
                 <View style={tw`w-full`}>
                 <Text
                   style={[
@@ -620,7 +634,7 @@ const InVerseWeek = ({route}) => {
                 </View>
                 <TouchableOpacity
                   onPress={() => setActiveNoteId(noteId)}
-                  style={tw`self-start px-3 py-1 rounded-full bg-accent-6 mt-2`}>
+                  style={tw`self-start px-3 py-1 rounded-full bg-accent-6`}>
                   <Text
                     style={[
                       tw`font-nokia-bold text-primary-1`,

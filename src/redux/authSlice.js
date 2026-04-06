@@ -80,6 +80,10 @@ const authSlice = createSlice({
         // If user exists but has no progress, initialize progress with the current details
         state.user.progress = [{courseId, currentChapter, currentSlide}];
       }
+
+      if (state.user) {
+        AsyncStorage.setItem('user', JSON.stringify(state.user));
+      }
     },
 
     setUser: (state, action) => {
