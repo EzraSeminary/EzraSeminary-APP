@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import NetInfo from '@react-native-community/netinfo';
@@ -49,6 +49,17 @@ import Toast from 'react-native-toast-message';
 import ScrollMix from './Types/ScrollMix';
 import {getCachedCourseById, saveCourseToCache} from '../../utils/courseCache';
 
+const INTERACTIVE_ELEMENT_TYPES = new Set([
+  'quiz',
+  'accordion',
+  'sequence',
+  'reveal',
+  'slide',
+  'range',
+  'dnd',
+  'main-verse',
+]);
+
 const SlideSample2 = ({route}) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [unlockedIndex, setUnlockedIndex] = useState(0);
@@ -76,6 +87,7 @@ const SlideSample2 = ({route}) => {
   const [isAccordionExpanded, setIsAccordionExpanded] = useState(false);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const [isRangeComplete, setIsRangeComplete] = useState(false);
+  const [isMainVerseComplete, setIsMainVerseComplete] = useState(false);
   const [isNextButtonVisible, setIsNextButtonVisible] = useState(false);
 
   const handleImageLoad = () => {
@@ -97,6 +109,7 @@ const SlideSample2 = ({route}) => {
     reveal: 'እባክዎ ጽሁፎቹን(ሳጥኖቹን) በመንካት ሁሉንም ጽሁፎች አንብበው ይርጨሱ።',
     range: 'እባክዎ ቀስቱን በማንሸራተት ጥያቄውን ይመልሱ',
     dnd: 'እባክዎ ጥያቄውን ይመልሱ።',
+    'main-verse': 'እባክዎ ዋናውን ጥቅስ በመንካት ያንብቡ።',
   };
 
   const [nextButtonOpacity, setNextButtonOpacity] = useState(0.5);

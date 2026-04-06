@@ -20,6 +20,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import ErrorScreen from '../../components/ErrorScreen';
 const InVerseQuarter = ({route}) => {
   const {InVerseId} = route.params;
+  const language = useSelector(state => state.language.language);
   const {
     data: InVerseQuarter,
     error,
@@ -116,14 +117,14 @@ const InVerseQuarter = ({route}) => {
               </Text>
               <View style={tw`mt-4`}>
                 <Text
-                  style={tw`font-nokia-bold text-sm text-primary-1 text-justify`}
+                  style={tw`font-nokia-bold text-sm text-primary-1`}
                   numberOfLines={3}>
                   {InVerseQuarter.quarterly.description}{' '}
                 </Text>
                 <TouchableOpacity onPress={handleMorePress}>
                   <Text
                     style={tw`font-nokia-bold text-primary-3 border border-primary-3 px-2 w-24 text-center mt-2 rounded py-1`}>
-                    ተጨማሪ
+                    {language === 'en' ? 'More' : 'ተጨማሪ'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -167,7 +168,7 @@ const InVerseQuarter = ({route}) => {
                       <ScrollView contentContainerStyle={{paddingTop: 56}}>
                         <Text
                           style={[
-                            tw`font-nokia-bold text-sm text-secondary-6 text-justify`,
+                            tw`font-nokia-bold text-sm text-secondary-6`,
                             darkMode ? tw`text-primary-1` : null,
                           ]}>
                           {fullDescription}

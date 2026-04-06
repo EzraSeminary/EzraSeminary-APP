@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   textBase: {
     ...tw`text-primary-1 font-nokia-bold leading-snug`,
     flexWrap: 'wrap',
-    textAlign: 'justify', // Default to justified text
+    textAlign: 'left',
     fontFamily: 'Nokia Pure Headline Bold',
   },
   defaultFont: tw`text-base font-nokia-bold`,

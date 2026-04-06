@@ -13,7 +13,7 @@ import {
   Linking,
   TextInput,
   Dimensions,
-  Alert,
+  useWindowDimensions,
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import DateConverter from './DateConverter';
@@ -47,6 +47,7 @@ import {format} from 'date-fns';
 import usePersistentHighlights from '../../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../../utils/htmlBlocks';
 import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
+import useReaderFontScale from '../../hooks/useReaderFontScale';
 
 const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
   const [noteText, setNoteText] = useState(initialText || '');
@@ -232,6 +233,19 @@ const SSLWeek = ({route}) => {
     }
   };
   const [showSupplementalNotes, setShowSupplementalNotes] = useState(false);
+  const {fontScale} = useWindowDimensions();
+  const {
+    scaleTextSize,
+    increaseFontScale,
+    decreaseFontScale,
+    readerFontScalePercentage,
+  } = useReaderFontScale();
+  const [showFontSizePopup, setShowFontSizePopup] = useState(false);
+  const scaled = useCallback(
+    size =>
+      scaleTextSize(Math.round(size * Math.min(Math.max(fontScale, 1), 1.8))),
+    [fontScale, scaleTextSize],
+  );
 
   useEffect(() => {
     scrollRef.current?.scrollTo({y: 0, animated: true});
@@ -461,33 +475,67 @@ const SSLWeek = ({route}) => {
   const styles = StyleSheet.create({
     text: tw`font-nokia-bold`,
     h3: darkMode
-      ? tw`font-nokia-bold text-primary-1 text-2xl`
-      : tw`font-nokia-bold text-secondary-6 text-2xl`,
+      ? {...tw`font-nokia-bold text-primary-1`, fontSize: scaled(24)}
+      : {...tw`font-nokia-bold text-secondary-6`, fontSize: scaled(24)},
     p: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify py-2 flex-wrap`
-      : tw`text-secondary-6 font-nokia-bold text-justify py-2 flex-wrap`,
+      ? {
+          ...tw`text-primary-1 font-nokia-bold py-2 flex-wrap`,
+          fontSize: scaled(17),
+          lineHeight: scaled(26),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold py-2 flex-wrap`,
+          fontSize: scaled(17),
+          lineHeight: scaled(26),
+        },
     blockquote: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-xl`
-      : tw`text-secondary-6 font-nokia-bold text-xl`,
+      ? {...tw`text-primary-1 font-nokia-bold`, fontSize: scaled(20)}
+      : {...tw`text-secondary-6 font-nokia-bold`, fontSize: scaled(20)},
     ol: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify py-2`
-      : tw`text-secondary-6 font-nokia-bold text-justify py-2`,
+      ? {
+          ...tw`text-primary-1 font-nokia-bold py-2`,
+          fontSize: scaled(17),
+          lineHeight: scaled(26),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold py-2`,
+          fontSize: scaled(17),
+          lineHeight: scaled(26),
+        },
     ul: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify py-2`
-      : tw`text-secondary-6 font-nokia-bold text-justify py-2`,
+      ? {
+          ...tw`text-primary-1 font-nokia-bold py-2`,
+          fontSize: scaled(17),
+          lineHeight: scaled(26),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold py-2`,
+          fontSize: scaled(17),
+          lineHeight: scaled(26),
+        },
     li: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify py-1`
-      : tw`text-secondary-6 font-nokia-bold text-justify py-1`,
+      ? {
+          ...tw`text-primary-1 font-nokia-bold py-1`,
+          fontSize: scaled(17),
+          lineHeight: scaled(26),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold py-1`,
+          fontSize: scaled(17),
+          lineHeight: scaled(26),
+        },
     'blockquote.p': tw`font-nokia-bold text-4xl`,
     em: tw`mt-4`,
     code: {
       ...tw`font-nokia-bold`,
       color: '#EA9215',
       backgroundColor: darkMode ? '#333' : '#f5f5f5',
+      fontSize: scaled(16),
+      lineHeight: scaled(24),
       padding: 8,
       borderRadius: 4,
     },
-    strong: tw`text-xl`,
+    strong: {fontSize: scaled(20)},
     a: tw`text-accent-6 underline`,
     // Styles for table elements
     table: tw`border border-gray-300 my-4`,
@@ -536,7 +584,7 @@ const SSLWeek = ({route}) => {
             <Text
               key={childIndex}
               style={[
-                tw`font-nokia-bold text-lg text-justify`,
+                tw`font-nokia-bold text-lg`,
                 darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
               ]}>
               {child.data}
@@ -595,6 +643,7 @@ const SSLWeek = ({route}) => {
             style={[
               tw`font-nokia-bold`,
               darkMode ? tw`text-accent-6` : tw`text-secondary-6`,
+              {fontSize: scaled(16)},
             ]}>
             {node.children[0].data}
           </Text>
@@ -684,6 +733,8 @@ const SSLWeek = ({route}) => {
                   tw`font-nokia-bold`,
                   {
                     color: '#EA9215',
+                    fontSize: scaled(16),
+                    lineHeight: scaled(24),
                     width: '100%',
                   },
                 ]}
@@ -723,9 +774,11 @@ const SSLWeek = ({route}) => {
               <View style={tw`w-full`}>
                 <Text
                   style={[
-                    tw`font-nokia-bold text-justify`,
+                    tw`font-nokia-bold`,
                     darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
                     {
+                      fontSize: scaled(16),
+                      lineHeight: scaled(24),
                       textDecorationLine: 'underline',
                       textDecorationColor: '#EA9215',
                       textDecorationStyle: 'solid',
@@ -737,7 +790,11 @@ const SSLWeek = ({route}) => {
               <TouchableOpacity
                 onPress={() => setActiveNoteId(noteId)}
                 style={tw`self-start px-3 py-1 rounded-full bg-accent-6 mt-2`}>
-                <Text style={tw`font-nokia-bold text-primary-1`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-primary-1`,
+                    {fontSize: scaled(14)},
+                  ]}>
                   {noteText ? 'Edit Note' : 'Add Note'}
                 </Text>
               </TouchableOpacity>
@@ -761,7 +818,10 @@ const SSLWeek = ({route}) => {
     navigation.goBack();
   };
   const gradientColor = '#000000';
-  const dateStyle = 'font-nokia-bold text-lg text-primary-6';
+  const dateStyle = {
+    ...tw`font-nokia-bold text-primary-6`,
+    fontSize: scaled(18),
+  };
   const modifiedContent = selectedVerseContent;
 
   return (
@@ -790,16 +850,59 @@ const SSLWeek = ({route}) => {
               style={{zIndex: 1, marginTop: 12}}>
               <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleWatchYouTube}
+            <View
               style={{
                 zIndex: 1,
                 marginTop: 42,
                 position: 'absolute',
                 right: 20,
+                flexDirection: 'row',
+                gap: 8,
               }}>
-              <YoutubeLogo size={36} weight="fill" color={'#EA9215'} />
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowFontSizePopup(previous => !previous)}
+                style={[
+                  tw`border border-accent-6 rounded-full px-3 py-1`,
+                  darkMode ? tw`bg-secondary-9` : tw`bg-primary-1`,
+                ]}>
+                <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>A+</Text>
+              </TouchableOpacity>
+              {showFontSizePopup && (
+                <View
+                  style={[
+                    tw`absolute rounded-full px-3 py-2 border flex-row items-center`,
+                    darkMode
+                      ? tw`bg-secondary-9 border-secondary-6`
+                      : tw`bg-primary-1 border-primary-4`,
+                    {top: 38, right: 42},
+                  ]}>
+                  <TouchableOpacity
+                    onPress={decreaseFontScale}
+                    style={tw`px-3 py-1 rounded-full bg-accent-6`}>
+                    <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
+                      A-
+                    </Text>
+                  </TouchableOpacity>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-sm px-2`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                    ]}>
+                    {readerFontScalePercentage}%
+                  </Text>
+                  <TouchableOpacity
+                    onPress={increaseFontScale}
+                    style={tw`px-3 py-1 rounded-full bg-accent-6`}>
+                    <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
+                      A+
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              <TouchableOpacity onPress={handleWatchYouTube}>
+                <YoutubeLogo size={36} weight="fill" color={'#EA9215'} />
+              </TouchableOpacity>
+            </View>
             <LinearGradient
               colors={[gradientColor, `${gradientColor}20`]}
               style={tw`absolute inset-0`}
@@ -808,14 +911,22 @@ const SSLWeek = ({route}) => {
             />
             <View style={tw`absolute bottom-0 p-4`}>
               {language === 'en' ? (
-                <Text style={tw`font-nokia-bold text-lg text-primary-6 py-1`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-primary-6 py-1`,
+                    {fontSize: scaled(18)},
+                  ]}>
                   {daysOfWeekEng[check % 7]}, &nbsp;
-                  <Text style={tw`text-accent-6`}>
+                  <Text style={[tw`text-accent-6`, {fontSize: scaled(18)}]}>
                     {formatDate(displaySSLWeek.date)}
                   </Text>
                 </Text>
               ) : (
-                <Text style={tw`font-nokia-bold text-lg text-primary-6 py-1`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-primary-6 py-1`,
+                    {fontSize: scaled(18)},
+                  ]}>
                   {daysOfWeek[check % 7]}፣ &nbsp;
                   <DateConverter
                     gregorianDate={displaySSLWeek.date}
@@ -825,7 +936,10 @@ const SSLWeek = ({route}) => {
                 </Text>
               )}
               <Text
-                style={tw`flex flex-col font-nokia-bold text-3xl text-primary-1`}>
+                style={[
+                  tw`flex flex-col font-nokia-bold text-primary-1`,
+                  {fontSize: scaled(30), lineHeight: scaled(36)},
+                ]}>
                 {displaySSLWeek.title}
               </Text>
             </View>
@@ -848,8 +962,11 @@ const SSLWeek = ({route}) => {
                   style={tw`mb-2`}
                   onPress={onPreviousButtonClick}>
                   <Text
-                    style={tw`text-accent-6 font-nokia-bold text-xl border border-accent-6 px-4 py-1 rounded-4`}>
-                    ተመለስ
+                    style={[
+                      tw`text-accent-6 font-nokia-bold border border-accent-6 px-4 py-1 rounded-4`,
+                      {fontSize: scaled(20)},
+                    ]}>
+                    {language === 'en' ? 'Previous' : 'ተመለስ'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -858,8 +975,11 @@ const SSLWeek = ({route}) => {
                   style={[tw`mb-2`, check === '01' && tw`self-end`]}
                   onPress={onNextButtonClick}>
                   <Text
-                    style={tw`text-accent-6 font-nokia-bold text-xl border border-accent-6 px-4 py-1 rounded-4`}>
-                    ቀጥል
+                    style={[
+                      tw`text-accent-6 font-nokia-bold border border-accent-6 px-4 py-1 rounded-4`,
+                      {fontSize: scaled(20)},
+                    ]}>
+                    {language === 'en' ? 'Next' : 'ቀጥል'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -885,6 +1005,8 @@ const SSLWeek = ({route}) => {
                 baseStyle={{
                   fontFamily: 'Nokia Pure Headline Bold',
                   color: darkMode ? '#F8FAFC' : '#1F2937',
+                  fontSize: scaled(16),
+                  lineHeight: scaled(24),
                   margin: 0,
                   padding: 0,
                 }}
@@ -892,7 +1014,9 @@ const SSLWeek = ({route}) => {
                   p: {
                     fontFamily: 'Nokia Pure Headline Bold',
                     color: darkMode ? '#F8FAFC' : '#1F2937',
-                    textAlign: 'justify',
+                    fontSize: scaled(16),
+                    lineHeight: scaled(24),
+                    textAlign: 'left',
                     marginTop: 0,
                     marginBottom: 12,
                     paddingTop: 0,
@@ -901,7 +1025,9 @@ const SSLWeek = ({route}) => {
                   div: {
                     fontFamily: 'Nokia Pure Headline Bold',
                     color: darkMode ? '#F8FAFC' : '#1F2937',
-                    textAlign: 'justify',
+                    fontSize: scaled(16),
+                    lineHeight: scaled(24),
+                    textAlign: 'left',
                     marginTop: 0,
                     marginBottom: 0,
                     paddingTop: 0,
@@ -910,20 +1036,22 @@ const SSLWeek = ({route}) => {
                   h2: {
                     fontFamily: 'Nokia Pure Headline Bold',
                     color: '#EA9215',
-                    fontSize: 24,
+                    fontSize: scaled(24),
                     marginTop: 0,
                     marginBottom: 12,
                     paddingTop: 0,
                   },
                   sup: {
                     fontFamily: 'Nokia Pure Headline Bold',
-                    fontSize: 12,
+                    fontSize: scaled(12),
                     color: '#EA9215',
                   },
                   ol: {
                     fontFamily: 'Nokia Pure Headline Bold',
                     color: darkMode ? '#F8FAFC' : '#1F2937',
-                    textAlign: 'justify',
+                    fontSize: scaled(16),
+                    lineHeight: scaled(24),
+                    textAlign: 'left',
                     marginTop: 0,
                     marginBottom: 12,
                     paddingLeft: 16,
@@ -931,7 +1059,9 @@ const SSLWeek = ({route}) => {
                   ul: {
                     fontFamily: 'Nokia Pure Headline Bold',
                     color: darkMode ? '#F8FAFC' : '#1F2937',
-                    textAlign: 'justify',
+                    fontSize: scaled(16),
+                    lineHeight: scaled(24),
+                    textAlign: 'left',
                     marginTop: 0,
                     marginBottom: 12,
                     paddingLeft: 16,
@@ -939,7 +1069,9 @@ const SSLWeek = ({route}) => {
                   li: {
                     fontFamily: 'Nokia Pure Headline Bold',
                     color: darkMode ? '#F8FAFC' : '#1F2937',
-                    textAlign: 'justify',
+                    fontSize: scaled(16),
+                    lineHeight: scaled(24),
+                    textAlign: 'left',
                     marginTop: 0,
                     marginBottom: 8,
                   },

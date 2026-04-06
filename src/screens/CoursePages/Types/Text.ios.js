@@ -123,8 +123,8 @@ const TextComponent = ({value}) => {
 };
 
 const styles = StyleSheet.create({
-  text: tw`text-primary-1 font-nokia-bold leading-snug text-justify`,
-  paragraph: tw`text-primary-1 font-nokia-bold leading-snug text-justify`,
+  text: tw`text-primary-1 font-nokia-bold leading-snug`,
+  paragraph: tw`text-primary-1 font-nokia-bold leading-snug`,
   huge: tw`text-primary-1 font-nokia-bold text-3xl`,
   large: tw`text-primary-1 font-nokia-bold text-2xl`,
   small: tw`text-primary-1 font-nokia-bold text-sm`,

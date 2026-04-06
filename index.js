@@ -2,6 +2,8 @@
  * @format
  */
 
+require('react-native-gesture-handler');
+
 // Minimal imports so registration runs before any other module can throw
 const {AppRegistry} = require('react-native');
 const appName = require('./app.json').name;

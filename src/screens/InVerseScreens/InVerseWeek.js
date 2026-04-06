@@ -30,6 +30,7 @@ import ErrorScreen from '../../components/ErrorScreen';
 import {format} from 'date-fns';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
+import useReaderFontScale from '../../hooks/useReaderFontScale';
 
 // Replace the NoteBox component with this simpler version
 const NoteInput = ({darkMode}) => {
@@ -171,6 +172,13 @@ const InVerseWeek = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const {
+    scaleTextSize,
+    increaseFontScale,
+    decreaseFontScale,
+    readerFontScalePercentage,
+  } = useReaderFontScale();
+  const [showFontSizePopup, setShowFontSizePopup] = useState(false);
 
   // Add timeout for loading state
   useEffect(() => {
@@ -288,36 +296,70 @@ const InVerseWeek = ({route}) => {
   const styles = StyleSheet.create({
     text: tw`font-nokia-bold`,
     h3: darkMode
-      ? tw`font-nokia-bold text-primary-1 text-2xl`
-      : tw`font-nokia-bold text-secondary-6 text-2xl`,
+      ? {...tw`font-nokia-bold text-primary-1`, fontSize: scaleTextSize(24)}
+      : {...tw`font-nokia-bold text-secondary-6`, fontSize: scaleTextSize(24)},
     p: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify py-2`
-      : tw`text-secondary-6 font-nokia-bold text-justify py-2`,
+      ? {
+          ...tw`text-primary-1 font-nokia-bold py-2`,
+          fontSize: scaleTextSize(17),
+          lineHeight: scaleTextSize(26),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold py-2`,
+          fontSize: scaleTextSize(17),
+          lineHeight: scaleTextSize(26),
+        },
     blockquote: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-xl`
-      : tw`text-secondary-6 font-nokia-bold text-xl`,
+      ? {...tw`text-primary-1 font-nokia-bold`, fontSize: scaleTextSize(20)}
+      : {...tw`text-secondary-6 font-nokia-bold`, fontSize: scaleTextSize(20)},
     ol: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify py-2`
-      : tw`text-secondary-6 font-nokia-bold text-justify py-2`,
+      ? {
+          ...tw`text-primary-1 font-nokia-bold py-2`,
+          fontSize: scaleTextSize(17),
+          lineHeight: scaleTextSize(26),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold py-2`,
+          fontSize: scaleTextSize(17),
+          lineHeight: scaleTextSize(26),
+        },
     ul: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify py-2`
-      : tw`text-secondary-6 font-nokia-bold text-justify py-2`,
+      ? {
+          ...tw`text-primary-1 font-nokia-bold py-2`,
+          fontSize: scaleTextSize(17),
+          lineHeight: scaleTextSize(26),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold py-2`,
+          fontSize: scaleTextSize(17),
+          lineHeight: scaleTextSize(26),
+        },
     li: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify py-1`
-      : tw`text-secondary-6 font-nokia-bold text-justify py-1`,
+      ? {
+          ...tw`text-primary-1 font-nokia-bold py-1`,
+          fontSize: scaleTextSize(17),
+          lineHeight: scaleTextSize(26),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold py-1`,
+          fontSize: scaleTextSize(17),
+          lineHeight: scaleTextSize(26),
+        },
     'blockquote.p': tw`font-nokia-bold text-4xl`,
     em: tw`mt-4`,
     code: {
       ...tw`font-nokia-bold`,
       color: '#EA9215',
       backgroundColor: darkMode ? '#333' : '#f5f5f5',
+      fontSize: scaleTextSize(16),
+      lineHeight: scaleTextSize(24),
       padding: 8,
       borderRadius: 4,
     },
-    strong: tw`text-xl`,
+    strong: {fontSize: scaleTextSize(20)},
     a: darkMode
-      ? tw`text-accent-6 font-nokia-bold text-justify py-2`
-      : tw`text-accent-6 font-nokia-bold text-justify py-2`,
+      ? tw`text-accent-6 font-nokia-bold py-2`
+      : tw`text-accent-6 font-nokia-bold py-2`,
     table: tw`border border-gray-300 my-4`,
     td: tw`border-r border-gray-300 p-2`,
   });
@@ -340,6 +382,7 @@ const InVerseWeek = ({route}) => {
                 style={[
                   tw`font-nokia-bold`,
                   darkMode ? tw`text-accent-6` : tw`text-secondary-6`,
+                  {fontSize: scaleTextSize(16)},
                 ]}>
                 {node.children[0].data}
               </Text>
@@ -391,8 +434,12 @@ const InVerseWeek = ({route}) => {
               <Text
                 key={childIndex}
                 style={[
-                  tw`font-nokia-bold text-lg text-justify`,
+                  tw`font-nokia-bold`,
                   darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                  {
+                    fontSize: scaleTextSize(18),
+                    lineHeight: scaleTextSize(26),
+                  },
                   {flexWrap: 'wrap'},
                 ]}>
                 {child.data}
@@ -517,6 +564,8 @@ const InVerseWeek = ({route}) => {
                     tw`font-nokia-bold`,
                     {
                       color: '#EA9215',
+                      fontSize: scaleTextSize(16),
+                      lineHeight: scaleTextSize(24),
                       width: '100%',
                     },
                   ]}
@@ -554,14 +603,16 @@ const InVerseWeek = ({route}) => {
             <View>
               <View>
                 <View style={tw`w-full`}>
-                  <Text
-                    style={[
-                      tw`font-nokia-bold text-justify`,
-                      darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                      {
-                        textDecorationLine: 'underline',
-                        textDecorationColor: '#EA9215',
-                        textDecorationStyle: 'solid',
+                <Text
+                  style={[
+                    tw`font-nokia-bold`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                    {
+                      fontSize: scaleTextSize(16),
+                      lineHeight: scaleTextSize(24),
+                      textDecorationLine: 'underline',
+                      textDecorationColor: '#EA9215',
+                      textDecorationStyle: 'solid',
                       },
                     ]}>
                     {noteText || ''}
@@ -570,7 +621,11 @@ const InVerseWeek = ({route}) => {
                 <TouchableOpacity
                   onPress={() => setActiveNoteId(noteId)}
                   style={tw`self-start px-3 py-1 rounded-full bg-accent-6 mt-2`}>
-                  <Text style={tw`font-nokia-bold text-primary-1`}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-primary-1`,
+                      {fontSize: scaleTextSize(14)},
+                    ]}>
                     {noteText ? 'Edit Note' : 'Add Note'}
                   </Text>
                 </TouchableOpacity>
@@ -608,7 +663,10 @@ const InVerseWeek = ({route}) => {
     navigation.goBack();
   };
   const gradientColor = '#000000';
-  const dateStyle = 'font-nokia-bold text-lg text-primary-6';
+  const dateStyle = {
+    ...tw`font-nokia-bold text-primary-6`,
+    fontSize: scaleTextSize(18),
+  };
   const modifiedContent = selectedVerseContent.replace(/<h2>/g, '<br><h2>');
 
   // Show loading state while data is being fetched - but with timeout
@@ -728,6 +786,53 @@ const InVerseWeek = ({route}) => {
               style={{zIndex: 1, marginTop: 12}}>
               <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
             </TouchableOpacity>
+            <View
+              style={{
+                zIndex: 1,
+                marginTop: 42,
+                position: 'absolute',
+                right: 20,
+              }}>
+              <TouchableOpacity
+                onPress={() => setShowFontSizePopup(previous => !previous)}
+                style={[
+                  tw`border border-accent-6 rounded-full px-3 py-1`,
+                  darkMode ? tw`bg-secondary-9` : tw`bg-primary-1`,
+                ]}>
+                <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>A+</Text>
+              </TouchableOpacity>
+              {showFontSizePopup && (
+                <View
+                  style={[
+                    tw`absolute right-0 top-10 rounded-full px-3 py-2 border flex-row items-center`,
+                    darkMode
+                      ? tw`bg-secondary-9 border-secondary-6`
+                      : tw`bg-primary-1 border-primary-4`,
+                  ]}>
+                  <TouchableOpacity
+                    onPress={decreaseFontScale}
+                    style={tw`px-3 py-1 rounded-full bg-accent-6`}>
+                    <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
+                      A-
+                    </Text>
+                  </TouchableOpacity>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-sm px-2`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                    ]}>
+                    {readerFontScalePercentage}%
+                  </Text>
+                  <TouchableOpacity
+                    onPress={increaseFontScale}
+                    style={tw`px-3 py-1 rounded-full bg-accent-6`}>
+                    <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
+                      A+
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
             <LinearGradient
               colors={[gradientColor, `${gradientColor}20`]}
               style={tw`absolute inset-0`}
@@ -736,14 +841,23 @@ const InVerseWeek = ({route}) => {
             />
             <View style={tw`absolute bottom-0 p-4`}>
               {language === 'en' ? (
-                <Text style={tw`font-nokia-bold text-lg text-primary-6 py-1`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-primary-6 py-1`,
+                    {fontSize: scaleTextSize(18)},
+                  ]}>
                   {daysOfWeekEng[check % 7]}, &nbsp;
-                  <Text style={tw`text-accent-6`}>
+                  <Text
+                    style={[tw`text-accent-6`, {fontSize: scaleTextSize(18)}]}>
                     {formatDate(InVerseWeek.date)}
                   </Text>
                 </Text>
               ) : (
-                <Text style={tw`font-nokia-bold text-lg text-primary-6 py-1`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-primary-6 py-1`,
+                    {fontSize: scaleTextSize(18)},
+                  ]}>
                   {daysOfWeek[check % 7]}፣ &nbsp;
                   <DateConverter
                     gregorianDate={InVerseWeek.date}
@@ -753,7 +867,10 @@ const InVerseWeek = ({route}) => {
                 </Text>
               )}
               <Text
-                style={tw`flex flex-col font-nokia-bold text-3xl text-primary-1`}>
+                style={[
+                  tw`flex flex-col font-nokia-bold text-primary-1`,
+                  {fontSize: scaleTextSize(30), lineHeight: scaleTextSize(36)},
+                ]}>
                 {InVerseWeek.title}
               </Text>
             </View>
@@ -781,8 +898,11 @@ const InVerseWeek = ({route}) => {
               {check !== '01' && (
                 <TouchableOpacity style={tw`mb-2`} onPress={onPrevious}>
                   <Text
-                    style={tw`text-accent-6 font-nokia-bold text-xl border border-accent-6 px-4 py-1 rounded-4`}>
-                    ተመለስ
+                    style={[
+                      tw`text-accent-6 font-nokia-bold border border-accent-6 px-4 py-1 rounded-4`,
+                      {fontSize: scaleTextSize(20)},
+                    ]}>
+                    {language === 'en' ? 'Previous' : 'ተመለስ'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -791,8 +911,11 @@ const InVerseWeek = ({route}) => {
                   style={[tw`mb-2`, check === '01' && tw`self-end`]}
                   onPress={onNext}>
                   <Text
-                    style={tw`text-accent-6 font-nokia-bold text-xl border border-accent-6 px-4 py-1 rounded-4`}>
-                    ቀጥል
+                    style={[
+                      tw`text-accent-6 font-nokia-bold border border-accent-6 px-4 py-1 rounded-4`,
+                      {fontSize: scaleTextSize(20)},
+                    ]}>
+                    {language === 'en' ? 'Next' : 'ቀጥል'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -815,30 +938,60 @@ const InVerseWeek = ({route}) => {
             <ScrollView>
               <HtmlContent
                 html={`<div>${modifiedContent}</div>`}
+                baseStyle={{
+                  fontFamily: 'Nokia Pure Headline Bold',
+                  color: darkMode ? '#F8FAFC' : '#1F2937',
+                  fontSize: scaleTextSize(16),
+                  lineHeight: scaleTextSize(24),
+                }}
                 tagsStyles={{
                   p: {
-                    ...tw`text-secondary-6 font-nokia-bold text-justify`,
-                    ...(darkMode ? tw`text-primary-1` : {}),
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    fontSize: scaleTextSize(16),
+                    lineHeight: scaleTextSize(24),
+                    textAlign: 'left',
                   },
                   div: {
-                    ...tw`text-secondary-6 font-nokia-bold text-justify`,
-                    ...(darkMode ? tw`text-primary-1` : {}),
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    fontSize: scaleTextSize(16),
+                    lineHeight: scaleTextSize(24),
+                    textAlign: 'left',
                   },
-                  h2: {...tw`font-nokia-bold text-2xl text-accent-6`},
+                  h2: {
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: '#EA9215',
+                    fontSize: scaleTextSize(24),
+                  },
                   sup: {
-                    ...tw`text-xs font-nokia-bold text-superscript text-accent-6`,
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: '#EA9215',
+                    fontSize: scaleTextSize(12),
                   },
                   ol: {
-                    ...tw`text-secondary-6 font-nokia-bold text-justify py-2`,
-                    ...(darkMode ? tw`text-primary-1` : {}),
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    fontSize: scaleTextSize(16),
+                    lineHeight: scaleTextSize(24),
+                    textAlign: 'left',
+                    paddingVertical: 8,
                   },
                   ul: {
-                    ...tw`text-secondary-6 font-nokia-bold text-justify py-2`,
-                    ...(darkMode ? tw`text-primary-1` : {}),
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    fontSize: scaleTextSize(16),
+                    lineHeight: scaleTextSize(24),
+                    textAlign: 'left',
+                    paddingVertical: 8,
                   },
                   li: {
-                    ...tw`text-secondary-6 font-nokia-bold text-justify py-1`,
-                    ...(darkMode ? tw`text-primary-1` : {}),
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    fontSize: scaleTextSize(16),
+                    lineHeight: scaleTextSize(24),
+                    textAlign: 'left',
+                    paddingVertical: 4,
                   },
                 }}
               />
@@ -846,8 +999,12 @@ const InVerseWeek = ({route}) => {
             <TouchableOpacity
               style={tw`bg-accent-6 mt-4 rounded-lg p-2`}
               onPress={onCloseModal}>
-              <Text style={tw`font-nokia-bold text-primary-1 text-center`}>
-                ዝጋ
+              <Text
+                style={[
+                  tw`font-nokia-bold text-primary-1 text-center`,
+                  {fontSize: scaleTextSize(16)},
+                ]}>
+                {language === 'en' ? 'Close' : 'ዝጋ'}
               </Text>
             </TouchableOpacity>
           </View>

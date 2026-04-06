@@ -146,7 +146,7 @@ const CurrentInVerse = () => {
                     <Text
                       numberOfLines={4}
                       style={[
-                        tw`font-nokia-bold text-sm text-secondary-6 text-justify mt-2`,
+                        tw`font-nokia-bold text-sm text-secondary-6 mt-2`,
                         darkMode ? tw`text-primary-1` : null,
                       ]}>
                       {'  '}

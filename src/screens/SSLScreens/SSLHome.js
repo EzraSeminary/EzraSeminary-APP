@@ -33,10 +33,13 @@ import {
   ArrowClockwise,
 } from 'phosphor-react-native';
 import ErrorScreen from '../../components/ErrorScreen';
-import {format} from 'date-fns';
 import DateConverter from './DateConverter';
 import networkManager from '../../utils/networkManager';
 import {saveSSLLessonToCache} from '../../utils/sslCache';
+import {
+  formatSslDateRange,
+  formatSslListDate,
+} from '../../utils/sslDateFormatter';
 import {
   saveHomeScreenToCache,
   getCachedHomeScreen,
@@ -282,16 +285,9 @@ const SSLHome = ({onReload}) => {
     onRefresh();
   }, [language, onRefresh]);
 
-  const parseCustomDate = dateString => {
-    const [day, month, year] = dateString.split('/');
-    return new Date(`${year}-${month}-${day}`);
-  };
-
   const formatDateRange = (startDate, endDate) => {
     try {
-      const start = format(parseCustomDate(startDate), 'MMM dd');
-      const end = format(parseCustomDate(endDate), 'MMM dd');
-      return `${start} - ${end}`;
+      return formatSslDateRange(startDate, endDate);
     } catch (error) {
       console.error('Error formatting date:', error);
       return 'Invalid Date';
@@ -604,7 +600,7 @@ const SSLHome = ({onReload}) => {
                   <View style={tw`flex-1`}>
                     <Text
                       style={tw`font-nokia-bold text-sm text-accent-6 mb-1`}>
-                      {item.human_date}
+                      {formatSslListDate(item, language)}
                     </Text>
                     <Text
                       style={[
@@ -618,7 +614,7 @@ const SSLHome = ({onReload}) => {
                     <Text
                       numberOfLines={3}
                       style={[
-                        tw`font-nokia-bold text-sm text-secondary-6 text-justify flex-1`,
+                        tw`font-nokia-bold text-sm text-secondary-6 flex-1`,
                         darkMode ? tw`text-primary-1` : null,
                       ]}>
                       {item.description}
@@ -736,7 +732,7 @@ const SSLHome = ({onReload}) => {
           <View style={tw`border-b border-accent-6 mb-1`} />
           <Text
             style={[
-              tw`font-nokia-bold text-secondary-6 text-justify`,
+              tw`font-nokia-bold text-secondary-6`,
               darkMode ? tw`text-primary-1` : null,
             ]}>
             {'   '}
@@ -811,7 +807,7 @@ const SSLHome = ({onReload}) => {
                   <View style={tw`flex-1`}>
                     <Text
                       style={tw`font-nokia-bold text-sm text-accent-6 mb-1`}>
-                      {item.human_date}
+                      {formatSslListDate(item, language)}
                     </Text>
                     <Text
                       style={[
@@ -825,7 +821,7 @@ const SSLHome = ({onReload}) => {
                     <Text
                       numberOfLines={3}
                       style={[
-                        tw`font-nokia-bold text-sm text-secondary-6 text-justify flex-1`,
+                        tw`font-nokia-bold text-sm text-secondary-6 flex-1`,
                         darkMode ? tw`text-primary-1` : null,
                       ]}>
                       {item.description}

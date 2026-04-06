@@ -16,6 +16,7 @@ module.exports = {
       xs1: ['10px', {lineHeight: '16px', letterSpacing: '0'}],
       xs: ['12px', {lineHeight: '18px', letterSpacing: '0'}],
       sm: ['14px', {lineHeight: '20px', letterSpacing: '0'}],
+      base: ['16px', {lineHeight: '24px', letterSpacing: '0'}],
       lg: ['16px', {lineHeight: '24px', letterSpacing: '0'}],
       xl: ['18px', {lineHeight: '26px', letterSpacing: '0'}],
       '2xl': ['20px', {lineHeight: '30px', letterSpacing: '0'}],

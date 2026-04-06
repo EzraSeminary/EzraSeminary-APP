@@ -666,35 +666,35 @@ const PlanDevotionViewer = () => {
   // HTMLView requires a plain object, not StyleSheet.create()
   const tailwindStyles = {
     p: [
-      tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
+      tw`text-secondary-6 font-nokia-bold text-sm leading-snug`,
       darkMode ? tw`text-primary-1` : null,
       {marginVertical: 0},
     ],
     a: tw`text-accent-6 font-nokia-bold text-sm underline`,
     h1: [
-      tw`text-secondary-6 font-nokia-bold text-justify text-2xl leading-snug`,
+      tw`text-secondary-6 font-nokia-bold text-2xl leading-snug`,
       darkMode ? tw`text-primary-1` : null,
     ],
     h2: [
-      tw`text-secondary-6 font-nokia-bold text-justify text-xl leading-snug`,
+      tw`text-secondary-6 font-nokia-bold text-xl leading-snug`,
       darkMode ? tw`text-primary-1` : null,
     ],
     h3: [
-      tw`text-secondary-6 font-nokia-bold text-justify text-lg leading-snug`,
+      tw`text-secondary-6 font-nokia-bold text-lg leading-snug`,
       darkMode ? tw`text-primary-1` : null,
     ],
     ol: [
-      tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
+      tw`text-secondary-6 font-nokia-bold text-sm leading-snug`,
       darkMode ? tw`text-primary-1` : null,
       {marginVertical: 0, paddingLeft: 20},
     ],
     ul: [
-      tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
+      tw`text-secondary-6 font-nokia-bold text-sm leading-snug`,
       darkMode ? tw`text-primary-1` : null,
       {marginVertical: 0, paddingLeft: 20},
     ],
     li: [
-      tw`text-secondary-6 font-nokia-bold text-justify text-sm leading-snug`,
+      tw`text-secondary-6 font-nokia-bold text-sm leading-snug`,
       darkMode ? tw`text-primary-1` : null,
       {marginVertical: -5},
     ],

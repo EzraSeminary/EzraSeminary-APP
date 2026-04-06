@@ -62,6 +62,7 @@ import HighlightableHtmlBlocks from '../components/HighlightableHtmlBlocks';
 import usePersistentHighlights from '../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../utils/htmlBlocks';
 import {formatDevotionalForSharing} from '../utils/textFormatter';
+import useReaderFontScale from '../hooks/useReaderFontScale';
 
 const ethiopianMonths = [
   '',
@@ -159,6 +160,13 @@ const Devotion = () => {
   const [activeTab, setActiveTab] = useState('devotional'); // 'devotional' or 'plan'
   const [cachedHomeData, setCachedHomeData] = useState(null);
   const [isUsingCache, setIsUsingCache] = useState(false);
+  const {
+    scaleTextSize,
+    increaseFontScale,
+    decreaseFontScale,
+    readerFontScalePercentage,
+  } = useReaderFontScale();
+  const [showFontSizePopup, setShowFontSizePopup] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -503,20 +511,50 @@ const Devotion = () => {
   const tailwindStyles = StyleSheet.create({
     p: {
       ...(darkMode
-        ? tw`text-primary-1 font-nokia-bold text-justify text-sm leading-snug`
-        : tw`text-secondary-6 font-nokia-bold text-justify leading-snug`),
+        ? tw`text-primary-1 font-nokia-bold`
+        : tw`text-secondary-6 font-nokia-bold`),
+      fontSize: scaleTextSize(14),
+      lineHeight: scaleTextSize(20),
       marginVertical: 0,
     },
-    a: tw`text-accent-6 font-nokia-bold text-sm underline`,
+    a: {
+      ...tw`text-accent-6 font-nokia-bold underline`,
+      fontSize: scaleTextSize(14),
+      lineHeight: scaleTextSize(20),
+    },
     h1: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify text-2xl leading-snug`
-      : tw`text-secondary-6 font-nokia-bold text-justify text-2xl leading-snug`,
+      ? {
+          ...tw`text-primary-1 font-nokia-bold`,
+          fontSize: scaleTextSize(24),
+          lineHeight: scaleTextSize(32),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold`,
+          fontSize: scaleTextSize(24),
+          lineHeight: scaleTextSize(32),
+        },
     h2: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify text-xl leading-snug`
-      : tw`text-secondary-6 font-nokia-bold text-justify text-xl leading-snug`,
+      ? {
+          ...tw`text-primary-1 font-nokia-bold`,
+          fontSize: scaleTextSize(20),
+          lineHeight: scaleTextSize(28),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold`,
+          fontSize: scaleTextSize(20),
+          lineHeight: scaleTextSize(28),
+        },
     h3: darkMode
-      ? tw`text-primary-1 font-nokia-bold text-justify text-lg leading-snug`
-      : tw`text-secondary-6 font-nokia-bold text-justify text-lg leading-snug`,
+      ? {
+          ...tw`text-primary-1 font-nokia-bold`,
+          fontSize: scaleTextSize(18),
+          lineHeight: scaleTextSize(26),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold`,
+          fontSize: scaleTextSize(18),
+          lineHeight: scaleTextSize(26),
+        },
   });
 
   const onRefresh = useCallback(async () => {
@@ -791,6 +829,45 @@ const Devotion = () => {
               }}>
               <ArrowLeft size={28} weight="bold" color="#EA9215" />
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                tw`absolute right-0 border border-accent-6 rounded-full px-3 py-1`,
+                darkMode ? tw`bg-secondary-8` : tw`bg-primary-1`,
+              ]}
+              onPress={() => setShowFontSizePopup(previous => !previous)}>
+              <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>A+</Text>
+            </TouchableOpacity>
+            {showFontSizePopup && (
+              <View
+                style={[
+                  tw`absolute right-0 top-11 rounded-full px-3 py-2 border flex-row items-center`,
+                  darkMode
+                    ? tw`bg-secondary-9 border-secondary-6`
+                    : tw`bg-primary-1 border-primary-4`,
+                ]}>
+                <TouchableOpacity
+                  onPress={decreaseFontScale}
+                  style={tw`px-3 py-1 rounded-full bg-accent-6`}>
+                  <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
+                    A-
+                  </Text>
+                </TouchableOpacity>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-sm px-2`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                  ]}>
+                  {readerFontScalePercentage}%
+                </Text>
+                <TouchableOpacity
+                  onPress={increaseFontScale}
+                  style={tw`px-3 py-1 rounded-full bg-accent-6`}>
+                  <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
+                    A+
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {/* Sliding buttons for Devotional/Devotional Plan */}
             <View
               style={[
@@ -913,8 +990,12 @@ const Devotion = () => {
                 <Text
                   selectable
                   style={[
-                    tw`font-nokia-bold text-secondary-6 text-lg leading-tight`,
+                    tw`font-nokia-bold text-secondary-6`,
                     darkMode ? tw`text-primary-1` : null,
+                    {
+                      fontSize: scaleTextSize(18),
+                      lineHeight: scaleTextSize(26),
+                    },
                   ]}>
                   {verse}
                 </Text>
@@ -922,8 +1003,12 @@ const Devotion = () => {
                   <View style={tw`border-t border-accent-6 mt-3 pt-3`}>
                     <Text
                       style={[
-                        tw`font-nokia-bold text-accent-6 text-lg leading-tight`,
+                        tw`font-nokia-bold text-accent-6`,
                         darkMode ? tw`text-accent-6` : null,
+                        {
+                          fontSize: scaleTextSize(18),
+                          lineHeight: scaleTextSize(26),
+                        },
                       ]}>
                       {reference}
                     </Text>
@@ -958,7 +1043,11 @@ const Devotion = () => {
               style={tw`rounded-4 p-1`}>
               <Text
                 style={[
-                  tw`font-nokia-bold text-accent-6 text-sm leading-tight text-center`,
+                  tw`font-nokia-bold text-accent-6 text-center`,
+                  {
+                    fontSize: scaleTextSize(14),
+                    lineHeight: scaleTextSize(20),
+                  },
                 ]}>
                 {devotionToDisplay.prayer}
               </Text>

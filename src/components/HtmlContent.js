@@ -24,6 +24,8 @@ const HtmlContent = ({html, tagsStyles, baseStyle, contentWidth, ...props}) => {
       tagsStyles={tagsStyles}
       baseStyle={{fontFamily: 'Nokia Pure Headline Bold', ...baseStyle}}
       defaultTextProps={{
+        allowFontScaling: true,
+        maxFontSizeMultiplier: 2,
         style: {
           fontFamily: 'Nokia Pure Headline Bold',
         },

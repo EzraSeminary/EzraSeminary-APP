@@ -6,12 +6,14 @@
 #import "AppDelegate.h"
 
 #import <React/RCTBundleURLProvider.h>
+#import <ReactAppDependencyProvider/RCTAppDependencyProvider.h>
 
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
   self.moduleName = @"EzraApp";
+  self.dependencyProvider = [RCTAppDependencyProvider new];
   self.initialProps = @{};
 
   if ([FIRApp defaultApp] == nil) {

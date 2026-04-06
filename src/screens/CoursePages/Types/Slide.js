@@ -38,7 +38,7 @@ const Slide = ({value, setIsSlideComplete}) => {
         renderItem={({item}) => (
           <View style={tw`items-center justify-center mx-1`}>
             <Text
-              style={tw`font-nokia-bold text-sm text-primary-1 text-justify items-center px-2`}>
+              style={tw`font-nokia-bold text-sm text-primary-1 items-center px-2`}>
               {item}
             </Text>
           </View>

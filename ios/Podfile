@@ -1,8 +1,6 @@
 # Resolve react_native_pods.rb with node to allow for hoisting
 
-use_modular_headers!
-
-platform :ios, '14.0'
+platform :ios, '15.1'
 
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
@@ -11,17 +9,6 @@ require Pod::Executable.execute_command('node', ['-p',
   )', __dir__]).strip
 
 prepare_react_native_project!
-
-# If you are using a `react-native-flipper` your iOS build will fail when `NO_FLIPPER=1` is set.
-# because `react-native-flipper` depends on (FlipperKit,...) that will be excluded
-#
-# To fix this you can also exclude `react-native-flipper` using a `react-native.config.js`
-# ```js
-# module.exports = {
-#   dependencies: {
-#     ...(process.env.NO_FLIPPER ? { 'react-native-flipper': { platforms: { ios: null } } } : {}),
-# ```
-flipper_config = ENV['NO_FLIPPER'] == "1" ? FlipperConfiguration.disabled : FlipperConfiguration.enabled
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
@@ -32,13 +19,16 @@ end
 target 'EzraApp' do
   config = use_native_modules!
 
+  # Firebase Swift pods need module maps, but enabling modular headers globally
+  # breaks React Native 0.77 pods. Scope modular headers only to the Firebase deps.
+  pod 'FirebaseCore', :modular_headers => true
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+
   use_react_native!(
     :path => config[:reactNativePath],
-    # Enables Flipper.
-    #
-    # Note that if you have use_frameworks! enabled, Flipper will not work and
-    # you should disable the next line.
-    #:flipper_configuration => flipper_config,
+    # Match android/gradle.properties newArchEnabled=false (default RN Podfile enables New Arch when env is unset).
+    :new_arch_enabled => false,
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useDispatch, useSelector} from 'react-redux';
 import {useUpdateUserMutation} from '../../redux/api-slices/apiSlice';
 import {updateUser} from '../../redux/authSlice';
@@ -21,7 +22,6 @@ import {
   Eye,
   Camera,
 } from 'phosphor-react-native';
-import localStorage from 'redux-persist/es/storage';
 import Toast from 'react-native-toast-message';
 import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 import UserAvatar from '../../components/UserAvatar';
@@ -35,8 +35,22 @@ const UserProfileUpdateScreen = ({navigation}) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [storedAuthProvider, setStoredAuthProvider] = useState('');
   const darkMode = useSelector(state => state.ui.darkMode);
-  const currentUser = useSelector(state => state.auth);
+  const currentUser = useSelector(state => state.auth.user);
+  const userProfile = currentUser?.user || currentUser || {};
+  const resolvedFirstName = userProfile?.firstName || '';
+  const resolvedLastName = userProfile?.lastName || '';
+  const resolvedEmail = userProfile?.email || '';
+  const authProvider = String(
+    userProfile?.authProvider || userProfile?.provider || '',
+  ).toLowerCase();
+  const effectiveAuthProvider = String(
+    authProvider || storedAuthProvider || '',
+  ).toLowerCase();
+  const isGoogleAccount =
+    effectiveAuthProvider === 'google' ||
+    Boolean(userProfile?.googleId || userProfile?.googleSub);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isAvatarChanged, setIsAvatarChanged] = useState(false);
@@ -44,18 +58,40 @@ const UserProfileUpdateScreen = ({navigation}) => {
 
   // Initialize form data when currentUser changes
   useEffect(() => {
-    if (currentUser && currentUser.user) {
-      setFirstName(currentUser.firstName || '');
-      setLastName(currentUser.lastName || '');
-      setEmail(currentUser.user.email || '');
-      setPassword(currentUser.password || '');
+    if (currentUser) {
+      setFirstName(resolvedFirstName);
+      setLastName(resolvedLastName);
+      setEmail(resolvedEmail);
+      setPassword('');
 
       // Only set avatar preview if it's not already set or if user changed
       if (!isAvatarChanged) {
-        setAvatarPreview(currentUser.user.avatar || null);
+        setAvatarPreview(userProfile?.avatar || null);
       }
     }
-  }, [currentUser, isAvatarChanged]);
+  }, [
+    currentUser,
+    isAvatarChanged,
+    resolvedFirstName,
+    resolvedLastName,
+    resolvedEmail,
+    userProfile?.avatar,
+  ]);
+
+  useEffect(() => {
+    const loadStoredAuthProvider = async () => {
+      try {
+        const provider = await AsyncStorage.getItem('authProvider');
+        if (provider) {
+          setStoredAuthProvider(String(provider).toLowerCase());
+        }
+      } catch (error) {
+        console.error('Failed to load auth provider from storage:', error);
+      }
+    };
+
+    loadStoredAuthProvider();
+  }, []);
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
@@ -118,9 +154,7 @@ const UserProfileUpdateScreen = ({navigation}) => {
     });
   };
 
-  const handleUpdateUser = async e => {
-    e.preventDefault();
-
+  const handleUpdateUser = async () => {
     // Add password validation
     if (password && password !== confirmPassword) {
       Toast.show({
@@ -131,18 +165,23 @@ const UserProfileUpdateScreen = ({navigation}) => {
     }
 
     if (currentUser) {
+      const nextFirstName = firstName.trim();
+      const nextLastName = lastName.trim();
+      const nextEmail = email.trim().toLowerCase();
+      const originalEmail = String(resolvedEmail || '').trim().toLowerCase();
+
       if (
-        firstName !== currentUser.firstName ||
-        lastName !== currentUser.lastName ||
-        email !== currentUser.email ||
+        nextFirstName !== resolvedFirstName ||
+        nextLastName !== resolvedLastName ||
+        (!isGoogleAccount && nextEmail !== originalEmail) ||
         password ||
         selectedImage
       ) {
         try {
           const formData = new FormData();
-          formData.append('firstName', firstName);
-          formData.append('lastName', lastName);
-          formData.append('email', email);
+          formData.append('firstName', nextFirstName);
+          formData.append('lastName', nextLastName);
+          formData.append('email', isGoogleAccount ? resolvedEmail : nextEmail);
           if (password) {
             formData.append('password', password);
           }
@@ -157,22 +196,33 @@ const UserProfileUpdateScreen = ({navigation}) => {
             formData.append('avatar', imageData);
           }
 
-          const updatedUser = await updateUserMutation(formData).unwrap();
+          const updatedUserResponse = await updateUserMutation({
+            formData,
+            userId: userProfile?._id,
+          }).unwrap();
+          const updatedUser = {
+            ...updatedUserResponse,
+            authProvider:
+              updatedUserResponse?.authProvider ||
+              userProfile?.authProvider ||
+              userProfile?.provider,
+          };
+
           Toast.show({
             type: 'success',
             text1: 'Profile updated successfully!',
           });
           dispatch(updateUser(updatedUser));
-          setFirstName(updatedUser.firstName);
-          setLastName(updatedUser.lastName);
-          setEmail(updatedUser.email);
+          setFirstName(updatedUser.firstName || '');
+          setLastName(updatedUser.lastName || '');
+          setEmail(updatedUser.email || resolvedEmail);
           setPassword('');
           setConfirmPassword('');
           setSelectedImage(null);
           setAvatarPreview(updatedUser.avatar || null);
           setIsAvatarChanged(false);
           navigation.navigate('SettingsStack');
-          localStorage.setItem('user', JSON.stringify(updatedUser));
+          AsyncStorage.setItem('user', JSON.stringify(updatedUser));
         } catch (error) {
           if (error !== null && 'status' in error && 'data' in error) {
             const apiError = error;
@@ -238,7 +288,7 @@ const UserProfileUpdateScreen = ({navigation}) => {
                 avatarUri={
                   avatarPreview
                     ? avatarPreview
-                    : currentUser?.user?.avatar || null
+                    : userProfile?.avatar || null
                 }
                 size={96}
                 style={tw`my-2`}
@@ -257,14 +307,14 @@ const UserProfileUpdateScreen = ({navigation}) => {
                 tw`font-nokia-bold text-lg text-secondary-6`,
                 darkMode ? tw`text-primary-1` : null,
               ]}>
-              {currentUser && currentUser.user && currentUser.user.firstName}
+              {resolvedFirstName}
             </Text>
             <Text
               style={[
                 tw`font-nokia-light text-sm text-secondary-6`,
                 darkMode ? tw`text-primary-1` : null,
               ]}>
-              {currentUser && currentUser.user && currentUser.user.email}
+              {resolvedEmail}
             </Text>
           </View>
         )}
@@ -337,89 +387,107 @@ const UserProfileUpdateScreen = ({navigation}) => {
                 keyboardType="email-address"
                 value={email}
                 onChangeText={setEmail}
+                editable={!isGoogleAccount}
+                selectTextOnFocus={!isGoogleAccount}
                 style={[
                   tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
+                  isGoogleAccount ? tw`opacity-70` : null,
                   darkMode ? tw`text-primary-3` : null,
                 ]}
                 placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
               />
             </View>
+            {isGoogleAccount && (
+              <Text
+                style={[
+                  tw`font-nokia-bold text-xs mt-1`,
+                  darkMode ? tw`text-primary-3` : tw`text-secondary-5`,
+                ]}>
+                Email is locked for Google sign-in accounts.
+              </Text>
+            )}
           </View>
-          <View style={tw`mb-2`}>
-            <View
-              style={[
-                tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
-                darkMode ? tw`bg-secondary-6` : null,
-              ]}>
-              <View style={tw`flex flex-row items-center gap-2`}>
-                <Lock
-                  size={20}
-                  style={[
-                    tw`text-secondary-5`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
-                />
-                <TextInput
-                  placeholder="Password"
-                  secureTextEntry={showPassword}
-                  keyboardType="default"
-                  value={password}
-                  onChangeText={setPassword}
-                  style={[
-                    tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
-                  placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
-                />
+          {!isGoogleAccount && (
+            <View style={tw`mb-2`}>
+              <View
+                style={[
+                  tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                  darkMode ? tw`bg-secondary-6` : null,
+                ]}>
+                <View style={tw`flex flex-row items-center gap-2`}>
+                  <Lock
+                    size={20}
+                    style={[
+                      tw`text-secondary-5`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                  />
+                  <TextInput
+                    placeholder="Password"
+                    secureTextEntry={showPassword}
+                    keyboardType="default"
+                    value={password}
+                    onChangeText={setPassword}
+                    style={[
+                      tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                    placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
+                  />
+                </View>
+                <TouchableOpacity onPress={toggleShowPassword}>
+                  <Eye
+                    size={20}
+                    style={[
+                      tw`text-secondary-5`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                  />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={toggleShowPassword}>
-                <Eye
-                  size={20}
-                  style={[
-                    tw`text-secondary-5`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
-                />
-              </TouchableOpacity>
             </View>
-          </View>
-          <View style={tw`mb-2`}>
-            <View
-              style={[
-                tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
-                darkMode ? tw`bg-secondary-6` : null,
-              ]}>
-              <View style={tw`flex flex-row items-center gap-2`}>
-                <Lock
-                  size={20}
-                  style={[
-                    tw`text-secondary-5`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
-                />
-                <TextInput
-                  placeholder="Confirm Password"
-                  secureTextEntry={showConfirmPassword}
-                  keyboardType="default"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  style={[
-                    tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
-                  placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
-                />
+          )}
+          {!isGoogleAccount && (
+            <View style={tw`mb-2`}>
+              <View
+                style={[
+                  tw`flex flex-row items-center justify-between gap-2 w-100% h-12 bg-primary-4 border border-secondary-3 rounded-2 px-4`,
+                  darkMode ? tw`bg-secondary-6` : null,
+                ]}>
+                <View style={tw`flex flex-row items-center gap-2`}>
+                  <Lock
+                    size={20}
+                    style={[
+                      tw`text-secondary-5`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                  />
+                  <TextInput
+                    placeholder="Confirm Password"
+                    secureTextEntry={showConfirmPassword}
+                    keyboardType="default"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    style={[
+                      tw`font-nokia-bold text-sm text-secondary-6 w-80%`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                    placeholderTextColor={darkMode ? '#AAAAAA' : '#AAB0B4'}
+                  />
+                </View>
+                <TouchableOpacity onPress={toggleShowConfirmPassword}>
+                  <Eye
+                    size={20}
+                    style={[
+                      tw`text-secondary-5`,
+                      darkMode ? tw`text-primary-3` : null,
+                    ]}
+                  />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={toggleShowConfirmPassword}>
-                <Eye
-                  size={20}
-                  style={[
-                    tw`text-secondary-5`,
-                    darkMode ? tw`text-primary-3` : null,
-                  ]}
-                />
-              </TouchableOpacity>
             </View>
+          )}
+          <View style={tw`mb-2`}>
             <View style={tw`flex flex-row justify-between`}>
               <TouchableOpacity
                 style={tw`w-70% py-4 items-center bg-accent-6 rounded-2 my-4`}

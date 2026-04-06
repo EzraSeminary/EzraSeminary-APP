@@ -74,7 +74,7 @@ const DisplayCourse = () => {
         </View>
         <View style={tw`border-b border-accent-6 my-4`} />
         <Text
-          style={tw`font-nokia-bold text-secondary-6 text-sm leading-snug text-justify leading-tight`}>
+          style={tw`font-nokia-bold text-secondary-6 text-sm leading-snug leading-tight`}>
           {'   '}
           መጽሃፍ ቅዱስን በተለያየ መንገድ ማጥናት ይቻላል። ነገር ግን ፍሪያማ ከሆኑት መንገዶች መካከል የሚከተሉት ወሳኝ
           ነጥቦችን ይይዛሉ። ከእነዚህም መካከል ሰባቱን አንድ በአንድ … ቪድዮ ጌሞችን ማዘውተር እና የተለያዩ ገጾችን

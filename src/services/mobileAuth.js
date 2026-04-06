@@ -3,6 +3,10 @@ import {getApiBaseUrl} from '../utils/apiBaseUrl';
 
 export const persistAuthenticatedUser = async ({result, dispatch, login}) => {
   await AsyncStorage.setItem('user', JSON.stringify(result));
+  await AsyncStorage.setItem(
+    'authProvider',
+    String(result?.authProvider || 'email'),
+  );
   dispatch(login(result));
 };
 

@@ -578,7 +578,7 @@ const InVerseHome = ({onReload}) => {
                     <Text
                       numberOfLines={3}
                       style={[
-                        tw`font-nokia-bold text-sm text-secondary-6 text-justify flex-1`,
+                        tw`font-nokia-bold text-sm text-secondary-6 flex-1`,
                         darkMode ? tw`text-primary-1` : null,
                       ]}>
                       {item.description}
@@ -696,7 +696,7 @@ const InVerseHome = ({onReload}) => {
           <View style={tw`border-b border-accent-6 mb-1`} />
           <Text
             style={[
-              tw`font-nokia-bold text-secondary-6 text-justify`,
+              tw`font-nokia-bold text-secondary-6`,
               darkMode ? tw`text-primary-1` : null,
             ]}>
             {'   '}
@@ -785,7 +785,7 @@ const InVerseHome = ({onReload}) => {
                     <Text
                       numberOfLines={3}
                       style={[
-                        tw`font-nokia-bold text-sm text-secondary-6 text-justify flex-1`,
+                        tw`font-nokia-bold text-sm text-secondary-6 flex-1`,
                         darkMode ? tw`text-primary-1` : null,
                       ]}>
                       {item.description}

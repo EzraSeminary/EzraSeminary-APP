@@ -1,0 +1,746 @@
+--------- beginning of system
+04-05 13:45:38.948   664   972 I ActivityManager: Force stopping com.ezraapp appid=10225 user=0: from pid 30166
+04-05 13:45:38.949   664   972 I ActivityManager: Killing 30040:com.ezraapp/u0a225 (adj 101): stop com.ezraapp due to from pid 30166
+04-05 13:45:38.950   664   972 D CompatChangeReporter: Compat change id reported: 151861875; UID 10225; state: ENABLED
+04-05 13:45:38.951   664   972 W ActivityTaskManager: Force removing ActivityRecord{202268412 u0 com.ezraapp/.MainActivity t51 f}}: app died, no saved state
+--------- beginning of main
+04-05 13:45:38.951   664   806 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+04-05 13:45:38.951   896   965 V WindowManagerShell: Transition requested (#131): android.os.BinderProxy@734abae TransitionRequestInfo { type = CLOSE, triggerTask = null, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 131 }
+04-05 13:45:38.952   664   806 D InetDiagMessage: Destroyed 2 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+04-05 13:45:38.952   664   850 D BackgroundInstallControlService: Package event received: 0
+04-05 13:45:38.952   664   806 D InetDiagMessage: Destroyed live tcp sockets for uids={10225} in 1ms
+04-05 13:45:38.952   664   806 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+04-05 13:45:38.952   664   806 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+04-05 13:45:38.952   664   806 D InetDiagMessage: Destroyed live tcp sockets for uids={20225} in 0ms
+04-05 13:45:38.952  1079  1079 D ViewRootImpl: Skipping stats log for color mode
+04-05 13:45:38.952   505   614 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953  1037  1037 D ViewRootImpl: Skipping stats log for color mode
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:38.953   664   972 I AppsFilter: interaction: PackageSetting{da95da9 com.wudassieapp/10217} -> PackageSetting{aa2dc6b com.ezraapp/10225} BLOCKED
+04-05 13:45:38.953   664   972 I AppsFilter: interaction: PackageSetting{79d2acf com.churchweeklyquestionsapp/10216} -> PackageSetting{aa2dc6b com.ezraapp/10225} BLOCKED
+04-05 13:45:38.956  1007  1007 D CarrierSvcBindHelper: onHandleForceStop: [com.ezraapp]
+04-05 13:45:38.957  1007  1007 D CarrierSvcBindHelper: No carrier app for: 0
+04-05 13:45:38.957   505   505 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+04-05 13:45:38.957  1037  1037 D NexusLauncherModelDelegate: notifySmartspaceEvent: SmartspaceTargetEvent{mSmartspaceTarget=null, mSmartspaceActionId='null', mEventType=6}
+04-05 13:45:38.958  1037  1037 D BaseDepthController: mSurface is null and mCurrentBlur is: 23
+04-05 13:45:38.958   664   769 I system_server: AssetManager2(0xb400007a2a62b5b8) locale list changing from [] to [en-US]
+04-05 13:45:38.961  1037  1037 D BaseDepthController: setSurface:
+04-05 13:45:38.961  1037  1037 D BaseDepthController: 	mWaitingOnSurfaceValidity: false
+04-05 13:45:38.961  1037  1037 D BaseDepthController: 	mBaseSurface: Surface(name=com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity)/@0xb302079
+04-05 13:45:38.962   664   769 I system_server: AssetManager2(0xb400007a2a6a1218) locale list changing from [] to [en-US]
+04-05 13:45:38.981   664   972 V ActivityManager: Got obituary of 30040:com.ezraapp
+04-05 13:45:38.981   509   509 I adbd    : Remote process closed the socket (on MSG_PEEK)
+04-05 13:45:38.981   664   806 D ConnectivityService: releasing NetworkRequest [ REQUEST id=462, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10225 RequestorUid: 10225 RequestorPkg: com.ezraapp UnderlyingNetworks: Null] ] (release request)
+04-05 13:45:38.982   896  6458 V WindowManagerShell: onTransitionReady(transaction=2851858304298)
+04-05 13:45:38.982   664   694 I libprocessgroup: Removed cgroup /sys/fs/cgroup/apps/uid_10225/pid_30040
+04-05 13:45:38.982   664   683 V WindowManager: Sent Transition (#131) createdAt=04-05 13:45:38.951 via request=TransitionRequestInfo { type = CLOSE, triggerTask = null, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 131 }
+04-05 13:45:38.982   664   683 V WindowManager:     startWCT=WindowContainerTransaction { changes= {} hops= [] errorCallbackToken=null taskFragmentOrganizer=null }
+04-05 13:45:38.982   664   683 V WindowManager:     info={id=131 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+04-05 13:45:38.982   664   683 V WindowManager:         {m=CLOSE f=FILLS_TASK leash=Surface(name=ActivityRecord{202268412 u0 com.ezraapp/.MainActivity)/@0x17a1573 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.ezraapp/.MainActivity},
+04-05 13:45:38.982   664   683 V WindowManager:         {m=TO_FRONT f=TRANSLUCENT|FILLS_TASK leash=Surface(name=ActivityRecord{11514727 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0xa35fbef sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},
+04-05 13:45:38.982   664   683 V WindowManager:         {WCT{RemoteToken{38a92db Task{2d91736 #1 type=home}}} m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0xf8ad8c7 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1},
+04-05 13:45:38.982   664   683 V WindowManager:         {m=TO_FRONT f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{59ee8a6 showWhenLocked=false})/@0xd0cda06 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}
+04-05 13:45:38.982   664   683 V WindowManager:     ]}
+04-05 13:45:38.982   664   972 I WindowManager: WIN DEATH: Window{17e298f u0 com.ezraapp/com.ezraapp.MainActivity}
+04-05 13:45:38.982   896   965 V WindowManagerShell: onTransitionReady (#131) android.os.BinderProxy@734abae: {id=131 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+04-05 13:45:38.982   896   965 V WindowManagerShell:         {m=CLOSE f=FILLS_TASK leash=Surface(name=ActivityRecord{202268412 u0 com.ezraapp/.MainActivity)/@0x7d92cdc sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.ezraapp/.MainActivity},
+04-05 13:45:38.982   896   965 V WindowManagerShell:         {m=TO_FRONT f=TRANSLUCENT|FILLS_TASK leash=Surface(name=ActivityRecord{11514727 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0x14b51e5 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},
+04-05 13:45:38.982   896   965 V WindowManagerShell:         {m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0xc23d4ba sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1},
+04-05 13:45:38.982   896   965 V WindowManagerShell:         {m=TO_FRONT f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{59ee8a6 showWhenLocked=false})/@0x7ee6f6b sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}
+04-05 13:45:38.982   896   965 V WindowManagerShell:     ]}
+04-05 13:45:38.984   453   453 I Zygote  : Process 30040 exited due to signal 9 (Killed)
+04-05 13:45:38.984   896   965 V WindowManagerShell: Playing animation for (#131) android.os.BinderProxy@734abae@0
+04-05 13:45:38.984   896   965 V ShellRecents: RecentsTransitionHandler.startAnimation: no controller found
+04-05 13:45:38.984   664   686 W ActivityManager: setHasOverlayUi called on unknown pid: 30040
+04-05 13:45:38.984   896   965 V WindowManagerShell: Transition doesn't have explicit remote, search filters for match for {id=131 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{m=CLOSE f=FILLS_TASK leash=Surface(name=ActivityRecord{202268412 u0 com.ezraapp/.MainActivity)/@0x7d92cdc sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.ezraapp/.MainActivity},{m=TO_FRONT f=TRANSLUCENT|FILLS_TASK leash=Surface(name=ActivityRecord{11514727 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0x14b51e5 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},{m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0xc23d4ba sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1},{m=TO_FRONT f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{59ee8a6 showWhenLocked=false})/@0x7ee6f6b sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}]}
+04-05 13:45:38.984   896   965 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x0 checks=[{atype=undefined independent=true modes=[CLOSE,TO_BACK] flags=IN_TASK_WITH_EMBEDDED_ACTIVITY mustBeTask=false order=ANY topActivity=null launchCookie=null taskFragmentToken=android.os.BinderProxy@2d74376 windowingMode=undefined}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@f79dd77, appThread = android.app.IApplicationThread$Stub$Proxy@967bde4, debugName = overlayBackTransition }}
+04-05 13:45:38.984   896   965 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x0 checks=[{atype=dream independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=ANY topActivity=null launchCookie=null windowingMode=undefined},{atype=home independent=true modes=[CLOSE,TO_BACK] flags=NONE mustBeTask=false order=ANY topActivity=null launchCookie=null windowingMode=undefined}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@f5f824d, appThread = android.app.IApplicationThread$Stub$Proxy@9ec2102, debugName = LauncherToDream }}
+04-05 13:45:38.984   896   965 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity} launchCookie=null windowingMode=undefined},{atype=standard independent=true modes=[CLOSE,TO_BACK] flags=NONE mustBeTask=false order=ANY topActivity=null launchCookie=null windowingMode=undefined},{NOT atype=undefined independent=true modes=[] flags=NONE mustBeTask=true order=ANY topActivity=null launchCookie=null customAnim=true windowingMode=undefined}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@524da13, appThread = android.app.IApplicationThread$Stub$Proxy@8d4d450, debugName = QuickstepLaunchHome }}
+04-05 13:45:38.984   896   965 V WindowManagerShell:  Delegate animation for (#131) to null
+04-05 13:45:38.984   896   965 V WindowManagerShell: start default transition animation, info = {id=131 t=CLOSE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{m=CLOSE f=FILLS_TASK leash=Surface(name=ActivityRecord{202268412 u0 com.ezraapp/.MainActivity)/@0x7d92cdc sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.ezraapp/.MainActivity},{m=TO_FRONT f=TRANSLUCENT|FILLS_TASK leash=Surface(name=ActivityRecord{11514727 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0x14b51e5 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},{m=TO_FRONT f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0xc23d4ba sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1},{m=TO_FRONT f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{59ee8a6 showWhenLocked=false})/@0x7ee6f6b sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}]}
+04-05 13:45:38.984   896   965 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@3aa8286 animAttr=0x10 type=CLOSE isEntrance=true
+04-05 13:45:38.986   896   965 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@d029747 animAttr=0x10 type=CLOSE isEntrance=true
+04-05 13:45:38.986   896   965 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@a4760e3 animAttr=0x11 type=CLOSE isEntrance=false
+04-05 13:45:38.986   896   965 V WindowManagerShell:  animated by com.android.wm.shell.transition.DefaultTransitionHandler@503cff7
+04-05 13:45:39.158 30171 30171 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+04-05 13:45:39.168 30171 30171 I AndroidRuntime: Using default boot image
+04-05 13:45:39.168 30171 30171 I AndroidRuntime: Leaving lock profiling enabled
+04-05 13:45:39.170 30171 30171 I app_process: Using CollectorTypeCMC GC.
+04-05 13:45:39.224   896   965 V WindowManagerShell: Transition animation finished (aborted=false), notifying core (#131) android.os.BinderProxy@734abae@0
+04-05 13:45:39.225   664   961 E IPCThreadState: Binder transaction failure. id: 15804747, BR_*: 29189, error: -22 (Invalid argument)
+04-05 13:45:39.225   664   961 W ActivityManager: pid 664 system sent binder code 7 with flags 1 to frozen apps and got error -32
+04-05 13:45:39.226   664   683 V WindowManager: Finish Transition (#131): created at 04-05 13:45:38.951 collect-started=0.011ms request-sent=0.028ms started=1.787ms ready=2.795ms sent=30.774ms commit=9.338ms finished=274.479ms
+04-05 13:45:39.226   664   961 W WindowManager: Exception thrown during dispatchAppVisibility Window{17e298f u0 com.ezraapp/com.ezraapp.MainActivity EXITING}
+04-05 13:45:39.226   664   961 W WindowManager: android.os.DeadObjectException
+04-05 13:45:39.226   664   961 W WindowManager: 	at android.os.BinderProxy.transactNative(Native Method)
+04-05 13:45:39.226   664   961 W WindowManager: 	at android.os.BinderProxy.transact(BinderProxy.java:592)
+04-05 13:45:39.226   664   961 W WindowManager: 	at android.view.IWindow$Stub$Proxy.dispatchAppVisibility(IWindow.java:557)
+04-05 13:45:39.226   664   961 W WindowManager: 	at com.android.server.wm.WindowState.sendAppVisibilityToClients(WindowState.java:3151)
+04-05 13:45:39.226   664   961 W WindowManager: 	at com.android.server.wm.WindowContainer.sendAppVisibilityToClients(WindowContainer.java:1311)
+04-05 13:45:39.226   664   961 W WindowManager: 	at com.android.server.wm.WindowToken.setClientVisible(WindowToken.java:389)
+04-05 13:45:39.226   664   961 W WindowManager: 	at com.android.server.wm.ActivityRecord.setClientVisible(ActivityRecord.java:6650)
+04-05 13:45:39.226   664   961 W WindowManager: 	at com.android.server.wm.ActivityRecord.commitVisibility(ActivityRecord.java:5561)
+04-05 13:45:39.226   664   961 W WindowManager: 	at com.android.server.wm.Transition.finishTransition(Transition.java:1391)
+04-05 13:45:39.226   664   961 W WindowManager: 	at com.android.server.wm.TransitionController.finishTransition(TransitionController.java:1029)
+04-05 13:45:39.226   664   961 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.finishTransition(WindowOrganizerController.java:496)
+04-05 13:45:39.226   664   961 W WindowManager: 	at android.window.IWindowOrganizerController$Stub.onTransact(IWindowOrganizerController.java:261)
+04-05 13:45:39.226   664   961 W WindowManager: 	at com.android.server.wm.WindowOrganizerController.onTransact(WindowOrganizerController.java:223)
+04-05 13:45:39.226   664   961 W WindowManager: 	at android.os.Binder.execTransactInternal(Binder.java:1426)
+04-05 13:45:39.226   664   961 W WindowManager: 	at android.os.Binder.execTransact(Binder.java:1365)
+04-05 13:45:39.226   664   961 W Process : Unable to open /proc/30040/status
+04-05 13:45:39.228   896   965 V WindowManagerShell: Track 0 became idle
+04-05 13:45:39.228   896   965 V WindowManagerShell: All active transition animations finished
+04-05 13:45:39.257 30171 30171 D nativeloader: InitDefaultPublicLibraries for_preload=1: libandroid.so:libaaudio.so:libamidi.so:libbinder_ndk.so:libc.so:libcamera2ndk.so:libdl.so:libEGL.so:libGLESv1_CM.so:libGLESv2.so:libGLESv3.so:libicu.so:libicui18n.so:libicuuc.so:libjnigraphics.so:liblog.so:libmediandk.so:libm.so:libnativehelper.so:libnativewindow.so:libOpenMAXAL.so:libOpenSLES.so:libRS.so:libstdc++.so:libsync.so:libvulkan.so:libwebviewchromium_plat_support.so:libz.so
+04-05 13:45:39.268 30171 30171 D nativeloader: Load libicu_jni.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+04-05 13:45:39.268 30171 30171 D app_process: u_setTimeZoneFilesDirectory("/apex/com.android.tzdata/etc/tz/versioned/9/icu") succeeded. 
+04-05 13:45:39.268 30171 30171 D app_process: I18n APEX ICU file found: /apex/com.android.i18n/etc/icu/icudt76l.dat
+04-05 13:45:39.271 30171 30171 D nativeloader: Load libjavacore.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+04-05 13:45:39.273 30171 30171 D nativeloader: Load libopenjdk.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+04-05 13:45:39.273   505   505 E BpTransactionCompletedListener: Failed to transact (-32)
+04-05 13:45:39.299 30171 30171 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+04-05 13:45:39.300 30171 30171 D AndroidRuntime: Calling main entry com.android.commands.monkey.Monkey
+04-05 13:45:39.301 30171 30171 D nativeloader: Load /system/lib64/libmonkey_jni.so using ns default for caller /system/framework/monkey.jar in same partition (is_bridged=0): ok
+04-05 13:45:39.301 30171 30171 W Monkey  : args: [-p, com.ezraapp, -c, android.intent.category.LAUNCHER, 1]
+04-05 13:45:39.302 30171 30171 I AconfigPackage: android.media.swcodec.flags is mapped to com.android.media.swcodec
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.google.android.settings.simplemode.flags is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.google.android.systemui is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.google.android.apps.nexuslauncher is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.settings.accessibility is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.settings.flags is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.google.android.apps.miphone.aiai.matchmaker.overview.ui is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.google.android.settings.flags is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.launcher3 is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.wallpaper is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.settings.media_drm is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.systemui.accessibility.accessibilitymenu is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.settings.keyboard is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.server.policy.feature.flags is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.settings.factory_reset is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.google.android.haptics.flags is mapped to system_ext
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.permission.flags is mapped to com.android.permission
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.icu is mapped to com.android.i18n
+04-05 13:45:39.302 30171 30171 I AconfigPackage: com.android.appsearch.flags is mapped to com.android.appsearch
+04-05 13:45:39.302 30171 30171 I AconfigPackage: android.uprobestats.mainline.flags is mapped to com.android.uprobestats
+04-05 13:45:39.303 30171 30171 I AconfigPackage: android.provider.flags is mapped to com.android.configinfrastructure
+04-05 13:45:39.303 30171 30171 I AconfigPackage: com.android.server.deviceconfig is mapped to com.android.configinfrastructure
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.nfc.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app.admin.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.database.sqlite is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.providers.calendar is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.power.feature.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.media.performance.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app.contextualsearch.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app.ondeviceintelligence.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.media.projection.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.companion is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.service.controls.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.text.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.providers.contactkeys.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.intentresolver is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.companion.virtualdevice.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.uprobestats.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.net.thread.platform.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.view.contentprotection.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.dreams is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.graphics.surfaceflinger.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.hardware.input is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.sdk is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.input.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.tracing is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.biometrics is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.view.contentcapture.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app.job is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.content.res is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.net.platform.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.aconfig.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.graphics.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.server.app is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.speech.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.stats is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.hardware.biometrics is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.car.feature is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.adpf is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.location.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.settingslib.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.managedprovisioning.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app.assist.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.net is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.settingslib.widget.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.internal.camera.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.hardware.libsensor.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.internal.jank is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.providers.settings is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.multiuser is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.power.optimization is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.calllogbackup is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.media.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.graphics.libvulkan.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app.appfunctions.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app.smartspace.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.providers.contacts.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.shell.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.media.aaudio is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.hardware.radio is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.google.wear.services.infra.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: suspend_service.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.media.midi is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.libcore.readonly is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.settingslib.widget.selectorwithwidgetpreference.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.service.notification is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.systemui.shared is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app.jank is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app.wearable is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.media.audio is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.service.chooser is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.compat is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.alarm is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.apex.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.service.quickaccesswallet is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app.usage is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.accessibility is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app.supervision.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.utils is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.chre.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.content.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.media.codec is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.internal.os is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.nfc.nci.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.app is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.security.keystore2 is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.crashrecovery.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.tradeinmode.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.hardware.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.telecom.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.settingslib.media.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.policy is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.media.audiopolicy is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.egg.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.internal.compat.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.security is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.service.autofill is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.example.android.aconfig.demo.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.view.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.companion.virtual.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.aconfig_new_storage is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.feature.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.systemui is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.power.batterysaver is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.widget.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.media.editing.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.media.codec.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.powerstats is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.graphics.egl.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.media.audioserver is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.deviceidle is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.nfc is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.permission.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.service.voice.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.content.pm is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.power.hint is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.os is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.service.dreams is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.graphics.libgui.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.hardware.usb.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.provider is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.job is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.internal.foldables.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.internal.telephony.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.webkit is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.credentials.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.display.feature.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.notification is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.appwidget.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.frameworks.sensorservice.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.printspooler.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.window.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.adaptiveauth is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.net.wifi.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.media.tv.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.usb.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.os.vibrator is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.hardware.devicestate.feature.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.usage is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.server is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.wm.shell is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.view.inputmethod is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.graphics.hwui.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.backup is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.internal.pm.pkg.component.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.view.accessibility is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.google.wear.sdk is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.media.audio is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.server.am is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.media.playback.flags is mapped to system
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.art.flags is mapped to com.android.art
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.libcore is mapped to com.android.art
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.media.extractor.flags is mapped to com.android.media
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.media.mainline.flags is mapped to com.android.media
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.wifi.flags is mapped to com.android.wifi
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.org.conscrypt.flags is mapped to com.android.conscrypt
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.healthfitness.flags is mapped to com.android.healthfitness
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.google.android.input.twoshay.flags is mapped to vendor
+04-05 13:45:39.304 30171 30171 I AconfigPackage: libgooglecamerahal.flags is mapped to vendor
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.ipsec.flags is mapped to com.android.ipsec
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.nfc.module.flags is mapped to com.android.nfcservices
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.adservices.ondevicepersonalization.flags is mapped to com.android.ondevicepersonalization
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.bluetooth.flags is mapped to com.android.bt
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.devicelock.flags is mapped to com.android.devicelock
+04-05 13:45:39.304 30171 30171 I AconfigPackage: android.os.profiling is mapped to com.android.profiling
+04-05 13:45:39.304 30171 30171 I AconfigPackage: com.android.os.statsd.flags is mapped to com.android.os.statsd
+04-05 13:45:39.305 30171 30171 I AconfigPackage: com.android.cellbroadcastreceiver.flags is mapped to com.android.cellbroadcast
+04-05 13:45:39.305 30171 30171 I AconfigPackage: com.android.adservices.flags is mapped to com.android.adservices
+04-05 13:45:39.305 30171 30171 I AconfigPackage: com.android.sdksandbox.flags is mapped to com.android.adservices
+04-05 13:45:39.305 30171 30171 I AconfigPackage: com.android.uwb.flags is mapped to com.android.uwb
+04-05 13:45:39.305 30171 30171 I AconfigPackage: com.android.ranging.flags is mapped to com.android.uwb
+04-05 13:45:39.305 30171 30171 I AconfigPackage: android.graphics.pdf.flags is mapped to com.android.mediaprovider
+04-05 13:45:39.305 30171 30171 I AconfigPackage: com.android.providers.media.flags is mapped to com.android.mediaprovider
+04-05 13:45:39.305 30171 30171 I AconfigPackage: android.graphics.pdf.flags.readonly is mapped to com.android.mediaprovider
+04-05 13:45:39.305 30171 30171 I AconfigPackage: com.android.net.ct.flags is mapped to com.android.tethering
+04-05 13:45:39.305 30171 30171 I AconfigPackage: com.android.net.flags is mapped to com.android.tethering
+04-05 13:45:39.305 30171 30171 I AconfigPackage: android.net.vcn is mapped to com.android.tethering
+04-05 13:45:39.305 30171 30171 I AconfigPackage: com.android.nearby.flags is mapped to com.android.tethering
+04-05 13:45:39.305 30171 30171 I AconfigPackage: android.net.http is mapped to com.android.tethering
+04-05 13:45:39.305 30171 30171 I AconfigPackage: com.android.net.thread.flags is mapped to com.android.tethering
+04-05 13:45:39.305 30171 30171 I AconfigPackage: com.android.system.virtualmachine.flags is mapped to com.android.virt
+04-05 13:45:39.305 30171 30171 E FeatureFlagsImplExport: android.os.flagging.AconfigStorageReadException: ERROR_PACKAGE_NOT_FOUND: package android.xr cannot be found on the device
+04-05 13:45:39.308   664   761 D EventHub: No input device configuration file found for device 'Monkey touch'.
+04-05 13:45:39.308   664   761 I EventHub: usingClockIoctl=true
+04-05 13:45:39.308   664   761 I EventHub: New device: id=15, fd=447, path='/dev/input/event13', name='Monkey touch', classes=TOUCH | TOUCH_MT, configuration='', keyLayout='', keyCharacterMap='', builtinKeyboard=false, 
+04-05 13:45:39.308 30171 30171 W Monkey  :  arg: "-p"
+04-05 13:45:39.308 30171 30171 W Monkey  :  arg: "com.ezraapp"
+04-05 13:45:39.308 30171 30171 W Monkey  :  arg: "-c"
+04-05 13:45:39.308 30171 30171 W Monkey  :  arg: "android.intent.category.LAUNCHER"
+04-05 13:45:39.308 30171 30171 W Monkey  :  arg: "1"
+04-05 13:45:39.308 30171 30171 W Monkey  : data="com.ezraapp"
+04-05 13:45:39.308 30171 30171 W Monkey  : data="android.intent.category.LAUNCHER"
+04-05 13:45:39.308   664   761 I InputReader: Device reconfigured: id=15, name='Monkey touch', size 1080x2424, orientation Rotation0, mode DIRECT, display id 0
+04-05 13:45:39.309   664   761 I InputReader: Device added: id=15, eventHubId=15, name='Monkey touch', descriptor='e1fe28b90f915c7d1febbd52c1ef84b3c4cbed9f',sources=TOUCHSCREEN
+04-05 13:45:39.314   664   761 E WindowManager: Display reconfigured outside of a transition: Display{#0 state=ON size=1080x2424 ROTATION_0}
+04-05 13:45:39.328   664   972 W ActivityManager: registerReceiverWithFeature: no app for null
+04-05 13:45:39.333   664   972 W ActivityTaskManager: callingPackage for (uid=2000, pid=30171) has no WPC
+04-05 13:45:39.333   664   972 V GrammaticalInflectionUtils: AttributionSource: android.content.AttributionSource@85c387ef does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+04-05 13:45:39.333   664   972 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_USER_ASPECT_RATIO_OVERRIDE
+04-05 13:45:39.333   664   972 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_USER_ASPECT_RATIO_FULLSCREEN_OVERRIDE
+04-05 13:45:39.333   664   972 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_RESIZEABLE_ACTIVITY_OVERRIDES
+04-05 13:45:39.333   664   972 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_MIN_ASPECT_RATIO_OVERRIDE
+04-05 13:45:39.334   664   972 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_ORIENTATION_OVERRIDE
+04-05 13:45:39.334   505   555 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+04-05 13:45:39.335   664   961 D CompatChangeReporter: Compat change id reported: 309578419; UID 10225; state: ENABLED
+04-05 13:45:39.336   896   965 V WindowManagerShell: Transition requested (#132): android.os.BinderProxy@44248d3 TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=51 effectiveUid=10225 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=com.ezraapp/.MainActivity } baseActivity=ComponentInfo{com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity} topActivity=ComponentInfo{com.ezraapp/com.ezraapp.MainActivity} origActivity=null realActivity=ComponentInfo{com.ezraapp/com.ezraapp.MainActivity} numActivities=3 lastActiveTime=37508544 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@89b7c10} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 142 - 0, 63) topActivityInfo=ActivityInfo{e60e309 com.ezraapp.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(278, 711 - 803, 1791) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= true isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2424) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 132 }
+04-05 13:45:39.336   896   965 D ShellSplitScreen: logExit: no-op, mLoggerSessionId is null
+04-05 13:45:39.336   664   972 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.ezraapp/.MainActivity} with LAUNCH_SINGLE_TASK from uid 2000 (BAL_ALLOW_PERMISSION) result code=0
+04-05 13:45:39.336 30171 30171 I Monkey  : Events injected: 1
+04-05 13:45:39.337   664   686 V GrammaticalInflectionUtils: AttributionSource: android.content.AttributionSource@85c387ef does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+04-05 13:45:39.337   664  1950 I AppsFilter: interaction: PackageSetting{da95da9 com.wudassieapp/10217} -> PackageSetting{6bf4304 com.ezraapp/10225} BLOCKED
+04-05 13:45:39.338   664   850 D BackgroundInstallControlService: Package event received: 0
+04-05 13:45:39.338   664  1950 I AppsFilter: interaction: PackageSetting{79d2acf com.churchweeklyquestionsapp/10216} -> PackageSetting{6bf4304 com.ezraapp/10225} BLOCKED
+04-05 13:45:39.339 30171 30171 I Monkey  : ## Network stats: elapsed time=5ms (0ms mobile, 0ms wifi, 5ms not connected)
+04-05 13:45:39.340   896   896 W DSRotLockSettingsMngr: Setting is ignored, but no fallback was specified.
+04-05 13:45:39.340 30171 30171 I app_process: System.exit called, status: 0
+04-05 13:45:39.340 30171 30171 I AndroidRuntime: VM exiting with result code 0.
+04-05 13:45:39.340   505   505 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+04-05 13:45:39.341   896   896 W DSRotLockSettingsMngr: Setting is ignored, but no fallback was specified.
+04-05 13:45:39.343   664   727 D CoreBackPreview: Window{55da76e u0 Splash Screen com.ezraapp}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@eff3646, mPriority=0, mIsAnimationCallback=false, mOverrideBehavior=0}
+04-05 13:45:39.345   587   655 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:39.345   587   655 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:39.346   453   453 D Zygote  : Forked child process 30183
+04-05 13:45:39.347   664   693 I ActivityManager: Start proc 30183:com.ezraapp/u0a225 for next-top-activity {com.ezraapp/com.ezraapp.MainActivity}
+04-05 13:45:39.347   664   693 I ActivityManager: ProcessObserver broadcast disabled
+04-05 13:45:39.350   664   761 I EventHub: Removing device Monkey touch due to epoll hang-up event.
+04-05 13:45:39.350   664   761 I EventHub: Removed device: path=/dev/input/event13 name=Monkey touch id=15 fd=447 classes=TOUCH | TOUCH_MT
+04-05 13:45:39.352   664   683 V WindowManager: Sent Transition (#132) createdAt=04-05 13:45:39.333 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=51 effectiveUid=10225 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=com.ezraapp/.MainActivity } baseActivity=ComponentInfo{com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity} topActivity=ComponentInfo{com.ezraapp/com.ezraapp.MainActivity} origActivity=null realActivity=ComponentInfo{com.ezraapp/com.ezraapp.MainActivity} numActivities=3 lastActiveTime=37508544 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{7bbeb80 Task{92de849 #51 type=standard A=10225:com.ezraapp}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 142 - 0, 63) topActivityInfo=ActivityInfo{345ad15 com.ezraapp.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(278, 711 - 803, 1791) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= true isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2424) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 132 }
+04-05 13:45:39.352   664   683 V WindowManager:     startWCT=WindowContainerTransaction { changes= {} hops= [] errorCallbackToken=null taskFragmentOrganizer=null }
+04-05 13:45:39.352   664   683 V WindowManager:     info={id=132 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+04-05 13:45:39.352   664   683 V WindowManager:         {m=OPEN f=FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{217639256 u0 com.ezraapp/.MainActivity)/@0x6c02459 sb=Rect(0, 0 - 0, 0) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=-1->0 r=-1->0:-1 bc=ffeeedf4 component=com.ezraapp/.MainActivity},
+04-05 13:45:39.352   664   683 V WindowManager:         {m=TO_BACK f=TRANSLUCENT|FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{251364595 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0x7fb889d sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},
+04-05 13:45:39.352   664   683 V WindowManager:         {m=TO_BACK f=TRANSLUCENT|FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{11514727 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0xa35fbef sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},
+04-05 13:45:39.352   664   683 V WindowManager:         {WCT{RemoteToken{38a92db Task{2d91736 #1 type=home}}} m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0xf8ad8c7 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1},
+04-05 13:45:39.352   664   683 V WindowManager:         {m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{59ee8a6 showWhenLocked=false})/@0xd0cda06 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}
+04-05 13:45:39.352   664   683 V WindowManager:     ]}
+04-05 13:45:39.352   896  4952 V WindowManagerShell: onTransitionReady(transaction=2851858304313)
+04-05 13:45:39.352   896   965 V WindowManagerShell: onTransitionReady (#132) android.os.BinderProxy@44248d3: {id=132 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+04-05 13:45:39.352   896   965 V WindowManagerShell:         {m=OPEN f=FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{217639256 u0 com.ezraapp/.MainActivity)/@0x20d4527 sb=Rect(0, 0 - 0, 0) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=-1->0 r=-1->0:-1 bc=ffeeedf4 component=com.ezraapp/.MainActivity},
+04-05 13:45:39.352   896   965 V WindowManagerShell:         {m=TO_BACK f=TRANSLUCENT|FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{251364595 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0xde283d4 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},
+04-05 13:45:39.352   896   965 V WindowManagerShell:         {m=TO_BACK f=TRANSLUCENT|FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{11514727 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0x794e97d sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},
+04-05 13:45:39.352   896   965 V WindowManagerShell:         {m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0xd39b072 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1},
+04-05 13:45:39.352   896   965 V WindowManagerShell:         {m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{59ee8a6 showWhenLocked=false})/@0xf7f0cc3 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}
+04-05 13:45:39.352   896   965 V WindowManagerShell:     ]}
+04-05 13:45:39.352   896   965 V WindowManagerShell: Playing animation for (#132) android.os.BinderProxy@44248d3@0
+04-05 13:45:39.352   896   965 V ShellRecents: RecentsTransitionHandler.startAnimation: no controller found
+04-05 13:45:39.352   896   965 V WindowManagerShell: Transition doesn't have explicit remote, search filters for match for {id=132 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{m=OPEN f=FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{217639256 u0 com.ezraapp/.MainActivity)/@0x20d4527 sb=Rect(0, 0 - 0, 0) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=-1->0 r=-1->0:-1 bc=ffeeedf4 component=com.ezraapp/.MainActivity},{m=TO_BACK f=TRANSLUCENT|FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{251364595 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0xde283d4 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},{m=TO_BACK f=TRANSLUCENT|FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{11514727 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0x794e97d sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},{m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0xd39b072 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1},{m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{59ee8a6 showWhenLocked=false})/@0xf7f0cc3 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}]}
+04-05 13:45:39.352   896   965 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x0 checks=[{atype=undefined independent=true modes=[CLOSE,TO_BACK] flags=IN_TASK_WITH_EMBEDDED_ACTIVITY mustBeTask=false order=ANY topActivity=null launchCookie=null taskFragmentToken=android.os.BinderProxy@2d74376 windowingMode=undefined}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@f79dd77, appThread = android.app.IApplicationThread$Stub$Proxy@967bde4, debugName = overlayBackTransition }}
+04-05 13:45:39.352   896   965 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x0 checks=[{atype=dream independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=ANY topActivity=null launchCookie=null windowingMode=undefined},{atype=home independent=true modes=[CLOSE,TO_BACK] flags=NONE mustBeTask=false order=ANY topActivity=null launchCookie=null windowingMode=undefined}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@f5f824d, appThread = android.app.IApplicationThread$Stub$Proxy@9ec2102, debugName = LauncherToDream }}
+04-05 13:45:39.352   896   965 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity} launchCookie=null windowingMode=undefined},{atype=standard independent=true modes=[CLOSE,TO_BACK] flags=NONE mustBeTask=false order=ANY topActivity=null launchCookie=null windowingMode=undefined},{NOT atype=undefined independent=true modes=[] flags=NONE mustBeTask=true order=ANY topActivity=null launchCookie=null customAnim=true windowingMode=undefined}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@524da13, appThread = android.app.IApplicationThread$Stub$Proxy@8d4d450, debugName = QuickstepLaunchHome }}
+04-05 13:45:39.352   896   965 V WindowManagerShell:  Delegate animation for (#132) to null
+04-05 13:45:39.352   896   965 V WindowManagerShell: start default transition animation, info = {id=132 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{m=OPEN f=FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{217639256 u0 com.ezraapp/.MainActivity)/@0x20d4527 sb=Rect(0, 0 - 0, 0) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=-1->0 r=-1->0:-1 bc=ffeeedf4 component=com.ezraapp/.MainActivity},{m=TO_BACK f=TRANSLUCENT|FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{251364595 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0xde283d4 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},{m=TO_BACK f=TRANSLUCENT|FILLS_TASK|IS_BEHIND_STARTING_WINDOW leash=Surface(name=ActivityRecord{11514727 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity)/@0x794e97d sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 bc=ffeeedf4 component=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity},{m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0xd39b072 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0 taskParent=-1},{m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{59ee8a6 showWhenLocked=false})/@0xf7f0cc3 sb=Rect(0, 0 - 1080, 2424) eb=Rect(0, 0 - 1080, 2424) epz=Point(1080, 2424) d=0}]}
+04-05 13:45:39.353   896   965 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@46e61be animAttr=0x13 type=OPEN isEntrance=false
+04-05 13:45:39.353   896   965 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@bbbb21f animAttr=0x13 type=OPEN isEntrance=false
+04-05 13:45:39.353   896   965 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@29ccb35 animAttr=0x13 type=OPEN isEntrance=false
+04-05 13:45:39.353   896   965 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@982ea96 animAttr=0x12 type=OPEN isEntrance=true
+04-05 13:45:39.354   896   965 V WindowManagerShell:  animated by com.android.wm.shell.transition.DefaultTransitionHandler@503cff7
+04-05 13:45:39.360 30183 30183 I com.ezraapp: Late-enabling -Xcheck:jni
+04-05 13:45:39.367   664   761 I InputReader: Device removed: id=15, eventHubId=15, name='Monkey touch', descriptor='e1fe28b90f915c7d1febbd52c1ef84b3c4cbed9f', sources=TOUCHSCREEN
+04-05 13:45:39.370   664   761 E WindowManager: Display reconfigured outside of a transition: Display{#0 state=ON size=1080x2424 ROTATION_0}
+04-05 13:45:39.370   664   761 I EventHub: Removing device '/dev/input/event13' due to inotify event
+04-05 13:45:39.371  1037  1037 D TouchInteractionService: disposeEventHandlers: Reason: Initializing input monitor due to: onTrackpadConnected() instance=71193538
+04-05 13:45:39.371   664   686 I system_server: AssetManager2(0xb400007a2a62b298) locale list changing from [] to [en-US]
+04-05 13:45:39.373   664   686 W PermissionService: getPermissionFlags: Unknown user -1
+04-05 13:45:39.373   664   686 W PermissionService: getPermissionFlags: Unknown user -1
+04-05 13:45:39.374  1037  1037 D InputMonitorCompat: Input event receiver for monitor (swipe-up-disp0) disposed
+04-05 13:45:39.374  1037  1037 D InputMonitorCompat: Input monitor (swipe-up-disp0) disposed
+04-05 13:45:39.376  1037  1037 D InputMonitorCompat: Input monitor (swipe-up-disp0) created
+04-05 13:45:39.376  1037  1037 D InputMonitorCompat: Input event receiver for monitor (swipe-up-disp0) created
+04-05 13:45:39.377 30183 30183 I com.ezraapp: Using CollectorTypeCMC GC.
+04-05 13:45:39.379   896   896 D NavigationModeController: getCurrentUserContext: contextUser=0 currentUser=0
+04-05 13:45:39.379   509   548 I adbd    : jdwp connection from 30183
+04-05 13:45:39.381 30183 30183 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+04-05 13:45:39.397   664   850 D BackgroundInstallControlService: Package event received: 0
+04-05 13:45:39.577  1037  1037 I NotificationListener: received notification removed event - android#UserHandle{-1},category=-1
+04-05 13:45:39.579  1646  2051 W AiAiEcho: LyftNotificationParser Ridesharing ETA not enabled
+04-05 13:45:39.579  1646  2051 I AiAiEcho: SmartspaceNotificationPredictor no parser can handle this notification or notification is invalid
+04-05 13:45:39.598   896  1293 W HWUI    : Image decoding logging dropped!
+04-05 13:45:39.599   896  1293 W HWUI    : Image decoding logging dropped!
+04-05 13:45:39.643   896   965 V WindowManagerShell: Transition animation finished (aborted=false), notifying core (#132) android.os.BinderProxy@44248d3@0
+04-05 13:45:39.644  1079  1079 D VRI[GrantPermissionsActivity]: visibilityChanged oldVisibility=true newVisibility=false
+04-05 13:45:39.645   896   965 V WindowManagerShell: Track 0 became idle
+04-05 13:45:39.645   896   965 V WindowManagerShell: All active transition animations finished
+04-05 13:45:39.645   664   683 V WindowManager: Finish Transition (#132): created at 04-05 13:45:39.333 collect-started=0.008ms request-sent=2.001ms started=2.989ms ready=17.694ms sent=18.155ms commit=6.269ms finished=310.244ms
+04-05 13:45:39.645  1037  1037 D VRI[NexusLauncherActivity]: visibilityChanged oldVisibility=true newVisibility=false
+04-05 13:45:39.647 30183 30183 D nativeloader: Configuring clns-9 for other apk /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk. target_sdk_version=35, uses_libraries=, library_path=/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/lib/arm64:/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.ezraapp
+04-05 13:45:39.648 30183 30183 D CompatChangeReporter: Compat change id reported: 202956589; UID 10225; state: ENABLED
+04-05 13:45:39.651 30183 30183 I com.ezraapp: AssetManager2(0xb400007a2a615ad8) locale list changing from [] to [en-US]
+04-05 13:45:39.656 30183 30183 V GraphicsEnvironment: Currently set values for:
+04-05 13:45:39.656 30183 30183 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+04-05 13:45:39.656 30183 30183 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+04-05 13:45:39.656 30183 30183 V GraphicsEnvironment: com.ezraapp is not listed in per-application setting
+04-05 13:45:39.656 30183 30183 V GraphicsEnvironment: ANGLE allowlist from config: com.dreamgames.royalmatch com.dts.freefiremax com.dxx.firenow com.gramgames.mergedragons com.ludo.king com.mojang.minecraftpe com.my.defense com.nintendo.zaka com.os.airforce com.playrix.fishdomdd.gplay io.teslatech.callbreak jp.konami.prospia net.peakgames.toonblast
+04-05 13:45:39.656 30183 30183 V GraphicsEnvironment: com.ezraapp is not listed in ANGLE allowlist or settings, returning default
+04-05 13:45:39.656 30183 30183 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+04-05 13:45:39.657  1037  1037 D NexusLauncherModelDelegate: notifySmartspaceEvent: SmartspaceTargetEvent{mSmartspaceTarget=null, mSmartspaceActionId='null', mEventType=7}
+04-05 13:45:39.659  1079  1079 D VRI[GrantPermissionsActivity]: visibilityChanged oldVisibility=true newVisibility=false
+04-05 13:45:39.672 30183 30183 I FirebaseApp: Device unlocked: initializing all Firebase APIs for app [DEFAULT]
+04-05 13:45:39.685 30183 30183 I FirebaseInitProvider: FirebaseApp initialization successful
+04-05 13:45:39.685 30183 30183 D ReactNativeFirebaseApp: received application context.
+04-05 13:45:39.688   664   850 D BackgroundInstallControlService: Package event received: 0
+04-05 13:45:39.689 30183 30183 D WM-WrkMgrInitializer: Initializing WorkManager with default configuration.
+04-05 13:45:39.698 30183 30202 W com.ezraapp: ClassLoaderContext classpath size mismatch. expected=1, found=0 (DLC[];PCL[base.apk*3532740154]{PCL[/system/framework/org.apache.http.legacy.jar*4247870504]#PCL[/system/framework/com.android.location.provider.jar*1570284764]#PCL[/system/framework/com.android.media.remotedisplay.jar*487574312]#PCL[/system_ext/framework/com.android.extensions.appfunctions.jar*2880224042]#PCL[/system_ext/framework/androidx.window.extensions.jar*1030441313]#PCL[/system_ext/framework/androidx.window.sidecar.jar*3860983653]} | DLC[];PCL[])
+04-05 13:45:39.699 30183 30202 I DynamiteModule: Considering local module com.google.android.gms.measurement.dynamite:117 and remote module com.google.android.gms.measurement.dynamite:182
+04-05 13:45:39.699 30183 30202 I DynamiteModule: Selected remote version of com.google.android.gms.measurement.dynamite, version >= 182
+04-05 13:45:39.699 30183 30202 V DynamiteModule: Dynamite loader version >= 2, using loadModule2NoCrashUtils
+04-05 13:45:39.703 30183 30202 W System  : ClassLoader referenced unknown path: 
+04-05 13:45:39.704 30183 30202 D nativeloader: Configuring clns-10 for other apk . target_sdk_version=37, uses_libraries=, library_path=/data/app/~~4zoZyzhESfRRsHZSLUd30A==/com.google.android.gms-V5430130IVHWA5iiMJpuTQ==/lib/arm64:/data/app/~~4zoZyzhESfRRsHZSLUd30A==/com.google.android.gms-V5430130IVHWA5iiMJpuTQ==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+04-05 13:45:39.705 30183 30183 D CompatChangeReporter: Compat change id reported: 279646685; UID 10225; state: ENABLED
+04-05 13:45:39.707 30183 30183 D NOTIFEE : (context): received application context
+04-05 13:45:39.709 30183 30207 E ashmem  : Pinning is deprecated since Android Q. Please use trim or other methods.
+04-05 13:45:39.714 30183 30202 I com.ezraapp: AssetManager2(0xb400007a2a613238) locale list changing from [] to [en-US]
+04-05 13:45:39.716 30183 30183 W SoLoader: Initializing SoLoader: 0
+04-05 13:45:39.716 30183 30183 W SoLoader: Recording new base apk path: /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk
+04-05 13:45:39.716 30183 30183 W SoLoader: Previously recorded 0 base apk paths.
+04-05 13:45:39.717 30183 30183 D CompatChangeReporter: Compat change id reported: 312399441; UID 10225; state: ENABLED
+04-05 13:45:39.717 30183 30202 W com.ezraapp: ClassLoaderContext classpath element checksum mismatch. expected=3532740154, found=669857439 (DLC[];PCL[base.apk*3532740154]{PCL[/system/framework/org.apache.http.legacy.jar*4247870504]#PCL[/system/framework/com.android.location.provider.jar*1570284764]#PCL[/system/framework/com.android.media.remotedisplay.jar*487574312]#PCL[/system_ext/framework/com.android.extensions.appfunctions.jar*2880224042]#PCL[/system_ext/framework/androidx.window.extensions.jar*1030441313]#PCL[/system_ext/framework/androidx.window.sidecar.jar*3860983653]} | DLC[];PCL[/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk*669857439])
+04-05 13:45:39.718 30183 30183 I SoLoader: Preparing SO source: DirectorySoSource[root = /vendor/lib64 flags = 2]
+04-05 13:45:39.718 30183 30183 I SoLoader: Preparing SO source: DirectorySoSource[root = /system/lib64 flags = 2]
+04-05 13:45:39.718 30183 30183 I SoLoader: Preparing SO source: DirectApkSoSource[root = [/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!/lib/arm64-v8a]]
+04-05 13:45:39.729 30183 30202 I com.ezraapp: AssetManager2(0xb400007a2a61f3f8) locale list changing from [] to [en-US]
+04-05 13:45:39.730 30183 30202 I com.ezraapp: AssetManager2(0xb400007a2a61b578) locale list changing from [] to [en-US]
+04-05 13:45:39.742 30183 30211 I com.ezraapp: hiddenapi: Accessing hidden method Ldalvik/system/VMStack;->getStackClass2()Ljava/lang/Class; (runtime_flags=0, domain=core-platform, api=unsupported) from Lm7/aoz; (domain=app) using reflection: allowed
+04-05 13:45:39.745  1173 14951 I PhenotypeResourceReader: unable to find any Phenotype resource metadata for com.ezraapp
+04-05 13:45:39.747 30183 30211 I PhClient: Unable to retrieve flag snapshot for com.google.android.gms.measurement#com.ezraapp, using defaults.
+04-05 13:45:39.749 30183 30210 E com.ezraapp: No package ID 6a found for resource ID 0x6a0b0013.
+04-05 13:45:39.749 30183 30210 I FA      : App measurement initialized, version: 158007
+04-05 13:45:39.749 30183 30210 I FA      : To enable debug logging run: adb shell setprop log.tag.FA VERBOSE
+04-05 13:45:39.749 30183 30210 I FA      : To enable faster debug mode event logging run:
+04-05 13:45:39.749 30183 30210 I FA      :   adb shell setprop debug.firebase.analytics.app com.ezraapp
+04-05 13:45:39.753 30183 30183 I SoLoader: Preparing SO source: ApplicationSoSource[DirectorySoSource[root = /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/lib/arm64 flags = 0]]
+04-05 13:45:39.753 30183 30183 I SoLoader: init finish: 4 SO sources prepared
+04-05 13:45:39.753 30183 30183 W SoLoader: SoLoader initialized: 8
+04-05 13:45:39.754   664   972 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ENABLE_FAKE_FOCUS
+04-05 13:45:39.754   664   972 D CompatChangeReporter: Compat change id reported: 324203798; UID 10225; state: ENABLED
+04-05 13:45:39.755 30183 30183 I RebootReceiver: Received reboot event
+04-05 13:45:39.755 30183 30183 D NOTIFEE : (NotifeeAlarmManager): Reschedule Notifications on reboot
+04-05 13:45:39.756   664   850 D BackgroundInstallControlService: Package event received: 0
+04-05 13:45:39.756   664   850 D BackgroundInstallControlService: Package event received: 0
+04-05 13:45:39.764 30183 30215 I DisplayManager: Choreographer implicitly registered for the refresh rate.
+04-05 13:45:39.765 30183 30183 I com.ezraapp: AssetManager2(0xb400007a2a611618) locale list changing from [] to [en-US]
+04-05 13:45:39.774 30183 30183 D AppCompatDelegate: Checking for metadata for AppLocalesMetadataHolderService : Service not found
+04-05 13:45:39.774 30183 30183 I com.ezraapp: AssetManager2(0xb400007a2a619c78) locale list changing from [] to [en-US]
+04-05 13:45:39.782   664   850 D BackgroundInstallControlService: Package event received: 0
+04-05 13:45:39.800   664  1950 D ActivityManager: sync unfroze 12312 com.google.android.gms for 6
+04-05 13:45:39.800   664   850 D BackgroundInstallControlService: Package event received: 0
+04-05 13:45:39.806 12312 12312 D BoundBrokerSvc: onBind: Intent { act=com.google.android.gms.measurement.START xflg=0x4 pkg=com.google.android.gms }
+04-05 13:45:39.806 30183 30215 I EGL_emulation: Opening libGLESv1_CM_emulation.so
+04-05 13:45:39.806 30183 30215 I EGL_emulation: Opening libGLESv2_emulation.so
+04-05 13:45:39.806 12312 12312 D BoundBrokerSvc: Loading bound service for intent: Intent { act=com.google.android.gms.measurement.START xflg=0x4 pkg=com.google.android.gms }
+04-05 13:45:39.809   664   972 W ProcessStats: Tracking association SourceState{a9948fe com.ezraapp/10225 BTop #13916} whose proc state 2 is better than process ProcessState{926f0d4 com.google.android.gms/10147 pkg=com.google.android.gms} proc state 14 (9 skipped)
+04-05 13:45:39.811 30183 30215 W HWUI    : Failed to choose config with EGL_SWAP_BEHAVIOR_PRESERVED, retrying without...
+04-05 13:45:39.811 30183 30215 W HWUI    : Failed to initialize 101010-2 format, error = EGL_SUCCESS
+04-05 13:45:39.835 30183 30183 D nativeloader: Load /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!/lib/arm64-v8a/libc++_shared.so using class loader ns clns-9 (caller=/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!classes20.dex): ok
+04-05 13:45:39.854 30183 30183 D nativeloader: Load /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!/lib/arm64-v8a/libjsi.so using class loader ns clns-9 (caller=/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!classes20.dex): ok
+04-05 13:45:39.870 30183 30183 D nativeloader: Load /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!/lib/arm64-v8a/libfbjni.so using class loader ns clns-9 (caller=/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!classes20.dex): ok
+04-05 13:45:39.898 30183 30183 D nativeloader: Load /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!/lib/arm64-v8a/libreactnative.so using class loader ns clns-9 (caller=/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!classes20.dex): ok
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Entering merged library JNI_OnLoad.
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing 12 pre-merged libs (including stub)
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing to register libfabricjni_so.  onload_func: 0x78dd637928
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing to register libmapbufferjni_so.  onload_func: 0x78dd7202c4
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing to register libreact_devsupportjni_so.  onload_func: 0x78dd869598
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing to register libreact_featureflagsjni_so.  onload_func: 0x78dd875a94
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing to register libreact_newarchdefaults_so.  onload_func: 0x78dd8e4fb8
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing to register libreactnativeblob_so.  onload_func: 0x78ddaeea64
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing to register libreactnativejni_so.  onload_func: 0x78ddb4a97c
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing to register librninstance_so.  onload_func: 0x78ddb98508
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing to register libturbomodulejsijni_so.  onload_func: 0x78ddc5a7e4
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing to register libuimanagerjni_so.  onload_func: 0x78ddc759e0
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: Preparing to register libyoga_so.  onload_func: 0x78ddc83b4c
+04-05 13:45:39.898 30183 30183 D jni_lib_merge: About to register 11 actual methods.
+04-05 13:45:39.912 30183 30183 W SoLoader: SoLoader already initialized
+04-05 13:45:39.918 30183 30183 D nativeloader: Load /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!/lib/arm64-v8a/libhermes.so using class loader ns clns-9 (caller=/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!classes20.dex): ok
+04-05 13:45:39.924 30183 30183 D nativeloader: Load /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!/lib/arm64-v8a/libhermestooling.so using class loader ns clns-9 (caller=/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!classes20.dex): ok
+04-05 13:45:39.925 30183 30183 D jni_lib_merge: Entering merged library JNI_OnLoad.
+04-05 13:45:39.925 30183 30183 D jni_lib_merge: Preparing 4 pre-merged libs (including stub)
+04-05 13:45:39.925 30183 30183 D jni_lib_merge: Preparing to register libhermes_executor_so.  onload_func: 0x78d80c11fc
+04-05 13:45:39.925 30183 30183 D jni_lib_merge: Preparing to register libhermesinstancejni_so.  onload_func: 0x78d80f4228
+04-05 13:45:39.925 30183 30183 D jni_lib_merge: Preparing to register libjsijniprofiler_so.  onload_func: 0x78d80f64b4
+04-05 13:45:39.925 30183 30183 D jni_lib_merge: About to register 3 actual methods.
+04-05 13:45:39.925 30183 30183 W SoLoader: SoLoader already initialized
+04-05 13:45:39.958 30183 30183 D CompatChangeReporter: Compat change id reported: 309578419; UID 10225; state: ENABLED
+04-05 13:45:39.958 30183 30183 D DesktopModeFlags: Toggle override initialized to: OVERRIDE_UNSET
+04-05 13:45:39.966 30183 30183 I com.ezraapp: hiddenapi: Accessing hidden method Landroid/view/View;->computeFitSystemWindows(Landroid/graphics/Rect;Landroid/graphics/Rect;)Z (runtime_flags=0, domain=platform, api=unsupported) from Landroidx/appcompat/widget/ViewUtils; (domain=app) using reflection: allowed
+04-05 13:45:39.966 30183 30183 I com.ezraapp: hiddenapi: Accessing hidden method Landroid/view/ViewGroup;->makeOptionalFitsSystemWindows()V (runtime_flags=0, domain=platform, api=unsupported) from Landroidx/appcompat/widget/ViewUtils; (domain=app) using reflection: allowed
+04-05 13:45:39.968 30183 30183 I PlayCore: UID: [10225]  PID: [30183] AppUpdateService : requestUpdateInfo(com.ezraapp)
+04-05 13:45:39.968 30183 30234 I PlayCore: UID: [10225]  PID: [30183] AppUpdateService : Initiate binding to the service.
+04-05 13:45:39.969   664   850 D BackgroundInstallControlService: Package event received: 0
+04-05 13:45:39.969   664  1950 D ActivityManager: sync unfroze 18514 com.android.vending for 6
+04-05 13:45:39.969   664   850 D BackgroundInstallControlService: Package event received: 0
+04-05 13:45:39.974 30183 30210 I FA      : Tag Manager is not found and thus will not be used
+04-05 13:45:39.976 18514 18514 I Finsky  : [2] Memory trim requested to level 40
+04-05 13:45:39.977 18514 18514 I Finsky  : [2] Flushing in-memory image cache
+04-05 13:45:39.990 30183 30183 D CompatChangeReporter: Compat change id reported: 352594277; UID 10225; state: ENABLED
+04-05 13:45:39.994 30183 30183 D CompatChangeReporter: Compat change id reported: 349153669; UID 10225; state: ENABLED
+04-05 13:45:39.995 30183 30183 W HWUI    : Unknown dataspace 0
+04-05 13:45:40.001 30183 30183 D CompatChangeReporter: Compat change id reported: 270674727; UID 10225; state: ENABLED
+04-05 13:45:40.002 30183 30183 I PlayCore: UID: [10225]  PID: [30183] AppUpdateService : ServiceConnectionImpl.onServiceConnected(ComponentInfo{com.android.vending/com.google.android.finsky.installservice.DevTriggeredUpdateService})
+04-05 13:45:40.003 30183 30234 I PlayCore: UID: [10225]  PID: [30183] AppUpdateService : linkToDeath
+04-05 13:45:40.003   664  1950 I BroadcastQueue: BOOT_COMPLETED_BROADCAST_COMPLETION_LATENCY_REPORTED action:android.intent.action.BOOT_COMPLETED dispatchLatency:0 completeLatency:606 dispatchRealLatency:0 completeRealLatency:606 receiversSize:2 userId:0 userType:android.os.usertype.full.SYSTEM
+04-05 13:45:40.007 30183 30183 W unknown:ReactNative: Packager connection already open, nooping.
+04-05 13:45:40.009   664  1950 D CoreBackPreview: Window{e78f6d5 u0 com.ezraapp/com.ezraapp.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@4bf75db, mPriority=0, mIsAnimationCallback=false, mOverrideBehavior=0}
+04-05 13:45:40.031   664   683 I ActivityTaskManager: Displayed com.ezraapp/.MainActivity for user 0: +697ms
+04-05 13:45:40.034 30183 30183 D CompatChangeReporter: Compat change id reported: 63938206; UID 10225; state: ENABLED
+04-05 13:45:40.043   664  1990 D CoreBackPreview: Window{b0c63af u0 PopupWindow:e95e7f9}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@2a63f45, mPriority=0, mIsAnimationCallback=false, mOverrideBehavior=0}
+04-05 13:45:40.050 30183 30194 I PlayCore: UID: [10225]  PID: [30183] OnRequestInstallCallback : onRequestInfo
+04-05 13:45:40.051 30183 30234 I PlayCore: UID: [10225]  PID: [30183] AppUpdateService : Unbind from service.
+04-05 13:45:40.053 12312 30247 D AdvertisingIdClient: AdvertisingIdClient already created.
+04-05 13:45:40.053 12312 30247 D AdvertisingIdClient: AdvertisingIdClient is not bounded. Starting to bind it...
+04-05 13:45:40.053 18514 18514 I Finsky  : [2] Memory trim requested to level 40
+04-05 13:45:40.053 18514 18514 I Finsky  : [2] Flushing in-memory image cache
+04-05 13:45:40.061 12312 30247 D AdvertisingIdClient: AdvertisingIdClient is bounded
+04-05 13:45:40.064 12312 30247 I AdvertisingIdClient: shouldSendLog -1
+04-05 13:45:40.066 12312 30247 I AdvertisingIdClient: GetInfoInternal elapse 12ms
+04-05 13:45:40.066  1173  1173 D BoundBrokerSvc: onRebind: Intent { act=com.google.android.gms.common.telemetry.service.START dat=chimera-action:/... xflg=0x4 cmp=com.google.android.gms/.chimera.PersistentApiService }
+04-05 13:45:40.068   664   768 I ImeTracker: com.ezraapp:d044ddf8: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+04-05 13:45:40.069 31738 31738 I GoogleInputMethodService: GoogleInputMethodService.onFinishInput():2043 
+04-05 13:45:40.069  1079  1079 I ImeTracker: com.google.android.permissioncontroller:1e1a160f: onRequestHide at ORIGIN_CLIENT reason HIDE_WINDOW_LOST_FOCUS fromUser false
+04-05 13:45:40.069 31738 31738 I Module  : DeviceLockedStatusModuleProvider$Module.updateDeviceLockedStatus():100 repeatCheckTimes = 0, locked = false
+04-05 13:45:40.069  1037  1037 D BaseDepthController: setSurface:
+04-05 13:45:40.069  1037  1037 D BaseDepthController: 	mWaitingOnSurfaceValidity: false
+04-05 13:45:40.069  1037  1037 D BaseDepthController: 	mBaseSurface: null
+04-05 13:45:40.069  1037  1037 D BaseDepthController: mSurface is null and mCurrentBlur is: 23
+04-05 13:45:40.069 31738 31738 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1293 onStartInput(EditorInfo{EditorInfo{packageName=com.ezraapp, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+04-05 13:45:40.069  1079  1079 D InsetsController: hide(ime(), fromIme=false)
+04-05 13:45:40.069  1079  1079 I ImeTracker: com.google.android.permissioncontroller:1e1a160f: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+04-05 13:45:40.069 30183 30183 D InsetsController: hide(ime(), fromIme=false)
+04-05 13:45:40.070 30183 30183 I ImeTracker: com.ezraapp:d044ddf8: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+04-05 13:45:40.070  1037  1037 D StatsLog: LAUNCHER_ONSTOP
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: EmojiCompatManager.getEmojiCompatIfLoaded():343 EmojiCompat.init() was never called.
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: java.lang.IllegalStateException: EmojiCompat is not initialized. Please call EmojiCompat.init() first
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at asx.p(PG:6)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at axb.b(PG:13)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at jnr.b(PG:2)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at jnr.c(PG:4)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at jnr.f(PG:3)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at jnx.c(PG:3)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at kif.cz(PG:47)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at lhl.run(PG:1025)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at jaf.execute(PG:12)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at nco.v(PG:13)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at lhn.m(PG:96)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at lhn.k(PG:25)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at kgn.onStartInput(PG:250)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at android.inputmethodservice.InputMethodService.doStartInput(InputMethodService.java:3521)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at android.inputmethodservice.InputMethodService$InputMethodImpl.startInput(InputMethodService.java:879)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at android.inputmethodservice.InputMethodService$InputMethodImpl.dispatchStartInput(InputMethodService.java:908)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at android.inputmethodservice.IInputMethodWrapper.executeMessage(IInputMethodWrapper.java:201)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:44)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at android.os.Handler.dispatchMessage(Handler.java:110)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at android.os.Looper.loopOnce(Looper.java:248)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at android.os.Looper.loop(Looper.java:338)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at android.app.ActivityThread.main(ActivityThread.java:9067)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at java.lang.reflect.Method.invoke(Native Method)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
+04-05 13:45:40.070 31738 31738 I EmojiCompatManager: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:932)
+04-05 13:45:40.070 31738 31738 I Module  : DeviceLockedStatusModuleProvider$Module.updateDeviceLockedStatus():100 repeatCheckTimes = 1, locked = false
+04-05 13:45:40.070  1037  2474 D GmsPlayProvider: Forcefully shut down the binder channel
+04-05 13:45:40.071 12312 12312 I AdvertisingIdClient: getting error as 17: API: ClientTelemetry.API is not available on this device. Connection failed with: ConnectionResult{statusCode=API_DISABLED, resolution=null, message=null, clientMethodKey=null}
+04-05 13:45:40.071   664  1990 I ImeTracker: system_server:8b3a7c3: onRequestHide at ORIGIN_SERVER reason IME_REQUESTED_CHANGED_LISTENER fromUser false
+04-05 13:45:40.073   664   972 W PackageConfigPersister: App-specific configuration not found for packageName: com.ezraapp and userId: 0
+04-05 13:45:40.073   664   686 I ImeTracker: system_server:8b3a7c3: onCancelled at PHASE_SERVER_SHOULD_HIDE
+04-05 13:45:40.077   664   743 W UsageStatsService: Unexpected activity event reported! (com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity event : 23 instanceId : 242199820)
+04-05 13:45:40.078   664   743 W UsageStatsService: Unexpected activity event reported! (com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity event : 23 instanceId : 203617556)
+04-05 13:45:40.078   664   850 D BackgroundInstallControlService: Package event received: 0
+04-05 13:45:40.081  1173  1173 D BoundBrokerSvc: onRebind: Intent { act=com.google.android.gms.presencemanager.service.START dat=chimera-action:/... xflg=0x4 cmp=com.google.android.gms/.chimera.PersistentApiService }
+04-05 13:45:40.082  1173  1173 D BoundBrokerSvc: onRebind: Intent { act=com.google.android.gms.presencemanager.service.INTERNAL_IDENTITY dat=chimera-action:/... xflg=0x4 cmp=com.google.android.gms/.chimera.PersistentApiService }
+04-05 13:45:40.119 30183 30188 I com.ezraapp: Compiler allocated 5111KB to compile void android.view.ViewRootImpl.performTraversals()
+04-05 13:45:40.309   587   655 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:40.309   587   655 W IPCThreadState: Sending oneway calls to frozen process.
+04-05 13:45:40.310   896  1074 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda13@3a4493c
+04-05 13:45:40.310   664   727 D CoreBackPreview: Window{55da76e u0 Splash Screen com.ezraapp EXITING}: Setting back callback null
+04-05 13:45:40.495  1173  1721 I FontLog : (REDACTED) Received query %s, URI %s
+04-05 13:45:40.497  1173  1721 I FontLog : (REDACTED) Query [%s] resolved to %s
+04-05 13:45:40.503  1173  1721 I FontLog : (REDACTED) Fetch %s end status %s
+04-05 13:45:40.506  1173  1721 I FontLog : (REDACTED) Pulling font file for id = %d, cache size = %d
+04-05 13:45:40.513  1173  1721 I FontLog : (REDACTED) Pulling font file for id = %d, cache size = %d
+04-05 13:45:41.315   664   797 D NetworkStatsObservers: Registering observer for RequestInfo from pid/uid:664/1000(android) for DataUsageRequest [ requestId=50, networkTemplate=NetworkTemplate: matchRule=MOBILE, matchSubscriberIds=[310260...], matchWifiNetworkKeys=[], metered=YES, defaultNetwork=NO, thresholdInBytes=4180605 ] accessLevel:3
+04-05 13:45:41.315   664   894 D NetworkStatsObservers: Unregistering RequestInfo from pid/uid:664/1000(android) for DataUsageRequest [ requestId=49, networkTemplate=NetworkTemplate: matchRule=MOBILE, matchSubscriberIds=[310260...], matchWifiNetworkKeys=[], metered=YES, defaultNetwork=NO, thresholdInBytes=4180702 ] accessLevel:3
+04-05 13:45:41.326 30183 30183 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda13@1f106ec
+04-05 13:45:41.326   664  1990 D CoreBackPreview: Window{b0c63af u0 PopupWindow:e95e7f9}: Setting back callback null
+04-05 13:45:41.363 30183 30183 W unknown:ReactNative: Packager connection already open, nooping.
+04-05 13:45:41.398 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.debuggingoverlay.DebuggingOverlayManager
+04-05 13:45:41.404 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.uimanager.LayoutShadowNode
+04-05 13:45:41.407 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.drawer.ReactDrawerLayoutManager
+04-05 13:45:41.407 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactHorizontalScrollViewManager
+04-05 13:45:41.408 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactHorizontalScrollContainerViewManager
+04-05 13:45:41.408 30183 30190 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+04-05 13:45:41.409 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.progressbar.ReactProgressBarViewManager
+04-05 13:45:41.409 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.progressbar.ProgressBarShadowNode
+04-05 13:45:41.409 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactScrollViewManager
+04-05 13:45:41.409 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.switchview.ReactSwitchManager
+04-05 13:45:41.410 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.switchview.ReactSwitchManager$ReactSwitchShadowNode
+04-05 13:45:41.410 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.safeareaview.ReactSafeAreaViewManager
+04-05 13:45:41.411 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.safeareaview.ReactSafeAreaViewShadowNode
+04-05 13:45:41.411 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.swiperefresh.SwipeRefreshLayoutManager
+04-05 13:45:41.411 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.frescosupport.FrescoBasedReactTextInlineImageViewManager
+04-05 13:45:41.411 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.frescosupport.FrescoBasedReactTextInlineImageShadowNode
+04-05 13:45:41.413 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.image.ReactImageManager
+04-05 13:45:41.413 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.modal.ReactModalHostManager
+04-05 13:45:41.413 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactRawTextManager
+04-05 13:45:41.413 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactRawTextShadowNode
+04-05 13:45:41.414 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.textinput.ReactTextInputManager
+04-05 13:45:41.415 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.textinput.ReactTextInputShadowNode
+04-05 13:45:41.417 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactTextViewManager
+04-05 13:45:41.419 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactTextShadowNode
+04-05 13:45:41.420 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.view.ReactViewManager
+04-05 13:45:41.421 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactVirtualTextViewManager
+04-05 13:45:41.421 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactVirtualTextShadowNode
+04-05 13:45:41.421 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.unimplementedview.ReactUnimplementedViewManager
+04-05 13:45:41.422 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativecommunity.slider.ReactSliderManager
+04-05 13:45:41.422 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativecommunity.slider.ReactSliderManager$ReactSliderShadowNode
+04-05 13:45:41.422 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativegooglesignin.RNGoogleSigninButtonViewManager
+04-05 13:45:41.422 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class org.reactnative.maskedview.RNCMaskedViewManager
+04-05 13:45:41.422 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativecommunity.picker.ReactDialogPickerManager
+04-05 13:45:41.424 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativecommunity.picker.ReactPickerShadowNode
+04-05 13:45:41.424 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativecommunity.picker.ReactDropdownPickerManager
+04-05 13:45:41.425 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.gesturehandler.react.RNGestureHandlerRootViewManager
+04-05 13:45:41.426 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.gesturehandler.react.RNGestureHandlerButtonViewManager
+04-05 13:45:41.426 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.BV.LinearGradient.LinearGradientManager
+04-05 13:45:41.426 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaProviderManager
+04-05 13:45:41.427 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaViewManager
+04-05 13:45:41.427 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaViewShadowNode
+04-05 13:45:41.427 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenContainerViewManager
+04-05 13:45:41.427 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenViewManager
+04-05 13:45:41.428 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ModalScreenViewManager
+04-05 13:45:41.428 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackViewManager
+04-05 13:45:41.428 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager
+04-05 13:45:41.428 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackHeaderSubviewManager
+04-05 13:45:41.429 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.SearchBarManager
+04-05 13:45:41.429 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenFooterManager
+04-05 13:45:41.429 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenContentWrapperManager
+04-05 13:45:41.429 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$DefsViewManager
+04-05 13:45:41.429 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.VirtualViewManager$RenderableShadowNode
+04-05 13:45:41.430 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeMergeManager
+04-05 13:45:41.430 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$LinearGradientManager
+04-05 13:45:41.430 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeGaussianBlurManager
+04-05 13:45:41.430 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeColorMatrixManager
+04-05 13:45:41.431 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ClipPathViewManager
+04-05 13:45:41.431 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$SymbolManager
+04-05 13:45:41.431 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$PatternManager
+04-05 13:45:41.432 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeBlendManager
+04-05 13:45:41.432 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.SvgViewManager
+04-05 13:45:41.432 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$UseViewManager
+04-05 13:45:41.433 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$CircleViewManager
+04-05 13:45:41.433 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TSpanViewManager
+04-05 13:45:41.434 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FilterManager
+04-05 13:45:41.434 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$MarkerManager
+04-05 13:45:41.434 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ForeignObjectManager
+04-05 13:45:41.435 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$EllipseViewManager
+04-05 13:45:41.435 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$LineViewManager
+04-05 13:45:41.435 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeFloodManager
+04-05 13:45:41.435 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$GroupViewManager
+04-05 13:45:41.436 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TextViewManager
+04-05 13:45:41.436 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ImageViewManager
+04-05 13:45:41.437 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeCompositeManager
+04-05 13:45:41.437 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$RadialGradientManager
+04-05 13:45:41.437 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$MaskManager
+04-05 13:45:41.438 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$RectViewManager
+04-05 13:45:41.438 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TextPathViewManager
+04-05 13:45:41.438 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeOffsetManager
+04-05 13:45:41.439 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$PathViewManager
+04-05 13:45:41.439 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.brentvatne.exoplayer.ReactExoplayerViewManager
+04-05 13:45:41.440 30183 30256 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativecommunity.webview.RNCWebViewManager
+04-05 13:45:41.442 30183 30256 I com.ezraapp: hiddenapi: Accessing hidden field Ljava/lang/reflect/Field;->accessFlags:I (runtime_flags=0, domain=core-platform, api=unsupported) from Lcom/swmansion/reanimated/layoutReanimation/ReanimatedNativeHierarchyManager; (domain=app) using reflection: allowed
+04-05 13:45:41.452   664  1990 D ConnectivityService: requestNetwork for uid/pid:10225/30183 activeRequest: null callbackRequest: 463 [NetworkRequest [ REQUEST id=464, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10225 RequestorUid: 10225 RequestorPkg: com.ezraapp UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647 isUidTracked: false declaredMethods: AVAIL|LOSING|LOST|UNAVAIL|NC|LP
+04-05 13:45:41.453   664   799 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=464, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10225 RequestorUid: 10225 RequestorPkg: com.ezraapp UnderlyingNetworks: Null] ]
+04-05 13:45:41.453   664   806 D ConnectivityService: NetReassign [464 : null → 105] [c 0] [a 1] [i 0]
+04-05 13:45:41.453   664   799 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=464, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10225 RequestorUid: 10225 RequestorPkg: com.ezraapp UnderlyingNetworks: Null] ]
+04-05 13:45:41.453   664   799 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=464, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10225 RequestorUid: 10225 RequestorPkg: com.ezraapp UnderlyingNetworks: Null] ]
+04-05 13:45:41.453   664   799 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=464, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10225 RequestorUid: 10225 RequestorPkg: com.ezraapp UnderlyingNetworks: Null] ]
+04-05 13:45:41.893 30183 30256 I com.ezraapp: AssetManager2(0xb400007a2a63e7f8) locale list changing from [] to [en-US]
+04-05 13:45:41.894 30183 30256 I WebViewFactory: Loading com.google.android.webview version 146.0.7680.164 (code 768016403)
+04-05 13:45:41.894 30183 30256 W ResourcesManager: Found a null ResourcesImpl, skipped.
+04-05 13:45:41.894 30183 30256 W ResourcesManager: Found a null ResourcesImpl, skipped.
+04-05 13:45:41.894 30183 30256 I com.ezraapp: AssetManager2(0xb400007a2a6383f8) locale list changing from [] to [en-US]
+04-05 13:45:41.894 30183 30256 I com.ezraapp: AssetManager2(0xb400007a2a61b898) locale list changing from [] to [en-US]
+04-05 13:45:41.895 30183 30256 I com.ezraapp: AssetManager2(0xb400007a2a63ac98) locale list changing from [] to [en-US]
+04-05 13:45:41.895 30183 30255 I ReactNativeJS: Running "EzraApp" with {"rootTag":11}
+04-05 13:45:41.895 30183 30256 I com.ezraapp: AssetManager2(0xb400007a2a63e4d8) locale list changing from [] to [en-US]
+04-05 13:45:41.896 30183 30256 I com.ezraapp: AssetManager2(0xb400007a2a63a338) locale list changing from [] to [en-US]
+04-05 13:45:41.896 30183 30256 V ResourcesManager: The following library key has been added: ResourcesKey{ mHash=fa04181e mResDir=null mSplitDirs=[] mOverlayDirs=[] mLibDirs=[/data/app/~~2xQ80hzXTMuCTm9inbkvyA==/com.google.android.webview-2ys0BnI5sAqDCi4kA0vwkw==/base.apk,/system/framework/android.test.base.jar,/system_ext/framework/androidx.window.extensions.jar] mDisplayId=0 mOverrideConfig=v36 mCompatInfo={420dpi always-compat} mLoaders=[]}
+04-05 13:45:41.896 30183 30256 D ApplicationLoaders: Returning zygote-cached class loader: /system/framework/android.test.base.jar
+04-05 13:45:41.896 30183 30256 D ApplicationLoaders: Returning zygote-cached class loader: /system_ext/framework/androidx.window.extensions.jar
+04-05 13:45:41.898 30183 30256 W com.ezraapp: Loading /data/app/~~2xQ80hzXTMuCTm9inbkvyA==/com.google.android.webview-2ys0BnI5sAqDCi4kA0vwkw==/oat/arm64/base.odex non-executable as it requires an image which we failed to load
+04-05 13:45:41.898 30183 30256 D nativeloader: Configuring clns-11 for other apk /data/app/~~2xQ80hzXTMuCTm9inbkvyA==/com.google.android.webview-2ys0BnI5sAqDCi4kA0vwkw==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~2xQ80hzXTMuCTm9inbkvyA==/com.google.android.webview-2ys0BnI5sAqDCi4kA0vwkw==/lib/arm64:/data/app/~~2xQ80hzXTMuCTm9inbkvyA==/com.google.android.webview-2ys0BnI5sAqDCi4kA0vwkw==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand
+04-05 13:45:41.918 30183 30256 I cr_WVCFactoryProvider: version=146.0.7680.164 (768016403) minSdkVersion=29 multiprocess=true packageId=2 splits=<none>
+04-05 13:45:41.922 30183 30256 D nativeloader: Load /data/app/~~2xQ80hzXTMuCTm9inbkvyA==/com.google.android.webview-2ys0BnI5sAqDCi4kA0vwkw==/base.apk!/lib/arm64-v8a/libwebviewchromium.so using class loader ns clns-11 (caller=/data/app/~~2xQ80hzXTMuCTm9inbkvyA==/com.google.android.webview-2ys0BnI5sAqDCi4kA0vwkw==/base.apk): ok
+04-05 13:45:41.924 30183 30256 D nativeloader: Load /system/lib64/libwebviewchromium_plat_support.so using class loader ns clns-11 (caller=/data/app/~~2xQ80hzXTMuCTm9inbkvyA==/com.google.android.webview-2ys0BnI5sAqDCi4kA0vwkw==/base.apk): ok
+04-05 13:45:41.929 30183 30262 I chromium: [0405/134541.926595:INFO:android_webview/browser/variations/variations_seed_loader.cc:67] Failed to open file for reading.: No such file or directory (2)
+04-05 13:45:41.929 30183 30262 I chromium: [0405/134541.929415:INFO:android_webview/browser/variations/variations_seed_loader.cc:67] Failed to open file for reading.: No such file or directory (2)
+04-05 13:45:41.940 30183 30256 I cr_LibraryLoader: Successfully loaded native library
+04-05 13:45:41.942 30183 30256 I cr_CachingUmaRecorder: Flushed 18 samples from 18 histograms, 0 samples were dropped.
+04-05 13:45:41.994 30183 30255 D nativeloader: Load /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!/lib/arm64-v8a/librnscreens.so using class loader ns clns-9 (caller=/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!classes15.dex): ok
+04-05 13:45:42.077 30183 30255 W ReactNativeJS: 'relative line-height utilities require that font-size be set', { [Component Stack] name: 'Component Stack' }
+04-05 13:45:42.152 30183 30255 E ReactNativeJS: 'redux-persist failed to create sync storage. falling back to noop storage.', { [Component Stack] name: 'Component Stack' }
+04-05 13:45:42.285 30183 30255 I ReactNativeJS: App became active, checking notification schedule
+04-05 13:45:42.305 30183 30183 D nativeloader: Load /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!/lib/arm64-v8a/libworklets.so using class loader ns clns-9 (caller=/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!classes20.dex): ok
+04-05 13:45:42.322 30183 30271 D nativeloader: Load /data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!/lib/arm64-v8a/libimagepipeline.so using class loader ns clns-9 (caller=/data/app/~~kFBiZRYqsKKUppqceNnM9g==/com.ezraapp-KCC90pnXesZmYUK1M2udlQ==/base.apk!classes20.dex): ok
+04-05 13:45:42.327 30183 30272 W HWUI    : Image decoding logging dropped!

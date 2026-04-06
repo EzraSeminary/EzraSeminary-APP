@@ -1,0 +1,28 @@
+diff --git a/node_modules/react-native/Libraries/ReactNative/ReactFabricPublicInstance/warnForStyleProps.js b/node_modules/react-native/Libraries/ReactNative/ReactFabricPublicInstance/warnForStyleProps.js
+index 8644985..fa00986 100644
+--- a/node_modules/react-native/Libraries/ReactNative/ReactFabricPublicInstance/warnForStyleProps.js
++++ b/node_modules/react-native/Libraries/ReactNative/ReactFabricPublicInstance/warnForStyleProps.js
+@@ -15,6 +15,9 @@ export default function warnForStyleProps(
+   validAttributes: AttributeConfiguration,
+ ): void {
+   if (__DEV__) {
++    if (validAttributes == null || validAttributes.style == null) {
++      return;
++    }
+     for (const key in validAttributes.style) {
+       // $FlowFixMe[invalid-computed-prop]
+       if (!(validAttributes[key] || props[key] === undefined)) {
+diff --git a/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-dev.js b/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-dev.js
+index 2544f75..5d5a5d1 100644
+--- a/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-dev.js
++++ b/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-dev.js
+@@ -3871,6 +3871,9 @@
+     }
+     function warnForStyleProps(props, validAttributes) {
+       {
++        if (validAttributes == null || validAttributes.style == null) {
++          return;
++        }
+         for (var key in validAttributes.style) {
+           if (!(validAttributes[key] || props[key] === undefined)) {
+             error(

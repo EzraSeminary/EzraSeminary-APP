@@ -23,8 +23,8 @@ import {useNavigation} from '@react-navigation/native';
 import {useSelector} from 'react-redux';
 import {useGetSSLOfQuarterQuery} from '../../services/SabbathSchoolApi';
 import LinearGradient from 'react-native-linear-gradient';
-import ErrorScreen from '../../components/ErrorScreen';
 import {saveSSLLessonToCache} from '../../utils/sslCache';
+import {formatSslDateRange} from '../../utils/sslDateFormatter';
 
 const SSLQuarter = ({route}) => {
   const {sslId} = route.params;
@@ -208,6 +208,10 @@ const SSLQuarter = ({route}) => {
   const gradientColor = darkMode
     ? sslQuarter.quarterly.color_primary_dark
     : sslQuarter.quarterly.color_primary;
+  const quarterDateRange = formatSslDateRange(
+    sslQuarter?.quarterly?.start_date,
+    sslQuarter?.quarterly?.end_date,
+  );
 
   return (
     <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
@@ -246,18 +250,20 @@ const SSLQuarter = ({route}) => {
               </Text>
               <Text
                 style={tw`font-nokia-bold text-sm text-primary-3 text-center`}>
-                {sslQuarter.quarterly.human_date}
+                {language === 'en'
+                  ? quarterDateRange || sslQuarter.quarterly.human_date
+                  : sslQuarter.quarterly.human_date}
               </Text>
               <View style={tw`mt-4`}>
                 <Text
-                  style={tw`font-nokia-bold text-sm text-primary-1 text-justify`}
+                  style={tw`font-nokia-bold text-sm text-primary-1`}
                   numberOfLines={3}>
                   {sslQuarter.quarterly.description}{' '}
                 </Text>
                 <TouchableOpacity onPress={handleMorePress}>
                   <Text
                     style={tw`font-nokia-bold text-primary-3 border border-primary-3 px-2 w-24 text-center mt-2 rounded py-1`}>
-                    ተጨማሪ
+                    {language === 'en' ? 'More' : 'ተጨማሪ'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -290,7 +296,7 @@ const SSLQuarter = ({route}) => {
                       <ScrollView style={tw`max-h-100`}>
                         <Text
                           style={[
-                            tw`font-nokia-bold text-sm text-secondary-6 text-justify`,
+                            tw`font-nokia-bold text-sm text-secondary-6`,
                             darkMode ? tw`text-primary-1` : null,
                           ]}>
                           {fullDescription}
@@ -325,15 +331,27 @@ const SSLQuarter = ({route}) => {
                   {item.title}
                 </Text>
                 <View style={tw`flex flex-row`}>
-                  <DateConverter
-                    gregorianDate={item.start_date}
-                    textStyle={textStyle}
-                  />
-                  <Text style={tw`font-nokia-bold text-secondary-3`}> - </Text>
-                  <DateConverter
-                    gregorianDate={item.end_date}
-                    textStyle={textStyle}
-                  />
+                  {language === 'en' ? (
+                    <Text style={tw`font-nokia-bold text-sm text-secondary-4`}>
+                      {formatSslDateRange(item.start_date, item.end_date) ||
+                        item.human_date}
+                    </Text>
+                  ) : (
+                    <>
+                      <DateConverter
+                        gregorianDate={item.start_date}
+                        textStyle={textStyle}
+                      />
+                      <Text style={tw`font-nokia-bold text-secondary-3`}>
+                        {' '}
+                        -{' '}
+                      </Text>
+                      <DateConverter
+                        gregorianDate={item.end_date}
+                        textStyle={textStyle}
+                      />
+                    </>
+                  )}
                 </View>
               </View>
             </TouchableOpacity>

@@ -16,8 +16,8 @@ const AppInfo = ({navigation}) => {
   const styles = StyleSheet.create({
     container: tw`flex-1 items-center w-92% mx-auto pb-8`,
     title: tw`font-nokia-bold text-2xl text-accent-6 my-2 border-b border-accent-6`,
-    text: tw`font-nokia-bold text-secondary-6 text-md text-justify leading-tight my-2`,
-    subtitle: tw`font-nokia-bold text-accent-6 text-lg text-justify border-b border-accent-6 pb-2`,
+    text: tw`font-nokia-bold text-secondary-6 text-md leading-tight my-2`,
+    subtitle: tw`font-nokia-bold text-accent-6 text-lg border-b border-accent-6 pb-2`,
   });
   return (
     <ScrollView showsVerticalScrollIndicator={false}>

@@ -22,7 +22,7 @@ function ScrollMix({
     <View style={tw`flex`}>
       {/* Display text1 */}
       <Text
-        style={tw`text-primary-5 font-nokia-bold w-[80%] mx-auto self-center text-justify text-xs lg:text-lg xl:text-xl lg:pt-2`}>
+        style={tw`text-primary-5 font-nokia-bold w-[80%] mx-auto self-center text-xs lg:text-lg xl:text-xl lg:pt-2`}>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         {value.text1}
       </Text>
@@ -84,7 +84,7 @@ function ScrollMix({
 
       {/* Display text2 */}
       <Text
-        style={tw`text-primary-5 font-nokia-bold w-[80%] mx-auto self-center text-justify text-xs lg:text-lg xl:text-xl lg:pt-2`}>
+        style={tw`text-primary-5 font-nokia-bold w-[80%] mx-auto self-center text-xs lg:text-lg xl:text-xl lg:pt-2`}>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         {value.text2}
       </Text>

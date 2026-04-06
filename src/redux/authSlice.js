@@ -47,7 +47,13 @@ const authSlice = createSlice({
       state.isAuthReady = false;
 
       // Remove all auth-related data from AsyncStorage
-      AsyncStorage.multiRemove(['token', 'user', 'userProfile', 'authData']);
+      AsyncStorage.multiRemove([
+        'token',
+        'user',
+        'userProfile',
+        'authData',
+        'authProvider',
+      ]);
     },
     setAuthReady: (state, action) => {
       state.isAuthReady = action.payload;
@@ -94,6 +100,7 @@ const authSlice = createSlice({
       // Remove the token from AsyncStorage
       AsyncStorage.removeItem('token');
       AsyncStorage.removeItem('user');
+      AsyncStorage.removeItem('authProvider');
     },
   },
 });
@@ -128,6 +135,7 @@ export const logoutUser = () => async dispatch => {
       'user',
       'userProfile',
       'authData',
+      'authProvider',
       'home_data_cache',
     ]);
     dispatch(authSlice.actions.logout());

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useDispatch, useSelector} from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import tw from './../../tailwind';
 import {
@@ -26,6 +27,7 @@ import {
 } from '../services/socialAuth';
 import {
   buildDetailedAuthError,
+  findAccountByEmail,
   normalizeAuthError,
   persistAuthenticatedUser,
   validateEmailAddress,
@@ -97,7 +99,14 @@ const Signup = ({navigation}) => {
 
   const finishAuthentication = async providerPayload => {
     const result = await socialAuth(providerPayload).unwrap();
-    await persistAuthenticatedUser({result, dispatch, login});
+    await persistAuthenticatedUser({
+      result: {
+        ...result,
+        authProvider: providerPayload?.provider || result?.authProvider,
+      },
+      dispatch,
+      login,
+    });
     navigation.reset({
       index: 0,
       routes: [{name: 'MainTab'}],
@@ -133,6 +142,35 @@ const Signup = ({navigation}) => {
 
       if (!providerPayload) {
         return;
+      }
+
+      const account = await findAccountByEmail(providerPayload?.profile?.email);
+      if (account && !account.googleId) {
+        const emailKey = String(providerPayload?.profile?.email || '')
+          .trim()
+          .toLowerCase();
+        const confirmationKey = `google_link_confirmed_${emailKey}`;
+        const alreadyConfirmed = await AsyncStorage.getItem(confirmationKey);
+
+        if (!alreadyConfirmed) {
+          const shouldLink = await new Promise(resolve => {
+            Alert.alert(
+              'Link Existing Account',
+              `An account with ${emailKey} already exists. Continue to link it with Google sign-in?`,
+              [
+                {text: 'Cancel', style: 'cancel', onPress: () => resolve(false)},
+                {text: 'Continue', onPress: () => resolve(true)},
+              ],
+              {cancelable: true},
+            );
+          });
+
+          if (!shouldLink) {
+            return;
+          }
+
+          await AsyncStorage.setItem(confirmationKey, 'true');
+        }
       }
 
       await finishAuthentication(providerPayload);
@@ -191,7 +229,14 @@ const Signup = ({navigation}) => {
         email: email.trim().toLowerCase(),
         password,
       }).unwrap();
-      await persistAuthenticatedUser({result, dispatch, login});
+      await persistAuthenticatedUser({
+        result: {
+          ...result,
+          authProvider: result?.authProvider || 'email',
+        },
+        dispatch,
+        login,
+      });
       navigation.reset({
         index: 0,
         routes: [{name: 'MainTab'}],

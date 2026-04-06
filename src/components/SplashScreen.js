@@ -180,7 +180,7 @@ const SplashScreen = ({onFinish}) => {
           }}>
           <Text
             style={[
-              tw`text-3xl font-nokia-bold text-center mb`,
+              tw`text-3xl font-nokia-bold text-center mb-4`,
               {
                 color: darkMode ? '#EA9215' : '#1F2937',
                 textShadowColor: darkMode

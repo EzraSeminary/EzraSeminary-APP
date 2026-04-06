@@ -19,6 +19,7 @@ import {
 } from '../../services/SabbathSchoolApi';
 import useCalculateLessonIndex from './hooks/useCalculateLessonIndex';
 import ErrorScreen from '../../components/ErrorScreen';
+import {formatSslListDate} from '../../utils/sslDateFormatter';
 
 const CurrentSSL = () => {
   const currentDate = new Date().toISOString().slice(0, 10);
@@ -44,6 +45,7 @@ const CurrentSSL = () => {
 
   const navigation = useNavigation();
   const darkMode = useSelector(state => state.ui.darkMode);
+  const language = useSelector(state => state.language.language);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -165,7 +167,7 @@ const CurrentSSL = () => {
                 <View style={tw`flex-1 gap-2 justify-between`}>
                   <View>
                     <Text style={tw`font-nokia-bold text-sm text-accent-6`}>
-                      {item.human_date}
+                      {formatSslListDate(item, language)}
                     </Text>
                     <Text
                       style={[
@@ -178,7 +180,7 @@ const CurrentSSL = () => {
                     <Text
                       numberOfLines={4}
                       style={[
-                        tw`font-nokia-bold text-sm text-secondary-6 text-justify mt-2`,
+                        tw`font-nokia-bold text-sm text-secondary-6 mt-2`,
                         darkMode ? tw`text-primary-1` : null,
                       ]}>
                       {'  '}

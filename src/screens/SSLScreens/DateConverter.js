@@ -4,7 +4,7 @@ import {EthDateTime} from 'ethiopian-calendar-date-converter';
 import {Text} from 'react-native';
 import tw from './../../../tailwind'; // Ensure this path is correct
 
-const DateConverter = ({gregorianDate}) => {
+const DateConverter = ({gregorianDate, textStyle}) => {
   // Split the date string and convert to numbers
   const [day, month, year] = gregorianDate.split('/').map(Number);
 
@@ -46,7 +46,7 @@ const DateConverter = ({gregorianDate}) => {
   const ethiopianMonthName = ethiopianMonthNames[ethDateTime.month - 1];
 
   return (
-    <Text style={tw`font-nokia-bold text-accent-6`}>
+    <Text style={[tw`font-nokia-bold text-accent-6`, textStyle]}>
       {ethiopianMonthName} {ethDateTime.date + 1}
     </Text>
   );
@@ -54,7 +54,7 @@ const DateConverter = ({gregorianDate}) => {
 
 DateConverter.propTypes = {
   gregorianDate: PropTypes.string.isRequired,
-  textStyle: PropTypes.string,
+  textStyle: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
 };
 
 export default DateConverter;

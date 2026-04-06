@@ -85,11 +85,32 @@ export const apiSlice = createApi({
       }),
     }),
     updateUser: builder.mutation({
-      query: formData => ({
-        url: '/users/profile',
-        method: 'PUT',
-        body: formData,
-      }),
+      queryFn: async ({formData, userId}, api, extraOptions) => {
+        const primaryResult = await dynamicBaseQuery(
+          {
+            url: userId ? `/users/profile/${userId}` : '/users/profile',
+            method: 'PUT',
+            body: formData,
+          },
+          api,
+          extraOptions,
+        );
+
+        if (!primaryResult.error || !userId) {
+          return primaryResult;
+        }
+
+        // Backward compatibility with backends using /users/profile (without :id)
+        return dynamicBaseQuery(
+          {
+            url: '/users/profile',
+            method: 'PUT',
+            body: formData,
+          },
+          api,
+          extraOptions,
+        );
+      },
     }),
     getDevotions: builder.query({
       query: ({limit, sort, year} = {}) => {
