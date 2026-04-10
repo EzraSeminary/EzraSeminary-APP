@@ -34,6 +34,7 @@ import {
 } from '../../utils/devotionCache';
 import HighlightableBlock from '../../components/HighlightableBlock';
 import HighlightableHtmlBlocks from '../../components/HighlightableHtmlBlocks';
+import HighlightActionSheet from '../../components/HighlightActionSheet';
 import usePersistentHighlights from '../../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../../utils/htmlBlocks';
 
@@ -177,6 +178,9 @@ const PlanDevotionViewer = () => {
 
   const [currentDevotionIndex, setCurrentDevotionIndex] = useState(0);
   const [completionModalVisible, setCompletionModalVisible] = useState(false);
+  const [floatingHighlightSheet, setFloatingHighlightSheet] = useState({
+    visible: false,
+  });
 
   const {
     data: plan,
@@ -283,8 +287,13 @@ const PlanDevotionViewer = () => {
       }`,
     [currentDevotion?._id, currentDevotionIndex, planId],
   );
-  const {highlights, setHighlight, clearHighlight} =
-    usePersistentHighlights(planHighlightKey);
+  const {
+    highlights,
+    inlineHighlights,
+    setHighlight,
+    clearHighlight,
+    setInlineHighlight,
+  } = usePersistentHighlights(planHighlightKey);
   const currentDevotionBlocks = useMemo(
     () => extractHtmlBlocks(currentDevotion?.body || []),
     [currentDevotion?.body],
@@ -838,8 +847,11 @@ const PlanDevotionViewer = () => {
                     blocks={currentDevotionBlocks}
                     darkMode={darkMode}
                     highlights={highlights}
+                    inlineHighlights={inlineHighlights}
                     onSelectColor={setHighlight}
+                    onSelectInlineColor={setInlineHighlight}
                     onClearHighlight={clearHighlight}
+                    onFloatingSheetChange={setFloatingHighlightSheet}
                     stylesheet={tailwindStyles}
                     blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
                   />
@@ -962,6 +974,37 @@ const PlanDevotionViewer = () => {
         planTitle={plan?.title}
         darkMode={darkMode}
       />
+      {floatingHighlightSheet?.visible ? (
+        <View
+          pointerEvents="box-none"
+          style={{position: 'absolute', top: 0, right: 0, bottom: 0, left: 0}}>
+          <View
+            pointerEvents="box-none"
+            style={[tw`absolute left-3 right-3`, {bottom: 16}]}>
+            <HighlightActionSheet
+              visible={Boolean(floatingHighlightSheet?.visible)}
+              useModal={false}
+              darkMode={darkMode}
+              selectedCount={floatingHighlightSheet?.selectedCount || 0}
+              selectedText={floatingHighlightSheet?.selectedText || ''}
+              onClose={floatingHighlightSheet?.onClose || (() => {})}
+              onSelectColor={
+                floatingHighlightSheet?.onSelectColor || (async () => {})
+              }
+              onClearHighlights={
+                floatingHighlightSheet?.onClearHighlights || (async () => {})
+              }
+              onOpenFreeSelection={floatingHighlightSheet?.onOpenFreeSelection}
+              freeSelectionEnabled={Boolean(
+                floatingHighlightSheet?.freeSelectionEnabled,
+              )}
+              allowBlockHighlight={Boolean(
+                floatingHighlightSheet?.allowBlockHighlight,
+              )}
+            />
+          </View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 };

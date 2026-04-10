@@ -9,8 +9,11 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {Eye, EyeSlash} from 'phosphor-react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
@@ -50,8 +53,11 @@ const Signup = ({navigation}) => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState('');
+  const scrollViewRef = useRef(null);
+  const fieldLayouts = useRef({});
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -292,12 +298,32 @@ const Signup = ({navigation}) => {
     },
   ];
 
+  const handleFieldFocus = field => {
+    setFocusedField(field);
+    const y = fieldLayouts.current[field];
+    if (typeof y !== 'number') {
+      return;
+    }
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(0, y - 120),
+        animated: true,
+      });
+    }, 80);
+  };
+
   return (
     <SafeAreaView
       style={[tw`flex-1 bg-primary-1`, darkMode ? tw`bg-secondary-9` : null]}>
+      <KeyboardAvoidingView
+        style={tw`flex-1`}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}>
       <ScrollView
+        ref={scrollViewRef}
         contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-4`}
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled">
         <Animated.View
           style={[
@@ -424,21 +450,26 @@ const Signup = ({navigation}) => {
                 ]}>
                 Sign up with email
               </Text>
-              <TextInput
-                value={firstName}
-                onChangeText={value => {
-                  setFirstName(value);
-                  updateFieldError('firstName', value);
-                }}
-                onFocus={() => setFocusedField('firstName')}
-                onBlur={() => {
-                  setFocusedField('');
-                  updateFieldError('firstName', firstName);
-                }}
-                placeholder="First name"
-                placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
-                style={inputStyle(Boolean(errors.firstName))}
-              />
+              <View
+                onLayout={event => {
+                  fieldLayouts.current.firstName = event.nativeEvent.layout.y;
+                }}>
+                <TextInput
+                  value={firstName}
+                  onChangeText={value => {
+                    setFirstName(value);
+                    updateFieldError('firstName', value);
+                  }}
+                  onFocus={() => handleFieldFocus('firstName')}
+                  onBlur={() => {
+                    setFocusedField('');
+                    updateFieldError('firstName', firstName);
+                  }}
+                  placeholder="First name"
+                  placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                  style={inputStyle(Boolean(errors.firstName))}
+                />
+              </View>
               {errors.firstName ? (
                 <Text
                   style={[
@@ -458,21 +489,26 @@ const Signup = ({navigation}) => {
               ) : (
                 <View style={tw`mb-3`} />
               )}
-              <TextInput
-                value={lastName}
-                onChangeText={value => {
-                  setLastName(value);
-                  updateFieldError('lastName', value);
-                }}
-                onFocus={() => setFocusedField('lastName')}
-                onBlur={() => {
-                  setFocusedField('');
-                  updateFieldError('lastName', lastName);
-                }}
-                placeholder="Last name"
-                placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
-                style={inputStyle(Boolean(errors.lastName))}
-              />
+              <View
+                onLayout={event => {
+                  fieldLayouts.current.lastName = event.nativeEvent.layout.y;
+                }}>
+                <TextInput
+                  value={lastName}
+                  onChangeText={value => {
+                    setLastName(value);
+                    updateFieldError('lastName', value);
+                  }}
+                  onFocus={() => handleFieldFocus('lastName')}
+                  onBlur={() => {
+                    setFocusedField('');
+                    updateFieldError('lastName', lastName);
+                  }}
+                  placeholder="Last name"
+                  placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                  style={inputStyle(Boolean(errors.lastName))}
+                />
+              </View>
               {errors.lastName ? (
                 <Text
                   style={[
@@ -492,23 +528,28 @@ const Signup = ({navigation}) => {
               ) : (
                 <View style={tw`mb-3`} />
               )}
-              <TextInput
-                value={email}
-                onChangeText={value => {
-                  setEmail(value);
-                  updateFieldError('email', value);
-                }}
-                onFocus={() => setFocusedField('email')}
-                onBlur={() => {
-                  setFocusedField('');
-                  updateFieldError('email', email);
-                }}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                placeholder="Email address"
-                placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
-                style={inputStyle(Boolean(errors.email))}
-              />
+              <View
+                onLayout={event => {
+                  fieldLayouts.current.email = event.nativeEvent.layout.y;
+                }}>
+                <TextInput
+                  value={email}
+                  onChangeText={value => {
+                    setEmail(value);
+                    updateFieldError('email', value);
+                  }}
+                  onFocus={() => handleFieldFocus('email')}
+                  onBlur={() => {
+                    setFocusedField('');
+                    updateFieldError('email', email);
+                  }}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  placeholder="Email address"
+                  placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                  style={inputStyle(Boolean(errors.email))}
+                />
+              </View>
               {errors.email ? (
                 <Text
                   style={[
@@ -528,22 +569,41 @@ const Signup = ({navigation}) => {
               ) : (
                 <View style={tw`mb-3`} />
               )}
-              <TextInput
-                value={password}
-                onChangeText={value => {
-                  setPassword(value);
-                  updateFieldError('password', value);
+              <View
+                onLayout={event => {
+                  fieldLayouts.current.password = event.nativeEvent.layout.y;
                 }}
-                onFocus={() => setFocusedField('password')}
-                onBlur={() => {
-                  setFocusedField('');
-                  updateFieldError('password', password);
-                }}
-                secureTextEntry
-                placeholder="Password"
-                placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
-                style={inputStyle(Boolean(errors.password))}
-              />
+                style={tw`relative`}>
+                <TextInput
+                  value={password}
+                  onChangeText={value => {
+                    setPassword(value);
+                    updateFieldError('password', value);
+                  }}
+                  onFocus={() => handleFieldFocus('password')}
+                  onBlur={() => {
+                    setFocusedField('');
+                    updateFieldError('password', password);
+                  }}
+                  secureTextEntry={!showPassword}
+                  placeholder="Password"
+                  placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                  style={[inputStyle(Boolean(errors.password)), {paddingRight: 48}]}
+                />
+                <TouchableOpacity
+                  style={tw`absolute right-3 top-0 bottom-0 justify-center`}
+                  onPress={() => setShowPassword(prev => !prev)}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    showPassword ? 'Hide password' : 'Show password'
+                  }>
+                  {showPassword ? (
+                    <EyeSlash size={20} color={darkMode ? '#D1D5DB' : '#6B7280'} />
+                  ) : (
+                    <Eye size={20} color={darkMode ? '#D1D5DB' : '#6B7280'} />
+                  )}
+                </TouchableOpacity>
+              </View>
               {errors.password ? (
                 <Text
                   style={[
@@ -602,6 +662,7 @@ const Signup = ({navigation}) => {
           </View>
         </Animated.View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

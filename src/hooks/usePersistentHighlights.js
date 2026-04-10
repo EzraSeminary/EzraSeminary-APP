@@ -6,15 +6,42 @@ const STORAGE_PREFIX = 'persistent_highlights_v1:';
 const createStorageKey = cacheKey => `${STORAGE_PREFIX}${cacheKey}`;
 
 const normalizeHighlightState = raw => {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return {};
+  if (!raw || typeof raw !== 'object') {
+    return {
+      blockHighlights: {},
+      inlineHighlights: {},
+    };
   }
 
-  return raw;
+  // Backward compatibility: previous format was { [blockId]: colorId }
+  if (!raw.blockHighlights && !raw.inlineHighlights) {
+    return {
+      blockHighlights: Array.isArray(raw) ? {} : raw,
+      inlineHighlights: {},
+    };
+  }
+
+  return {
+    blockHighlights:
+      raw.blockHighlights &&
+      typeof raw.blockHighlights === 'object' &&
+      !Array.isArray(raw.blockHighlights)
+        ? raw.blockHighlights
+        : {},
+    inlineHighlights:
+      raw.inlineHighlights &&
+      typeof raw.inlineHighlights === 'object' &&
+      !Array.isArray(raw.inlineHighlights)
+        ? raw.inlineHighlights
+        : {},
+  };
 };
 
 const usePersistentHighlights = cacheKey => {
-  const [highlights, setHighlights] = useState({});
+  const [state, setState] = useState({
+    blockHighlights: {},
+    inlineHighlights: {},
+  });
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -26,12 +53,15 @@ const usePersistentHighlights = cacheKey => {
         const parsed = saved ? JSON.parse(saved) : {};
 
         if (isMounted) {
-          setHighlights(normalizeHighlightState(parsed));
+          setState(normalizeHighlightState(parsed));
         }
       } catch (error) {
         console.error('Error loading highlights:', error);
         if (isMounted) {
-          setHighlights({});
+          setState({
+            blockHighlights: {},
+            inlineHighlights: {},
+          });
         }
       } finally {
         if (isMounted) {
@@ -51,13 +81,13 @@ const usePersistentHighlights = cacheKey => {
   }, [cacheKey]);
 
   const persist = useCallback(
-    async nextHighlights => {
-      setHighlights(nextHighlights);
+    async nextState => {
+      setState(nextState);
 
       try {
         await AsyncStorage.setItem(
           createStorageKey(cacheKey),
-          JSON.stringify(nextHighlights),
+          JSON.stringify(nextState),
         );
       } catch (error) {
         console.error('Error saving highlights:', error);
@@ -68,34 +98,97 @@ const usePersistentHighlights = cacheKey => {
 
   const setHighlight = useCallback(
     async (blockId, colorId) => {
-      const nextHighlights = {
-        ...highlights,
-        [blockId]: colorId,
+      const nextState = {
+        ...state,
+        blockHighlights: {
+          ...state.blockHighlights,
+          [blockId]: colorId,
+        },
       };
 
-      await persist(nextHighlights);
+      await persist(nextState);
     },
-    [highlights, persist],
+    [state, persist],
   );
 
   const clearHighlight = useCallback(
     async blockId => {
-      if (!highlights[blockId]) {
+      const hasBlockHighlight = Boolean(state.blockHighlights?.[blockId]);
+      const hasInlineHighlight = Boolean(
+        state.inlineHighlights?.[blockId]?.length,
+      );
+
+      if (!hasBlockHighlight && !hasInlineHighlight) {
         return;
       }
 
-      const nextHighlights = {...highlights};
-      delete nextHighlights[blockId];
-      await persist(nextHighlights);
+      const nextState = {
+        ...state,
+        blockHighlights: {...state.blockHighlights},
+        inlineHighlights: {...state.inlineHighlights},
+      };
+      delete nextState.blockHighlights[blockId];
+      delete nextState.inlineHighlights[blockId];
+      await persist(nextState);
     },
-    [highlights, persist],
+    [state, persist],
+  );
+
+  const setInlineHighlight = useCallback(
+    async ({blockId, start, end, colorId, selectedText}) => {
+      const safeStart = Math.max(0, Number(start) || 0);
+      const safeEnd = Math.max(safeStart, Number(end) || safeStart);
+      if (safeEnd <= safeStart || !blockId || !colorId) {
+        return;
+      }
+
+      const nextRange = {
+        id: `hl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        start: safeStart,
+        end: safeEnd,
+        colorId,
+        text: String(selectedText || ''),
+      };
+      const existingForBlock = Array.isArray(state.inlineHighlights?.[blockId])
+        ? state.inlineHighlights[blockId]
+        : [];
+
+      const nextState = {
+        ...state,
+        inlineHighlights: {
+          ...state.inlineHighlights,
+          [blockId]: [...existingForBlock, nextRange],
+        },
+      };
+      await persist(nextState);
+    },
+    [state, persist],
+  );
+
+  const clearInlineHighlights = useCallback(
+    async blockId => {
+      const existingForBlock = state.inlineHighlights?.[blockId];
+      if (!existingForBlock || existingForBlock.length === 0) {
+        return;
+      }
+      const nextState = {
+        ...state,
+        inlineHighlights: {...state.inlineHighlights},
+      };
+      delete nextState.inlineHighlights[blockId];
+      await persist(nextState);
+    },
+    [state, persist],
   );
 
   return {
-    highlights,
+    highlights: state.blockHighlights,
+    inlineHighlights: state.inlineHighlights,
     isLoaded,
     setHighlight,
     clearHighlight,
+    setInlineHighlight,
+    clearInlineHighlights,
   };
 };
 

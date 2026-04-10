@@ -5,26 +5,13 @@ import {useNavigation} from '@react-navigation/native';
 import {ArrowSquareUpRight} from 'phosphor-react-native';
 import tw from './../../../tailwind';
 import {toEthiopian} from 'ethiopian-date';
+import {
+  ETHIOPIAN_MONTHS,
+  normalizeEthiopianMonth,
+} from '../../utils/ethiopianCalendar';
 
 const PreviousDevotions = ({devotions, darkMode, currentYear}) => {
   const navigation = useNavigation();
-
-  const ethiopianMonths = [
-    '',
-    'መስከረም',
-    'ጥቅምት',
-    'ህዳር',
-    'ታህሳስ',
-    'ጥር',
-    'የካቲት',
-    'መጋቢት',
-    'ሚያዚያ',
-    'ግንቦት',
-    'ሰኔ',
-    'ሐምሌ',
-    'ነሐሴ',
-    'ጳጉሜ',
-  ];
 
   const previousDevotions = useMemo(() => {
     if (!devotions || devotions.length === 0) return [];
@@ -35,17 +22,18 @@ const PreviousDevotions = ({devotions, darkMode, currentYear}) => {
       today.getMonth() + 1,
       today.getDate(),
     );
-    const ethiopianMonth = ethiopianMonths[month];
-    const monthIndex = ethiopianMonths.indexOf(ethiopianMonth);
+    const ethiopianMonth = normalizeEthiopianMonth(ETHIOPIAN_MONTHS[month]);
+    const monthIndex = ETHIOPIAN_MONTHS.indexOf(ethiopianMonth);
 
     // Get devotions from the current month (before today) and previous months
     // This ensures we always have some devotions to show
     const filtered = devotions.filter(devotion => {
-      const devMonthIndex = ethiopianMonths.indexOf(devotion.month);
+      const devotionMonth = normalizeEthiopianMonth(devotion.month);
+      const devMonthIndex = ETHIOPIAN_MONTHS.indexOf(devotionMonth);
       const devDay = Number(devotion.day);
 
       // Skip today's devotion
-      if (devotion.month === ethiopianMonth && devDay === day) {
+      if (devotionMonth === ethiopianMonth && devDay === day) {
         return false;
       }
 
@@ -62,10 +50,12 @@ const PreviousDevotions = ({devotions, darkMode, currentYear}) => {
     // Sort by month (desc) then by day (desc) to get most recent first
     return filtered
       .sort((a, b) => {
-        const aMonthIdx = ethiopianMonths.indexOf(a.month);
-        const bMonthIdx = ethiopianMonths.indexOf(b.month);
-        if (aMonthIdx !== bMonthIdx) {
-          return bMonthIdx - aMonthIdx;
+        const normalizedAMonth = normalizeEthiopianMonth(a.month);
+        const normalizedBMonth = normalizeEthiopianMonth(b.month);
+        const aMonthIdx = ETHIOPIAN_MONTHS.indexOf(normalizedAMonth);
+        const bMonthIndex = ETHIOPIAN_MONTHS.indexOf(normalizedBMonth);
+        if (aMonthIdx !== bMonthIndex) {
+          return bMonthIndex - aMonthIdx;
         }
         return Number(b.day) - Number(a.day);
       })

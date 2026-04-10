@@ -14,11 +14,27 @@
       },
       "oauth_client": [
         {
+          "client_id": "1096965053624-4ontdri3nkueih60qo7k253llta7ljpd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ezraapp",
+            "certificate_hash": "ed09192c3612cdf385c3df8c60b83e95d9951a0d"
+          }
+        },
+        {
           "client_id": "1096965053624-rrvr1ce3iomajdf64k3jcfer9uf55js1.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.ezraapp",
             "certificate_hash": "4c7675848ea4f6b230ec8c65d255b2bca462f231"
+          }
+        },
+        {
+          "client_id": "1096965053624-ular98l8ukjltc37o4qbradrusroh9tk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ezraapp",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
           }
         },
         {

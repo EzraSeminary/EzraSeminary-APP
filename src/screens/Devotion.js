@@ -39,7 +39,7 @@ import {
   apiSlice,
 } from '../redux/api-slices/apiSlice';
 import {useDispatch} from 'react-redux';
-import {toEthiopian} from 'ethiopian-date';
+import {EthDateTime} from 'ethiopian-calendar-date-converter';
 import {useCachedImage} from '../utils/imageCache';
 import ErrorScreen from '../components/ErrorScreen';
 import PreviousDevotions from './DevotionScreens/PreviousDevotions';
@@ -59,27 +59,53 @@ import {
 } from '../utils/refreshCacheManager';
 import HighlightableBlock from '../components/HighlightableBlock';
 import HighlightableHtmlBlocks from '../components/HighlightableHtmlBlocks';
+import HighlightActionSheet from '../components/HighlightActionSheet';
 import usePersistentHighlights from '../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../utils/htmlBlocks';
 import {formatDevotionalForSharing} from '../utils/textFormatter';
 import useReaderFontScale from '../hooks/useReaderFontScale';
+import {
+  ETHIOPIAN_MONTHS,
+  normalizeEthiopianMonth,
+} from '../utils/ethiopianCalendar';
 
-const ethiopianMonths = [
-  '',
-  'መስከረም',
-  'ጥቅምት',
-  'ህዳር',
-  'ታህሳስ',
-  'ጥር',
-  'የካቲት',
-  'መጋቢት',
-  'ሚያዝያ',
-  'ግንቦት',
-  'ሰኔ',
-  'ሐምሌ',
-  'ነሐሴ',
-  'ጳጉሜ',
-];
+const toEthDate = date => {
+  const ethDateTime = EthDateTime.fromEuropeanDate(date);
+  const year = ethDateTime.year;
+  const month = ethDateTime.month;
+  const day = ethDateTime.date;
+  return {
+    year,
+    month,
+    day,
+    monthName: normalizeEthiopianMonth(ETHIOPIAN_MONTHS[month]),
+  };
+};
+
+const findDevotionWithOffset = (
+  devotions,
+  offset,
+  baseDate,
+  targetYear,
+  normalizeMonth,
+) => {
+  const date = new Date(baseDate);
+  date.setDate(baseDate.getDate() - offset);
+  const ethDate = toEthDate(date);
+  const targetYearNumber = Number(targetYear);
+
+  return devotions.find(devotion => {
+    const devotionYear = devotion?.year;
+    const hasYear = devotionYear !== undefined && devotionYear !== null;
+    const devotionYearNumber = Number(devotionYear);
+
+    return (
+      normalizeMonth(devotion.month) === ethDate.monthName &&
+      Number(devotion.day) === ethDate.day &&
+      (!hasYear || devotionYearNumber === targetYearNumber)
+    );
+  });
+};
 
 const Devotion = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -89,24 +115,75 @@ const Devotion = () => {
 
   // Get current Ethiopian date
   const today = new Date();
-  const [ethYear, ethMonth, ethDay] = toEthiopian(
-    today.getFullYear(),
-    today.getMonth() + 1,
-    today.getDate(),
-  );
-  const currentEthiopianMonth = ethiopianMonths[ethMonth];
+  const {year: ethYear, month: ethMonth, day: ethDay, monthName: currentEthiopianMonth} =
+    toEthDate(today);
   const yearToFetch = ethYear;
+  const alternateMonthName = useMemo(() => {
+    if (currentEthiopianMonth === 'ሚያዚያ') {
+      return 'ሚያዝያ';
+    }
+    if (currentEthiopianMonth === 'ሚያዝያ') {
+      return 'ሚያዚያ';
+    }
+    if (currentEthiopianMonth === 'ሐምሌ') {
+      return 'ሀምሌ';
+    }
+    if (currentEthiopianMonth === 'ሀምሌ') {
+      return 'ሐምሌ';
+    }
+    return null;
+  }, [currentEthiopianMonth]);
 
   // Fetch current month first for fast "today's devotion" render
   const {
-    data: featuredMonthDevotions = [],
-    isFetching: isFeaturedFetching,
-    error: featuredError,
-    refetch: refetchFeaturedMonthDevotions,
+    data: primaryMonthDevotions = [],
+    isFetching: isPrimaryFeaturedFetching,
+    error: primaryFeaturedError,
+    refetch: refetchPrimaryMonthDevotions,
   } = useGetDevotionsByYearAndMonthQuery({
     year: yearToFetch,
     month: currentEthiopianMonth,
   });
+  const {
+    data: alternateMonthDevotions = [],
+    isFetching: isAlternateFeaturedFetching,
+    error: alternateFeaturedError,
+    refetch: refetchAlternateMonthDevotions,
+  } = useGetDevotionsByYearAndMonthQuery(
+    {
+      year: yearToFetch,
+      month: alternateMonthName || '',
+    },
+    {skip: !alternateMonthName},
+  );
+  const featuredMonthDevotions = useMemo(() => {
+    const merged = [...primaryMonthDevotions, ...alternateMonthDevotions];
+    const getDevotionKey = devotion =>
+      devotion?._id ||
+      `${devotion?.year || 'legacy'}-${devotion?.month || ''}-${devotion?.day || ''}-${devotion?.title || ''}`;
+    const unique = merged.filter(
+      (item, index, arr) =>
+        index === arr.findIndex(other => getDevotionKey(other) === getDevotionKey(item)),
+    );
+    return unique.length > 0 ? unique : primaryMonthDevotions;
+  }, [primaryMonthDevotions, alternateMonthDevotions]);
+  const isFeaturedFetching =
+    isPrimaryFeaturedFetching || isAlternateFeaturedFetching;
+  const featuredError =
+    primaryFeaturedError && alternateFeaturedError
+      ? primaryFeaturedError
+      : primaryFeaturedError || alternateFeaturedError;
+  const refetchFeaturedMonthDevotions = useCallback(async () => {
+    const requests = [refetchPrimaryMonthDevotions()];
+    if (alternateMonthName) {
+      requests.push(refetchAlternateMonthDevotions());
+    }
+    return Promise.all(requests);
+  }, [
+    alternateMonthName,
+    refetchPrimaryMonthDevotions,
+    refetchAlternateMonthDevotions,
+  ]);
 
   // Fetch full list in background for "Discover Devotionals"
   const {
@@ -153,6 +230,9 @@ const Devotion = () => {
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [networkError, setNetworkError] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [floatingHighlightSheet, setFloatingHighlightSheet] = useState({
+    visible: false,
+  });
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [sharesCount, setSharesCount] = useState(0);
@@ -267,13 +347,31 @@ const Devotion = () => {
       return cachedHomeData?.devotionToDisplay || null;
     }
 
-    const normalizeMonth = month => String(month || '').trim();
-    const todaysDevotion = devotionsToUse.find(
-      devotion =>
-        normalizeMonth(devotion.month) ===
-          normalizeMonth(currentEthiopianMonth) &&
-        Number(devotion.day) === ethDay,
+    const normalizeMonth = month => normalizeEthiopianMonth(month);
+    const exactTodayDevotion = findDevotionWithOffset(
+      devotionsToUse,
+      0,
+      today,
+      yearToFetch,
+      normalizeMonth,
     );
+    const minusOneDevotion = findDevotionWithOffset(
+      devotionsToUse,
+      1,
+      today,
+      yearToFetch,
+      normalizeMonth,
+    );
+    const minusTwoDevotion = findDevotionWithOffset(
+      devotionsToUse,
+      2,
+      today,
+      yearToFetch,
+      normalizeMonth,
+    );
+
+    const todaysDevotion =
+      exactTodayDevotion || minusOneDevotion || minusTwoDevotion;
 
     // Log whether we found today's devotion or using fallback
     if (todaysDevotion) {
@@ -287,7 +385,14 @@ const Devotion = () => {
     }
 
     return todaysDevotion || devotionsToUse[0] || null;
-  }, [displayFeaturedDevotions, currentEthiopianMonth, ethDay, cachedHomeData]);
+  }, [
+    displayFeaturedDevotions,
+    currentEthiopianMonth,
+    ethDay,
+    cachedHomeData,
+    today,
+    yearToFetch,
+  ]);
 
   // Get cached image (must be called before conditional returns)
   const url = devotionToDisplay?.image ? `${devotionToDisplay.image}` : '';
@@ -302,7 +407,7 @@ const Devotion = () => {
       }`,
     [devotionToDisplay?._id, ethDay, ethMonth, ethYear],
   );
-  const {highlights, setHighlight, clearHighlight} =
+  const {highlights, inlineHighlights, setHighlight, clearHighlight, setInlineHighlight} =
     usePersistentHighlights(devotionHighlightKey);
   const devotionBodyBlocks = useMemo(
     () => extractHtmlBlocks(devotionToDisplay?.body || []),
@@ -1018,15 +1123,18 @@ const Devotion = () => {
             </HighlightableBlock>
           </View>
           <View style={tw`mt-8`}>
-            <HighlightableHtmlBlocks
-              blocks={devotionBodyBlocks}
-              darkMode={darkMode}
-              highlights={highlights}
-              onSelectColor={setHighlight}
-              onClearHighlight={clearHighlight}
-              stylesheet={tailwindStyles}
-              blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
-            />
+                  <HighlightableHtmlBlocks
+                    blocks={devotionBodyBlocks}
+                    darkMode={darkMode}
+                    highlights={highlights}
+                    inlineHighlights={inlineHighlights}
+                    onSelectColor={setHighlight}
+                    onSelectInlineColor={setInlineHighlight}
+                    onClearHighlight={clearHighlight}
+                    onFloatingSheetChange={setFloatingHighlightSheet}
+                    stylesheet={tailwindStyles}
+                    blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
+                  />
           </View>
           <View
             style={[
@@ -1324,6 +1432,36 @@ const Devotion = () => {
           )}
         </ScrollView>
       </SafeAreaView>
+
+      {floatingHighlightSheet?.visible ? (
+        <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+          <View
+            pointerEvents="box-none"
+            style={[tw`absolute left-3 right-3`, {bottom: 16}]}>
+            <HighlightActionSheet
+              visible={Boolean(floatingHighlightSheet?.visible)}
+              useModal={false}
+              darkMode={darkMode}
+              selectedCount={floatingHighlightSheet?.selectedCount || 0}
+              selectedText={floatingHighlightSheet?.selectedText || ''}
+              onClose={floatingHighlightSheet?.onClose || (() => {})}
+              onSelectColor={
+                floatingHighlightSheet?.onSelectColor || (async () => {})
+              }
+              onClearHighlights={
+                floatingHighlightSheet?.onClearHighlights || (async () => {})
+              }
+              onOpenFreeSelection={floatingHighlightSheet?.onOpenFreeSelection}
+              freeSelectionEnabled={Boolean(
+                floatingHighlightSheet?.freeSelectionEnabled,
+              )}
+              allowBlockHighlight={Boolean(
+                floatingHighlightSheet?.allowBlockHighlight,
+              )}
+            />
+          </View>
+        </View>
+      ) : null}
 
       {/* Share Modal */}
       <DevotionalShareModal

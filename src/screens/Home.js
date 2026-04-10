@@ -26,7 +26,7 @@ import {
 } from '../redux/api-slices/apiSlice';
 import networkManager from '../utils/networkManager';
 import HomeCurrentSSL from './SSLScreens/HomeCurrentSSL';
-import {toEthiopian} from 'ethiopian-date';
+import {EthDateTime} from 'ethiopian-calendar-date-converter';
 import NetInfo from '@react-native-community/netinfo';
 import DevotionCard from '../components/DevotionCard';
 import CourseCard from '../components/CourseCard';
@@ -51,25 +51,46 @@ import {
   Sparkle,
   Book,
 } from 'phosphor-react-native';
-
-const ethiopianMonths = [
-  '', // There is no month 0
-  'መስከረም',
-  'ጥቅምት',
-  'ህዳር',
-  'ታህሳስ',
-  'ጥር',
-  'የካቲት',
-  'መጋቢት',
-  'ሚያዝያ',
-  'ግንቦት',
-  'ሰኔ',
-  'ሐምሌ',
-  'ነሐሴ',
-  'ጳጉሜ', // 13th month
-];
+import {
+  ETHIOPIAN_MONTHS,
+  normalizeEthiopianMonth,
+} from '../utils/ethiopianCalendar';
 
 const {width} = Dimensions.get('window');
+
+const toEthDate = date => {
+  const ethDateTime = EthDateTime.fromEuropeanDate(date);
+  return {
+    year: ethDateTime.year,
+    month: ethDateTime.month,
+    day: ethDateTime.date,
+    monthName: normalizeEthiopianMonth(ETHIOPIAN_MONTHS[ethDateTime.month]),
+  };
+};
+
+const findDevotionWithOffset = (
+  devotions,
+  offset,
+  baseDate,
+  targetYear,
+  normalizeMonth,
+) => {
+  const date = new Date(baseDate);
+  date.setDate(baseDate.getDate() - offset);
+  const ethDate = toEthDate(date);
+  const targetYearNumber = Number(targetYear);
+
+  return devotions.find(devotion => {
+    const devotionYear = devotion?.year;
+    const hasYear = devotionYear !== undefined && devotionYear !== null;
+    const devotionYearNumber = Number(devotionYear);
+    return (
+      normalizeMonth(devotion?.month) === ethDate.monthName &&
+      Number(devotion?.day) === ethDate.day &&
+      (!hasYear || devotionYearNumber === targetYearNumber)
+    );
+  });
+};
 
 const Home = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -99,27 +120,66 @@ const Home = () => {
 
   // Get current Ethiopian date
   const today = new Date();
-  const [ethYear, ethMonth, ethDay] = toEthiopian(
-    today.getFullYear(),
-    today.getMonth() + 1,
-    today.getDate(),
-  );
-  const currentEthiopianYear = ethYear;
+  const {
+    year: currentEthiopianYear,
+    monthName: currentEthiopianMonth,
+  } = toEthDate(today);
   // Always fetch current Ethiopian year data for Home screen
   const yearToFetch = currentEthiopianYear;
-  const currentEthiopianMonth = ethiopianMonths[ethMonth];
+  const alternateMonthName = useMemo(() => {
+    if (currentEthiopianMonth === 'ሚያዚያ') return 'ሚያዝያ';
+    if (currentEthiopianMonth === 'ሚያዝያ') return 'ሚያዚያ';
+    if (currentEthiopianMonth === 'ሐምሌ') return 'ሀምሌ';
+    if (currentEthiopianMonth === 'ሀምሌ') return 'ሐምሌ';
+    return null;
+  }, [currentEthiopianMonth]);
 
   // Fetch only current month devotions for fast startup
   const {
-    data: devotions = [],
-    isFetching,
-    isLoading: devotionsLoading,
-    refetch: refetchDevotions,
-    error: devotionsError,
+    data: primaryMonthDevotions = [],
+    isFetching: isPrimaryDevotionsFetching,
+    isLoading: isPrimaryDevotionsLoading,
+    refetch: refetchPrimaryDevotions,
+    error: primaryDevotionsError,
   } = useGetDevotionsByYearAndMonthQuery(
     {year: yearToFetch, month: currentEthiopianMonth},
     {skip: !yearToFetch || !currentEthiopianMonth},
   );
+  const {
+    data: alternateMonthDevotions = [],
+    isFetching: isAlternateDevotionsFetching,
+    isLoading: isAlternateDevotionsLoading,
+    refetch: refetchAlternateDevotions,
+    error: alternateDevotionsError,
+  } = useGetDevotionsByYearAndMonthQuery(
+    {year: yearToFetch, month: alternateMonthName || ''},
+    {skip: !yearToFetch || !alternateMonthName},
+  );
+  const devotions = useMemo(() => {
+    const merged = [...primaryMonthDevotions, ...alternateMonthDevotions];
+    const keyFor = devotion =>
+      devotion?._id ||
+      `${devotion?.year || 'legacy'}-${devotion?.month || ''}-${devotion?.day || ''}-${devotion?.title || ''}`;
+    return merged.filter(
+      (item, index, arr) =>
+        index === arr.findIndex(other => keyFor(other) === keyFor(item)),
+    );
+  }, [primaryMonthDevotions, alternateMonthDevotions]);
+  const isFetching =
+    isPrimaryDevotionsFetching || isAlternateDevotionsFetching;
+  const devotionsLoading =
+    isPrimaryDevotionsLoading || isAlternateDevotionsLoading;
+  const devotionsError =
+    primaryDevotionsError && alternateDevotionsError
+      ? primaryDevotionsError
+      : primaryDevotionsError || alternateDevotionsError;
+  const refetchDevotions = useCallback(async () => {
+    const calls = [refetchPrimaryDevotions()];
+    if (alternateMonthName) {
+      calls.push(refetchAlternateDevotions());
+    }
+    return Promise.all(calls);
+  }, [alternateMonthName, refetchPrimaryDevotions, refetchAlternateDevotions]);
 
   const {
     data: courses = [],
@@ -545,14 +605,30 @@ const Home = () => {
     }
 
     if (devotionsToUse && devotionsToUse.length > 0) {
-      // Prefer exact match for today, fallback to first cached devotion.
-      const normalizeMonth = month => String(month || '').trim();
-      const todaysDevotion = devotionsToUse.find(
-        devotion =>
-          normalizeMonth(devotion.month) ===
-            normalizeMonth(currentEthiopianMonth) &&
-          Number(devotion.day) === ethDay,
+      const normalizeMonth = month => normalizeEthiopianMonth(month);
+      const exactTodayDevotion = findDevotionWithOffset(
+        devotionsToUse,
+        0,
+        today,
+        yearToFetch,
+        normalizeMonth,
       );
+      const minusOneDevotion = findDevotionWithOffset(
+        devotionsToUse,
+        1,
+        today,
+        yearToFetch,
+        normalizeMonth,
+      );
+      const minusTwoDevotion = findDevotionWithOffset(
+        devotionsToUse,
+        2,
+        today,
+        yearToFetch,
+        normalizeMonth,
+      );
+      const todaysDevotion =
+        exactTodayDevotion || minusOneDevotion || minusTwoDevotion;
       setSelectedDevotion(todaysDevotion || devotionsToUse[0] || null);
       if (__DEV__) {
         console.log('[Home] Devotion - Selected devotion:', {
@@ -575,7 +651,8 @@ const Home = () => {
     persistedDevotions,
     cachedData.devotions,
     currentEthiopianMonth,
-    ethDay,
+    today,
+    yearToFetch,
   ]);
 
   const getDataToDisplay = () => {

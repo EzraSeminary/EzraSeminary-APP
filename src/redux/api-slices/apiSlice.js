@@ -1,5 +1,8 @@
 import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
-import {normalizeDevotionsResponse} from '../../utils/apiResponse';
+import {
+  normalizeArrayResponse,
+  normalizeDevotionsResponse,
+} from '../../utils/apiResponse';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getApiBaseUrl} from '../../utils/apiBaseUrl';
 import {MOBILE_AUTH_PROVIDERS} from '../../config/authProviders';
@@ -371,16 +374,7 @@ export const apiSlice = createApi({
     getDevotionsByYearAndMonth: builder.query({
       query: ({year, month}) =>
         `/devotion/year/${year}/month/${encodeURIComponent(month)}`,
-      transformResponse: response => {
-        // Backend returns array of devotions for the month
-        if (Array.isArray(response)) {
-          return response;
-        }
-        if (response?.items && Array.isArray(response.items)) {
-          return response.items;
-        }
-        return [];
-      },
+      transformResponse: response => normalizeArrayResponse(response),
       // Cache month's devotions for 30 minutes
       keepUnusedDataFor: 1800,
       providesTags: (result, error, {year, month}) => [

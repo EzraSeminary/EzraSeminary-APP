@@ -23,23 +23,10 @@ import {
   useGetMonthsByYearQuery,
   useLazyGetDevotionsByYearAndMonthQuery,
 } from './../../redux/api-slices/apiSlice';
-
-// Utility function for Ethiopian month names
-const ethiopianMonths = [
-  'መስከረም',
-  'ጥቅምት',
-  'ህዳር',
-  'ታህሳስ',
-  'ጥር',
-  'የካቲት',
-  'መጋቢት',
-  'ሚያዚያ',
-  'ግንቦት',
-  'ሰኔ',
-  'ሐምሌ',
-  'ነሐሴ',
-  'ጳጉሜ',
-];
+import {
+  ETHIOPIAN_MONTHS,
+  normalizeEthiopianMonth,
+} from '../../utils/ethiopianCalendar';
 
 // Helper function to get thumbnail URL for smaller images (reduces bandwidth)
 const getThumbnailUrl = imageUrl => {
@@ -173,7 +160,11 @@ const AllDevotionals = ({navigation}) => {
   const getMonthDevotionsFromCache = month => {
     if (!allDevotions || allDevotions.length === 0) return [];
     return allDevotions
-      .filter(devotion => devotion.month === month)
+      .filter(
+        devotion =>
+          normalizeEthiopianMonth(devotion.month) ===
+          normalizeEthiopianMonth(month),
+      )
       .sort((a, b) => Number(a.day) - Number(b.day));
   };
 
@@ -198,7 +189,11 @@ const AllDevotionals = ({navigation}) => {
             );
             setAllDevotions(devotionsForYear);
             cachedMonthData = devotionsForYear
-              .filter(d => d.month === month)
+              .filter(
+                d =>
+                  normalizeEthiopianMonth(d.month) ===
+                  normalizeEthiopianMonth(month),
+              )
               .sort((a, b) => Number(a.day) - Number(b.day));
           }
         } catch (error) {
@@ -253,7 +248,7 @@ const AllDevotionals = ({navigation}) => {
   const sortedMonths =
     Array.isArray(monthsFromApi) && monthsFromApi.length > 0
       ? monthsFromApi
-      : ethiopianMonths;
+      : ETHIOPIAN_MONTHS.slice(1);
 
   // Handle month toggle
   const toggleMonth = useCallback(

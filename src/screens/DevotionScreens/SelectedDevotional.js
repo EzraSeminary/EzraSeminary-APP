@@ -40,6 +40,7 @@ import CommentsModal from '../../components/CommentsModal';
 import networkManager from '../../utils/networkManager';
 import HighlightableBlock from '../../components/HighlightableBlock';
 import HighlightableHtmlBlocks from '../../components/HighlightableHtmlBlocks';
+import HighlightActionSheet from '../../components/HighlightActionSheet';
 import {
   saveDevotionToCache,
   getCachedDevotion,
@@ -80,6 +81,9 @@ const SelectedDevotional = ({route}) => {
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [networkError, setNetworkError] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [floatingHighlightSheet, setFloatingHighlightSheet] = useState({
+    visible: false,
+  });
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [sharesCount, setSharesCount] = useState(0);
@@ -234,8 +238,13 @@ const SelectedDevotional = ({route}) => {
     () => `devotional:${devotional._id || devotionalId}`,
     [devotional._id, devotionalId],
   );
-  const {highlights, setHighlight, clearHighlight} =
-    usePersistentHighlights(highlightCacheKey);
+  const {
+    highlights,
+    inlineHighlights,
+    setHighlight,
+    clearHighlight,
+    setInlineHighlight,
+  } = usePersistentHighlights(highlightCacheKey);
   const devotionalBodyBlocks = useMemo(
     () => extractHtmlBlocks(devotional.body || []),
     [devotional.body],
@@ -750,8 +759,11 @@ const SelectedDevotional = ({route}) => {
               blocks={devotionalBodyBlocks}
               darkMode={darkMode}
               highlights={highlights}
+              inlineHighlights={inlineHighlights}
               onSelectColor={setHighlight}
+              onSelectInlineColor={setInlineHighlight}
               onClearHighlight={clearHighlight}
+              onFloatingSheetChange={setFloatingHighlightSheet}
               stylesheet={tailwindStyles}
               blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
             />
@@ -925,6 +937,36 @@ const SelectedDevotional = ({route}) => {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {floatingHighlightSheet?.visible ? (
+        <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+          <View
+            pointerEvents="box-none"
+            style={[tw`absolute left-3 right-3`, {bottom: 16}]}>
+            <HighlightActionSheet
+              visible={Boolean(floatingHighlightSheet?.visible)}
+              useModal={false}
+              darkMode={darkMode}
+              selectedCount={floatingHighlightSheet?.selectedCount || 0}
+              selectedText={floatingHighlightSheet?.selectedText || ''}
+              onClose={floatingHighlightSheet?.onClose || (() => {})}
+              onSelectColor={
+                floatingHighlightSheet?.onSelectColor || (async () => {})
+              }
+              onClearHighlights={
+                floatingHighlightSheet?.onClearHighlights || (async () => {})
+              }
+              onOpenFreeSelection={floatingHighlightSheet?.onOpenFreeSelection}
+              freeSelectionEnabled={Boolean(
+                floatingHighlightSheet?.freeSelectionEnabled,
+              )}
+              allowBlockHighlight={Boolean(
+                floatingHighlightSheet?.allowBlockHighlight,
+              )}
+            />
+          </View>
+        </View>
+      ) : null}
 
       {/* Share Modal */}
       <DevotionalShareModal

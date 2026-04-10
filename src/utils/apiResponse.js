@@ -7,7 +7,9 @@ export const normalizeArrayResponse = response => {
   if (Array.isArray(response.data)) return response.data;
   if (Array.isArray(response.items)) return response.items;
   if (Array.isArray(response.results)) return response.results;
+  if (Array.isArray(response.result)) return response.result;
   if (Array.isArray(response.devotions)) return response.devotions;
+  if (Array.isArray(response.rows)) return response.rows;
   if (Array.isArray(response.courses)) return response.courses;
   return [];
 };
