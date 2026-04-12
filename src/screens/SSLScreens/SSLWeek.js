@@ -291,7 +291,14 @@ const SSLWeek = ({route}) => {
     () => `ssl:${ssl}:${weekId}:${check}`,
     [check, ssl, weekId],
   );
-  const {highlights, setHighlight, clearHighlight} =
+  const {
+    highlights,
+    inlineHighlights,
+    setHighlight,
+    clearHighlight,
+    setInlineHighlight,
+    clearInlineHighlights,
+  } =
     usePersistentHighlights(highlightCacheKey);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
@@ -1003,8 +1010,11 @@ const SSLWeek = ({route}) => {
               blocks={contentBlocks}
               darkMode={darkMode}
               highlights={highlights}
+              inlineHighlights={inlineHighlights}
               onSelectColor={setHighlight}
+              onSelectInlineColor={setInlineHighlight}
               onClearHighlight={clearHighlight}
+              onClearInlineHighlights={clearInlineHighlights}
               stylesheet={styles}
               renderNode={renderNode}
               blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}

@@ -1,6 +1,10 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {Text, TextInput, View} from 'react-native';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Platform, Text, TextInput, View} from 'react-native';
 import {getHighlightColors} from '../utils/highlightPalette';
+import HighlightActionSheet from './HighlightActionSheet';
+
+const SELECTION_COLOR = 'rgba(234, 146, 21, 0.18)';
+const BLOCK_SEPARATOR = '\n\n';
 
 const buildBlockRanges = blocks => {
   let cursor = 0;
@@ -9,7 +13,7 @@ const buildBlockRanges = blocks => {
     const text = String(block?.text || '');
     const start = cursor;
     const end = start + text.length;
-    cursor = end + (index === source.length - 1 ? 0 : 2);
+    cursor = end + (index === source.length - 1 ? 0 : BLOCK_SEPARATOR.length);
 
     return {
       id: block.id,
@@ -141,11 +145,14 @@ const HighlightableHtmlBlocks = ({
 }) => {
   const [selection, setSelection] = useState({start: 0, end: 0});
   const [contentHeight, setContentHeight] = useState(240);
+  const [inputResetKey, setInputResetKey] = useState(0);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const inputRef = useRef(null);
 
   const blockRanges = useMemo(() => buildBlockRanges(blocks), [blocks]);
 
   const content = useMemo(
-    () => blockRanges.map(block => block.text).join('\n\n'),
+    () => blockRanges.map(block => block.text).join(BLOCK_SEPARATOR),
     [blockRanges],
   );
 
@@ -191,8 +198,14 @@ const HighlightableHtmlBlocks = ({
     [selectedBlockSelections],
   );
 
+  const isSelectionActive =
+    isInputFocused || selection.start !== selection.end;
+
   const clearSelection = useCallback(() => {
     setSelection({start: 0, end: 0});
+    setIsInputFocused(false);
+    inputRef.current?.blur?.();
+    setInputResetKey(previous => previous + 1);
   }, []);
 
   const applyInlineHighlight = useCallback(
@@ -276,6 +289,11 @@ const HighlightableHtmlBlocks = ({
       stylesheet?.p,
       {
         color: darkMode ? '#F8FAFC' : '#111827',
+        ...(Platform.OS === 'android'
+          ? {
+              includeFontPadding: false,
+            }
+          : null),
       },
     ],
     [darkMode, stylesheet?.p],
@@ -290,22 +308,37 @@ const HighlightableHtmlBlocks = ({
           minHeight: contentHeight,
         },
       ]}>
-      <View pointerEvents="none">{renderHighlightedText(content, globalRanges, darkMode, textStyle)}</View>
+      <View
+        pointerEvents="none"
+        style={{
+          opacity: isSelectionActive ? 0 : 1,
+        }}>
+        {renderHighlightedText(content, globalRanges, darkMode, textStyle)}
+      </View>
       <TextInput
+        key={inputResetKey}
+        ref={inputRef}
         multiline
         value={content}
         editable
         onChangeText={() => {}}
+        onFocus={() => setIsInputFocused(true)}
+        onBlur={() => setIsInputFocused(false)}
         onSelectionChange={({nativeEvent}) => {
           setSelection(nativeEvent.selection);
         }}
         onContentSizeChange={({nativeEvent}) => {
           setContentHeight(Math.max(240, nativeEvent.contentSize.height));
         }}
-        selectionColor="#EA9215"
+        selectionColor={SELECTION_COLOR}
         showSoftInputOnFocus={false}
         contextMenuHidden={false}
         scrollEnabled={false}
+        autoCorrect={false}
+        spellCheck={false}
+        autoComplete="off"
+        autoCapitalize="none"
+        underlineColorAndroid="transparent"
         style={[
           textStyle,
           {
@@ -314,12 +347,35 @@ const HighlightableHtmlBlocks = ({
             right: 0,
             bottom: 0,
             left: 0,
-            color: 'transparent',
+            color: isSelectionActive
+              ? darkMode
+                ? '#F8FAFC'
+                : '#111827'
+              : 'transparent',
             backgroundColor: 'transparent',
             includeFontPadding: false,
+            paddingTop: 0,
+            paddingBottom: 0,
+            paddingLeft: 0,
+            paddingRight: 0,
+            margin: 0,
+            textAlignVertical: 'top',
           },
         ]}
       />
+      {onFloatingSheetChange ? null : (
+        <HighlightActionSheet
+          visible={Boolean(selectedText)}
+          darkMode={darkMode}
+          selectedCount={selectedBlockSelections.length}
+          selectedText={selectedText}
+          onClose={clearSelection}
+          onSelectColor={applyInlineHighlight}
+          onClearHighlights={clearSelectedHighlights}
+          freeSelectionEnabled={false}
+          allowBlockHighlight={true}
+        />
+      )}
     </View>
   );
 };

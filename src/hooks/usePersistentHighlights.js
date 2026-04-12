@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_PREFIX = 'persistent_highlights_v1:';
@@ -43,6 +43,11 @@ const usePersistentHighlights = cacheKey => {
     inlineHighlights: {},
   });
   const [isLoaded, setIsLoaded] = useState(false);
+  const stateRef = useRef(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     let isMounted = true;
@@ -81,7 +86,14 @@ const usePersistentHighlights = cacheKey => {
   }, [cacheKey]);
 
   const persist = useCallback(
-    async nextState => {
+    async nextStateOrUpdater => {
+      const currentState = stateRef.current;
+      const nextState =
+        typeof nextStateOrUpdater === 'function'
+          ? nextStateOrUpdater(currentState)
+          : nextStateOrUpdater;
+
+      stateRef.current = nextState;
       setState(nextState);
 
       try {
@@ -98,40 +110,41 @@ const usePersistentHighlights = cacheKey => {
 
   const setHighlight = useCallback(
     async (blockId, colorId) => {
-      const nextState = {
-        ...state,
+      await persist(previousState => ({
+        ...previousState,
         blockHighlights: {
-          ...state.blockHighlights,
+          ...previousState.blockHighlights,
           [blockId]: colorId,
         },
-      };
-
-      await persist(nextState);
+      }));
     },
-    [state, persist],
+    [persist],
   );
 
   const clearHighlight = useCallback(
     async blockId => {
-      const hasBlockHighlight = Boolean(state.blockHighlights?.[blockId]);
+      const currentState = stateRef.current;
+      const hasBlockHighlight = Boolean(currentState.blockHighlights?.[blockId]);
       const hasInlineHighlight = Boolean(
-        state.inlineHighlights?.[blockId]?.length,
+        currentState.inlineHighlights?.[blockId]?.length,
       );
 
       if (!hasBlockHighlight && !hasInlineHighlight) {
         return;
       }
 
-      const nextState = {
-        ...state,
-        blockHighlights: {...state.blockHighlights},
-        inlineHighlights: {...state.inlineHighlights},
-      };
-      delete nextState.blockHighlights[blockId];
-      delete nextState.inlineHighlights[blockId];
-      await persist(nextState);
+      await persist(previousState => {
+        const nextState = {
+          ...previousState,
+          blockHighlights: {...previousState.blockHighlights},
+          inlineHighlights: {...previousState.inlineHighlights},
+        };
+        delete nextState.blockHighlights[blockId];
+        delete nextState.inlineHighlights[blockId];
+        return nextState;
+      });
     },
-    [state, persist],
+    [persist],
   );
 
   const setInlineHighlight = useCallback(
@@ -149,36 +162,41 @@ const usePersistentHighlights = cacheKey => {
         colorId,
         text: String(selectedText || ''),
       };
-      const existingForBlock = Array.isArray(state.inlineHighlights?.[blockId])
-        ? state.inlineHighlights[blockId]
-        : [];
+      await persist(previousState => {
+        const existingForBlock = Array.isArray(
+          previousState.inlineHighlights?.[blockId],
+        )
+          ? previousState.inlineHighlights[blockId]
+          : [];
 
-      const nextState = {
-        ...state,
-        inlineHighlights: {
-          ...state.inlineHighlights,
-          [blockId]: [...existingForBlock, nextRange],
-        },
-      };
-      await persist(nextState);
+        return {
+          ...previousState,
+          inlineHighlights: {
+            ...previousState.inlineHighlights,
+            [blockId]: [...existingForBlock, nextRange],
+          },
+        };
+      });
     },
-    [state, persist],
+    [persist],
   );
 
   const clearInlineHighlights = useCallback(
     async blockId => {
-      const existingForBlock = state.inlineHighlights?.[blockId];
+      const existingForBlock = stateRef.current.inlineHighlights?.[blockId];
       if (!existingForBlock || existingForBlock.length === 0) {
         return;
       }
-      const nextState = {
-        ...state,
-        inlineHighlights: {...state.inlineHighlights},
-      };
-      delete nextState.inlineHighlights[blockId];
-      await persist(nextState);
+      await persist(previousState => {
+        const nextState = {
+          ...previousState,
+          inlineHighlights: {...previousState.inlineHighlights},
+        };
+        delete nextState.inlineHighlights[blockId];
+        return nextState;
+      });
     },
-    [state, persist],
+    [persist],
   );
 
   return {
