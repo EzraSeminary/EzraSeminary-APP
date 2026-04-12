@@ -68,6 +68,7 @@ import {
   ETHIOPIAN_MONTHS,
   normalizeEthiopianMonth,
 } from '../utils/ethiopianCalendar';
+import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
 
 const toEthDate = date => {
   const ethDateTime = EthDateTime.fromEuropeanDate(date);
@@ -114,7 +115,7 @@ const Devotion = () => {
   const navigation = useNavigation();
 
   // Get current Ethiopian date
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const {year: ethYear, month: ethMonth, day: ethDay, monthName: currentEthiopianMonth} =
     toEthDate(today);
   const yearToFetch = ethYear;
@@ -913,6 +914,7 @@ const Devotion = () => {
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
       <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
+        <AndroidStatusBarSpacer minHeight={4} />
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={

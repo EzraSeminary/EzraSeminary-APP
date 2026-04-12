@@ -15,6 +15,7 @@ import {
   useDeleteUserMutation,
 } from '../../redux/api-slices/apiSlice';
 import {ArrowSquareLeft} from 'phosphor-react-native';
+import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 
 const AccountSettings = ({navigation}) => {
   const dispatch = useDispatch();
@@ -91,6 +92,7 @@ const AccountSettings = ({navigation}) => {
       <ScrollView
         contentContainerStyle={tw`items-center`}
         showsVerticalScrollIndicator={false}>
+        <AndroidStatusBarSpacer minHeight={4} />
         <View style={tw`w-92%`}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}

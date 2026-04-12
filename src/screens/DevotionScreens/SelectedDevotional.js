@@ -50,6 +50,7 @@ import usePersistentHighlights from '../../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../../utils/htmlBlocks';
 import {formatDevotionalForSharing} from '../../utils/textFormatter';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
+import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 
 const SelectedDevotional = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -625,6 +626,7 @@ const SelectedDevotional = ({route}) => {
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
       <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
+        <AndroidStatusBarSpacer minHeight={4} />
         <ScrollView
           showsVerticalScrollIndicator={false}
           ref={scrollViewRef}

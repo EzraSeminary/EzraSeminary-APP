@@ -36,6 +36,7 @@ import {
   getCachedHomeScreen,
 } from '../utils/homeScreenCache';
 import networkManager from '../utils/networkManager';
+import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
 
 // Tab Switcher Component - matching Devotion screen style
 const TabSwitcher = ({activeTab, setActiveTab, darkMode}) => (
@@ -410,6 +411,7 @@ const Course = () => {
     return (
       <View style={darkMode ? tw`bg-secondary-9` : null}>
         <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
+          <AndroidStatusBarSpacer minHeight={4} />
           <TabSwitcher
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -424,6 +426,7 @@ const Course = () => {
   return (
     <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
       <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
+        <AndroidStatusBarSpacer minHeight={4} />
         <TabSwitcher
           activeTab={activeTab}
           setActiveTab={setActiveTab}

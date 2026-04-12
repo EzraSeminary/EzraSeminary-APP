@@ -17,6 +17,9 @@ import {WebView} from 'react-native-webview';
 import RNFS from 'react-native-fs';
 import {PermissionsAndroid} from 'react-native';
 import Toast from 'react-native-toast-message';
+import Share from 'react-native-share';
+import ProgressBar from '../../components/ProgressBar';
+import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 
 const ExploreItemViewer = () => {
   const route = useRoute();
@@ -24,6 +27,7 @@ const ExploreItemViewer = () => {
   const {item} = route.params;
   const darkMode = useSelector(state => state.ui.darkMode);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const downloadInProgressRef = useRef(false);
   const webViewRef = useRef(null);
@@ -33,6 +37,7 @@ const ExploreItemViewer = () => {
   useEffect(() => {
     downloadInProgressRef.current = false;
     setIsDownloading(false);
+    setDownloadProgress(0);
     setLoading(true);
 
     // Clear any existing timeout
@@ -112,14 +117,15 @@ const ExploreItemViewer = () => {
 
     downloadInProgressRef.current = true;
     setIsDownloading(true);
+    setDownloadProgress(0);
 
     try {
       const fileName = item.fileName || `file.${item.fileType || 'pdf'}`;
       
       let downloadPath;
       if (Platform.OS === 'ios') {
-        // iOS: Save to Documents directory
-        downloadPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+        // iOS: Download to a temporary file, then hand off to the Files save sheet.
+        downloadPath = `${RNFS.TemporaryDirectoryPath}${fileName}`;
       } else {
         // Android: Use Downloads directory or fallback to app directory
         const androidVersion = Platform.Version;
@@ -143,17 +149,79 @@ const ExploreItemViewer = () => {
         fromUrl: item.fileUrl,
         toFile: downloadPath,
         progress: res => {
-          const progress = (res.bytesWritten / res.contentLength) * 100;
-          console.log(`Download progress: ${progress.toFixed(2)}%`);
+          const totalBytes = Number(res.contentLength) || 0;
+          const progress =
+            totalBytes > 0 ? res.bytesWritten / totalBytes : 0;
+          setDownloadProgress(progress);
+          console.log(`Download progress: ${(progress * 100).toFixed(2)}%`);
         },
       }).promise;
 
       if (downloadResult.statusCode === 200) {
-        Toast.show({
-          type: 'success',
-          text1: 'Download Complete',
-          text2: `File saved to ${Platform.OS === 'ios' ? 'Documents' : 'Downloads'}`,
-        });
+        const fileExists = await RNFS.exists(downloadPath);
+        const fileStats = fileExists ? await RNFS.stat(downloadPath) : null;
+        const hasDownloadedFile = fileExists && Number(fileStats?.size || 0) > 0;
+
+        if (!hasDownloadedFile) {
+          throw new Error('The file could not be saved to your device.');
+        }
+
+        setDownloadProgress(1);
+
+        if (Platform.OS === 'ios') {
+          const mimeType =
+            item.fileType === 'pdf'
+              ? 'application/pdf'
+              : item.fileType === 'ppt'
+              ? 'application/vnd.ms-powerpoint'
+              : 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+          const shareResult = await Share.open({
+            url: `file://${downloadPath}`,
+            type: mimeType,
+            saveToFiles: true,
+            failOnCancel: false,
+            title: item.title || fileName,
+          });
+
+          const wasDismissed = Boolean(
+            shareResult?.dismissedAction || shareResult?.success === false,
+          );
+
+          if (wasDismissed) {
+            try {
+              await RNFS.unlink(downloadPath);
+            } catch (cleanupError) {
+              console.warn(
+                'Failed to remove temporary iOS download file after cancel:',
+                cleanupError,
+              );
+            }
+            Toast.show({
+              type: 'info',
+              text1: 'Save Cancelled',
+              text2: 'The file was downloaded temporarily but not saved to Files.',
+            });
+            return;
+          }
+
+          Toast.show({
+            type: 'success',
+            text1: 'Download Complete',
+            text2: 'File saved using the Files save sheet.',
+          });
+
+          try {
+            await RNFS.unlink(downloadPath);
+          } catch (cleanupError) {
+            console.warn('Failed to remove temporary iOS download file:', cleanupError);
+          }
+        } else {
+          Toast.show({
+            type: 'success',
+            text1: 'Download Complete',
+            text2: 'File saved to Downloads',
+          });
+        }
       } else {
         throw new Error(`Download failed with status: ${downloadResult.statusCode}`);
       }
@@ -166,6 +234,7 @@ const ExploreItemViewer = () => {
       });
     } finally {
       setIsDownloading(false);
+      setTimeout(() => setDownloadProgress(0), 400);
       downloadInProgressRef.current = false;
     }
   };
@@ -311,6 +380,7 @@ const ExploreItemViewer = () => {
         tw`flex-1`,
         {backgroundColor: darkMode ? '#111827' : '#FFFFFF'},
       ]}>
+      <AndroidStatusBarSpacer minHeight={4} />
       {/* Header */}
       <View
         style={[
@@ -350,6 +420,29 @@ const ExploreItemViewer = () => {
 
       {/* Content */}
       <View style={tw`flex-1`}>
+        {isDownloading ? (
+          <View
+            style={[
+              tw`px-4 py-3 border-b`,
+              {
+                backgroundColor: darkMode ? '#1F2937' : '#FFF7ED',
+                borderBottomColor: darkMode ? '#374151' : '#FED7AA',
+              },
+            ]}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm mb-2`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              Downloading... {Math.round(downloadProgress * 100)}%
+            </Text>
+            <ProgressBar
+              progress={downloadProgress}
+              trackColor={darkMode ? '#374151' : '#FDE7C2'}
+              fillColor="#EA9215"
+            />
+          </View>
+        ) : null}
         {loading && (
           <View
             style={[

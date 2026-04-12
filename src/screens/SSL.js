@@ -19,6 +19,7 @@ import NetInfo from '@react-native-community/netinfo';
 import Toast from 'react-native-toast-message';
 import {saveHomeScreenToCache, getCachedHomeScreen} from '../utils/homeScreenCache';
 import networkManager from '../utils/networkManager';
+import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
 
 const SSL = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -132,6 +133,7 @@ const SSL = ({navigation}) => {
   return (
     <SafeAreaView style={[tw`flex-1`, darkMode ? tw`bg-secondary-9` : null]}>
       <View style={tw`flex-1  mx-auto w-[92%]`}>
+        <AndroidStatusBarSpacer minHeight={4} />
         {/* Header Section */}
         <View style={tw`flex flex-row justify-between my-4 px-4`}>
           <View style={tw`border-b border-accent-6`}>

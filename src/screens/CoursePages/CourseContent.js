@@ -18,6 +18,7 @@ import {
   CheckCircle,
   Circle,
   BookOpen,
+  LockSimple,
 } from 'phosphor-react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import ErrorScreen from '../../components/ErrorScreen';
@@ -27,6 +28,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import {getOptimizedImageUrl, useCachedImage} from '../../utils/imageCache';
 import {syncPendingCourseProgressForCourse} from '../../utils/courseProgress';
 import {updateUser} from '../../redux/authSlice';
+import Toast from 'react-native-toast-message';
+import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 
 const CourseContent = ({route}) => {
   const {courseId} = route.params;
@@ -157,12 +160,6 @@ const CourseContent = ({route}) => {
   const currentDataNumber = activeIndex + 1;
   const totalDataNumber = data.length;
 
-  // Helper function to determine if a chapter is unlocked
-  const isSlideUnlocked = index => {
-    if (!userProgress) return false; // No progress data, chapter is locked
-    return index <= userProgress.currentChapter; // Check if the chapter index is less than or equal to the current chapter
-  };
-
   const isChapterCompleted = index => {
     if (!userProgress || !Array.isArray(data) || !data[index]?.slides?.length) {
       return false;
@@ -179,6 +176,30 @@ const CourseContent = ({route}) => {
     const lastSlideIndex = Math.max((data[index]?.slides?.length || 1) - 1, 0);
     return (userProgress.currentSlide ?? 0) >= lastSlideIndex;
   };
+
+  const getUnlockedChapterIndex = () => {
+    if (!Array.isArray(data) || data.length === 0) {
+      return 0;
+    }
+
+    if (!userProgress || userProgress.currentChapter === undefined) {
+      return 0;
+    }
+
+    const safeCurrentChapter = Math.min(
+      Math.max(userProgress.currentChapter, 0),
+      data.length - 1,
+    );
+
+    if (isChapterCompleted(safeCurrentChapter)) {
+      return Math.min(safeCurrentChapter + 1, data.length - 1);
+    }
+
+    return safeCurrentChapter;
+  };
+
+  const unlockedChapterIndex = getUnlockedChapterIndex();
+  const isChapterUnlocked = index => index <= unlockedChapterIndex;
 
   const backButtonPress = () => {
     navigation.navigate('CourseHome');
@@ -235,6 +256,7 @@ const CourseContent = ({route}) => {
   return (
     <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
       <SafeAreaView>
+        <AndroidStatusBarSpacer minHeight={4} />
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -328,11 +350,21 @@ const CourseContent = ({route}) => {
               <View style={tw`border-b border-accent-6 h-4 flex-grow mt-5`} />
             </View>
             {data.map((chapter, index) => {
-              const unlocked = isSlideUnlocked(index);
+              const unlocked = isChapterUnlocked(index);
               const completed = isChapterCompleted(index);
               return (
                 <TouchableOpacity
                   onPress={() => {
+                    if (!unlocked) {
+                      Toast.show({
+                        type: 'info',
+                        text1: 'ምዕራፉ ተቆልፏል',
+                        text2:
+                          'ቀደም ያሉትን ምዕራፎች በመጀመሪያ ማጠናቀቅ ያስፈልጋል።',
+                      });
+                      return;
+                    }
+
                     navigation.navigate('SlideSample1', {
                       chapterTitle: chapter.chapter,
                       courseDescription: chapter.description,
@@ -342,13 +374,13 @@ const CourseContent = ({route}) => {
                     updateIndex(index);
                   }}
                   key={index}
-                  // disabled={!unlocked}
-                >
+                  activeOpacity={0.85}>
                   <View
                     style={[
                       tw`flex flex-row justify-between px-4 py-4 items-center rounded-2xl mt-3`,
                       {
                         backgroundColor: darkMode ? '#1F2937' : '#FFF7ED',
+                        opacity: unlocked ? 1 : 0.72,
                       },
                     ]}>
                     <View style={tw`flex`}>
@@ -366,6 +398,8 @@ const CourseContent = ({route}) => {
                     </View>
                     {completed ? (
                       <CheckCircle size={20} weight="fill" color={'#EA9215'} />
+                    ) : !unlocked ? (
+                      <LockSimple size={20} weight="bold" color={'#EA9215'} />
                     ) : (
                       <Circle size={20} color={'#EA9215'} />
                     )}

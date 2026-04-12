@@ -7,6 +7,7 @@ import {Provider, useSelector, useDispatch} from 'react-redux';
 import {PersistGate} from 'redux-persist/integration/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 import ToastComponent from './src/components/ToastComponent';
 import SplashScreen from './src/components/SplashScreen';
 import {store, persistor} from './src/redux/store';
@@ -258,8 +259,7 @@ const App = () => {
     const initializeNotifications = async () => {
       try {
         // Run notification startup tasks in sequence to avoid Android permission race conditions.
-        await NotificationService.requestPermissions();
-        await NotificationService.rescheduleNotificationsIfNeeded();
+        await NotificationService.ensureNotificationSetupOnAppStart();
         await RemotePush.init();
 
         const initialNotification = await notifee.getInitialNotification();
@@ -296,9 +296,11 @@ const App = () => {
   if (showSplash) {
     return (
       <Provider store={store}>
-        <PersistGate loading={null} persistor={persistor}>
-          <SplashScreen onFinish={handleSplashFinish} />
-        </PersistGate>
+        <SafeAreaProvider>
+          <PersistGate loading={null} persistor={persistor}>
+            <SplashScreen onFinish={handleSplashFinish} />
+          </PersistGate>
+        </SafeAreaProvider>
       </Provider>
     );
   }
@@ -309,62 +311,64 @@ const App = () => {
 
   return (
     <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <NavigationContainer ref={navigationRef}>
-          <Stack.Navigator
-            initialRouteName={initialRoute}
-            screenOptions={{
-              lazy: true,
-            }}>
-            <Stack.Screen
-              name="Welcome"
-              component={Welcome}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Signup"
-              component={Signup}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Login"
-              component={Login}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="MainTab"
-              component={MainTabNavigator}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="SelectedDevotional"
-              component={SelectedDevotional}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="SSLQuarter"
-              component={SSLQuarter}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="SSLWeek"
-              component={SSLWeek}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="InVerseQuarter"
-              component={InVerseQuarter}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="InVerseWeek"
-              component={InVerseWeek}
-              options={{headerShown: false}}
-            />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </PersistGate>
-      <ToastComponent />
+      <SafeAreaProvider>
+        <PersistGate loading={null} persistor={persistor}>
+          <NavigationContainer ref={navigationRef}>
+            <Stack.Navigator
+              initialRouteName={initialRoute}
+              screenOptions={{
+                lazy: true,
+              }}>
+              <Stack.Screen
+                name="Welcome"
+                component={Welcome}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="Signup"
+                component={Signup}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="Login"
+                component={Login}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="MainTab"
+                component={MainTabNavigator}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="SelectedDevotional"
+                component={SelectedDevotional}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="SSLQuarter"
+                component={SSLQuarter}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="SSLWeek"
+                component={SSLWeek}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="InVerseQuarter"
+                component={InVerseQuarter}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="InVerseWeek"
+                component={InVerseWeek}
+                options={{headerShown: false}}
+              />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </PersistGate>
+        <ToastComponent />
+      </SafeAreaProvider>
     </Provider>
   );
 };

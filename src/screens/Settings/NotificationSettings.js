@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   Alert,
-  Platform,
   ScrollView,
   SafeAreaView,
 } from 'react-native';
@@ -16,6 +15,7 @@ import NotificationService from '../../services/NotificationService';
 import {useGetDevotionsQuery} from '../../redux/api-slices/apiSlice';
 import {toEthiopian} from 'ethiopian-date';
 import {useNavigation} from '@react-navigation/native';
+import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 
 const NotificationSettings = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -24,8 +24,6 @@ const NotificationSettings = () => {
 
   const [notificationTime, setNotificationTime] = useState(new Date());
   const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
   const ethiopianMonths = [
     '',
     'መስከረም',
@@ -49,44 +47,12 @@ const NotificationSettings = () => {
 
   const initializeNotifications = async () => {
     try {
-      // Check permissions first to avoid unnecessary prompts
-      let hasPermission = await NotificationService.checkPermissionStatus();
-      if (!hasPermission) {
-        hasPermission = await NotificationService.requestPermissions();
-      }
-      if (!hasPermission) {
-        Alert.alert(
-          'Permission Required',
-          'Notifications are blocked. Please enable them in Android Settings > Apps > Ezra Seminary > Notifications.',
-          [{text: 'OK'}],
-        );
-        return;
-      }
-
-      // Load saved notification settings
       const settings = await NotificationService.getDailyNotificationSettings();
       const savedTime = new Date();
       savedTime.setHours(settings.time.hour, settings.time.minute, 0, 0);
       setNotificationTime(savedTime);
-
-      // Schedule notification: use Redux devotions if loaded, else fetch today's devotion from cache/API
-      let devotion = getCurrentDevotion();
-      if (!devotion) {
-        devotion = await NotificationService.getTodaysDevotion();
-      }
-      if (devotion) {
-        await NotificationService.scheduleDailyVerseNotification(
-          devotion,
-          settings.time,
-        );
-        if (!settings.enabled) {
-          await NotificationService.enableDailyNotifications(settings.time);
-        }
-      }
     } catch (error) {
       console.error('Error initializing notifications:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -219,28 +185,12 @@ const NotificationSettings = () => {
     navigation.goBack();
   };
 
-  if (isLoading) {
-    return (
-      <SafeAreaView
-        style={darkMode ? tw`bg-secondary-9 h-full` : tw`bg-primary-1 h-full`}>
-        <View style={tw`p-4`}>
-          <Text
-            style={[
-              tw`text-center`,
-              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-            ]}>
-            Loading notification settings...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView
       style={darkMode ? tw`bg-secondary-9 h-full` : tw`bg-primary-1 h-full`}>
       <ScrollView style={tw`flex-1`}>
         <View style={tw`p-4`}>
+          <AndroidStatusBarSpacer minHeight={4} />
           {/* Header */}
           <View style={tw`flex-row items-center mb-6`}>
             <TouchableOpacity onPress={handleBackPress} style={tw`mr-4`}>

@@ -9,6 +9,11 @@ import {Platform, PermissionsAndroid, AppState} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {toEthiopian} from 'ethiopian-date';
 
+const DAILY_NOTIFICATION_ENABLED_KEY = 'dailyNotificationEnabled';
+const DAILY_NOTIFICATION_TIME_KEY = 'dailyNotificationTime';
+const NOTIFICATION_BOOTSTRAP_KEY = 'notifications_bootstrapped_v1';
+const FIRST_INSTALL_TEST_KEY = 'notifications_first_install_test_sent_v1';
+
 class NotificationService {
   constructor() {
     this.lastScheduleError = null;
@@ -371,8 +376,8 @@ class NotificationService {
       );
 
       // Save settings
-      await AsyncStorage.setItem('dailyNotificationEnabled', 'true');
-      await AsyncStorage.setItem('dailyNotificationTime', JSON.stringify(time));
+      await AsyncStorage.setItem(DAILY_NOTIFICATION_ENABLED_KEY, 'true');
+      await AsyncStorage.setItem(DAILY_NOTIFICATION_TIME_KEY, JSON.stringify(time));
 
       return true;
     } catch (error) {
@@ -394,8 +399,8 @@ class NotificationService {
 
   async getDailyNotificationSettings() {
     try {
-      const enabled = await AsyncStorage.getItem('dailyNotificationEnabled');
-      const timeString = await AsyncStorage.getItem('dailyNotificationTime');
+      const enabled = await AsyncStorage.getItem(DAILY_NOTIFICATION_ENABLED_KEY);
+      const timeString = await AsyncStorage.getItem(DAILY_NOTIFICATION_TIME_KEY);
       // Default to 7:30 AM if no time is saved
       const time = timeString ? JSON.parse(timeString) : {hour: 7, minute: 30};
 
@@ -414,7 +419,7 @@ class NotificationService {
 
   async updateDailyNotificationTime(time) {
     try {
-      await AsyncStorage.setItem('dailyNotificationTime', JSON.stringify(time));
+      await AsyncStorage.setItem(DAILY_NOTIFICATION_TIME_KEY, JSON.stringify(time));
       // Also save in a backup key for persistence
       await AsyncStorage.setItem(
         'notification_time_backup',
@@ -430,7 +435,7 @@ class NotificationService {
 
   async enableDailyNotifications(time = {hour: 7, minute: 30}) {
     try {
-      await AsyncStorage.setItem('dailyNotificationEnabled', 'true');
+      await AsyncStorage.setItem(DAILY_NOTIFICATION_ENABLED_KEY, 'true');
       await this.updateDailyNotificationTime(time);
       console.log('Daily notifications enabled');
       return true;
@@ -442,8 +447,58 @@ class NotificationService {
 
   async disableDailyNotifications() {
     await this.cancelDailyVerseNotifications();
-    await AsyncStorage.setItem('dailyNotificationEnabled', 'false');
+    await AsyncStorage.setItem(DAILY_NOTIFICATION_ENABLED_KEY, 'false');
     console.log('Daily notifications disabled');
+  }
+
+  async ensureNotificationSetupOnAppStart() {
+    try {
+      const alreadyBootstrapped = await AsyncStorage.getItem(
+        NOTIFICATION_BOOTSTRAP_KEY,
+      );
+      const storedEnabledValue = await AsyncStorage.getItem(
+        DAILY_NOTIFICATION_ENABLED_KEY,
+      );
+      const savedSettings = await this.getDailyNotificationSettings();
+      const isFreshInstall = !alreadyBootstrapped && storedEnabledValue === null;
+
+      let hasPermission = await this.checkPermissionStatus();
+      if (!hasPermission) {
+        hasPermission = await this.requestPermissions();
+      }
+
+      if (!hasPermission) {
+        return false;
+      }
+
+      const defaultTime = savedSettings?.time || {hour: 7, minute: 30};
+
+      if (isFreshInstall) {
+        await this.enableDailyNotifications(defaultTime);
+      }
+
+      const devotion = await this.getTodaysDevotion();
+      if (devotion && (savedSettings.enabled || isFreshInstall)) {
+        await this.scheduleDailyVerseNotification(devotion, defaultTime);
+      }
+
+      if (isFreshInstall) {
+        const alreadySentTest = await AsyncStorage.getItem(FIRST_INSTALL_TEST_KEY);
+        if (!alreadySentTest && devotion) {
+          await this.showTestNotification(devotion);
+          await AsyncStorage.setItem(FIRST_INSTALL_TEST_KEY, 'true');
+        }
+      }
+
+      if (!alreadyBootstrapped) {
+        await AsyncStorage.setItem(NOTIFICATION_BOOTSTRAP_KEY, 'true');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error ensuring notification setup on app start:', error);
+      return false;
+    }
   }
 
   setupAppStateListener() {

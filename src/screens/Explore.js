@@ -33,6 +33,7 @@ import NetInfo from '@react-native-community/netinfo';
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 import RNFS from 'react-native-fs';
+import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
 import {Platform, PermissionsAndroid} from 'react-native';
 import {useCachedImage} from '../utils/imageCache';
 
@@ -158,6 +159,7 @@ const Explore = () => {
   return (
     <View style={darkMode ? tw`bg-secondary-9` : null}>
       <SafeAreaView style={tw`flex mx-auto w-[100%] h-100%`}>
+        <AndroidStatusBarSpacer minHeight={4} />
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={

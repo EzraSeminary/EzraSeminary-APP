@@ -25,6 +25,7 @@ import {
 import Toast from 'react-native-toast-message';
 import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 import UserAvatar from '../../components/UserAvatar';
+import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 
 const UserProfileUpdateScreen = ({navigation}) => {
   const dispatch = useDispatch();
@@ -269,6 +270,7 @@ const UserProfileUpdateScreen = ({navigation}) => {
       <ScrollView
         style={tw`flex mx-auto w-[92%]`}
         showsVerticalScrollIndicator={false}>
+        <AndroidStatusBarSpacer minHeight={4} />
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={tw`self-start`}>

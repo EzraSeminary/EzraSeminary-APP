@@ -10,6 +10,7 @@ import React from 'react';
 import tw from './../../../tailwind';
 import {useSelector} from 'react-redux';
 import {ArrowSquareLeft} from 'phosphor-react-native';
+import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 
 const AppInfo = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -26,6 +27,7 @@ const AppInfo = ({navigation}) => {
           tw`flex-1 items-center px-4 bg-primary-1`,
           darkMode && tw`bg-secondary-9`,
         ]}>
+        <AndroidStatusBarSpacer minHeight={4} />
         <View style={styles.container}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}

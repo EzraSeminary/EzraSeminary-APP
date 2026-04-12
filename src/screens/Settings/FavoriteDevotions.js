@@ -12,6 +12,7 @@ import {useSelector} from 'react-redux';
 import tw from './../../../tailwind';
 import DevotionCard from '../../components/DevotionCard';
 import {useGetDevotionsQuery} from '../../redux/api-slices/apiSlice';
+import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 
 const FavoriteDevotions = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -32,6 +33,7 @@ const FavoriteDevotions = ({navigation}) => {
   if (!user) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 flex-1` : tw`flex-1`}>
+        <AndroidStatusBarSpacer minHeight={4} />
         <View style={tw`px-5 pt-5`}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <ArrowLeft size={24} color="#EA9215" weight="bold" />
@@ -59,6 +61,7 @@ const FavoriteDevotions = ({navigation}) => {
 
   return (
     <SafeAreaView style={darkMode ? tw`bg-secondary-9 flex-1` : tw`flex-1`}>
+      <AndroidStatusBarSpacer minHeight={4} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={tw`px-5 pt-5 pb-8`}>

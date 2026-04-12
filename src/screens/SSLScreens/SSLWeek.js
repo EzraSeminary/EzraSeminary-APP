@@ -51,6 +51,7 @@ import usePersistentHighlights from '../../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../../utils/htmlBlocks';
 import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
+import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 
 const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
   const [noteText, setNoteText] = useState(initialText || '');
@@ -757,7 +758,7 @@ const SSLWeek = ({route}) => {
               width: containerWidth,
               maxWidth: containerWidth,
               marginTop: scaled(8),
-              marginBottom: scaled(18),
+              marginBottom: scaled(24),
             },
           ]}>
           <View
@@ -814,26 +815,30 @@ const SSLWeek = ({route}) => {
               style={{
                 marginTop: scaled(12),
                 paddingTop: scaled(10),
+                paddingBottom: scaled(6),
                 borderTopWidth: 1,
                 borderTopColor: darkMode ? '#4B5563' : '#D1D5DB',
                 gap: scaled(8),
               }}>
-              <View style={tw`w-full`}>
-                <Text
-                  style={[
-                    tw`font-nokia-bold`,
-                    darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                    {
-                      fontSize: scaled(16),
-                      lineHeight: scaled(24),
-                      textDecorationLine: 'underline',
-                      textDecorationColor: '#EA9215',
-                      textDecorationStyle: 'solid',
-                    },
-                  ]}>
-                  {noteText || ''}
-                </Text>
-              </View>
+              {noteText ? (
+                <View style={tw`w-full`}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                      {
+                        fontSize: scaled(16),
+                        lineHeight: scaled(24),
+                        textDecorationLine: 'underline',
+                        textDecorationColor: '#EA9215',
+                        textDecorationStyle: 'solid',
+                        flexWrap: 'wrap',
+                      },
+                    ]}>
+                    {noteText}
+                  </Text>
+                </View>
+              ) : null}
               <TouchableOpacity
                 onPress={() => setActiveNoteId(noteId)}
                 style={tw`self-start px-3 py-1 rounded-full bg-accent-6`}>
@@ -873,6 +878,7 @@ const SSLWeek = ({route}) => {
 
   return (
     <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
+      <AndroidStatusBarSpacer minHeight={4} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         ref={scrollRef}

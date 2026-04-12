@@ -119,7 +119,7 @@ const Home = () => {
   const persistedCourses = useSelector(state => state.courses);
 
   // Get current Ethiopian date
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const {
     year: currentEthiopianYear,
     monthName: currentEthiopianMonth,
@@ -1026,7 +1026,6 @@ const Home = () => {
       dispatch,
       loadCachedData,
       saveCachedData,
-      CACHE_KEY,
       cachedData.courses,
       cachedData.devotions,
       persistedCourses,
@@ -1377,7 +1376,7 @@ const Home = () => {
                       tw`font-nokia-bold text-xs text-center mb-4`,
                       darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
                     ]}>
-                    Unable to load today's devotional. Check your connection.
+                    Today's devotional data could not be loaded.
                   </Text>
                   <TouchableOpacity
                     style={tw`self-center px-4 py-2 rounded-full bg-accent-6`}

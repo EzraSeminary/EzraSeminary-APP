@@ -32,6 +32,7 @@ import {format} from 'date-fns';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
+import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 
 // Replace the NoteBox component with this simpler version
 const NoteInput = ({darkMode}) => {
@@ -545,9 +546,6 @@ const InVerseWeek = ({route}) => {
 
         const screenWidth = Dimensions.get('window').width;
         const containerWidth = screenWidth - 32;
-        const androidNoteSpacing =
-          Platform.OS === 'android' ? scaleTextSize(42) : 0;
-
         return (
           <View
             key={noteId}
@@ -556,7 +554,7 @@ const InVerseWeek = ({route}) => {
                 width: containerWidth,
                 maxWidth: containerWidth,
                 marginTop: scaleTextSize(8),
-                marginBottom: scaleTextSize(18) + androidNoteSpacing,
+                marginBottom: scaleTextSize(24),
               },
             ]}>
             <View
@@ -613,25 +611,28 @@ const InVerseWeek = ({route}) => {
             <View
               style={{
                 marginTop: scaleTextSize(8),
-                paddingBottom: scaleTextSize(6) + androidNoteSpacing,
+                paddingBottom: scaleTextSize(8),
               }}>
               <View style={{gap: scaleTextSize(6)}}>
-                <View style={tw`w-full`}>
-                <Text
-                  style={[
-                    tw`font-nokia-bold`,
-                    darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                    {
-                      fontSize: scaleTextSize(16),
-                      lineHeight: scaleTextSize(24),
-                      textDecorationLine: 'underline',
-                      textDecorationColor: '#EA9215',
-                      textDecorationStyle: 'solid',
-                      },
-                    ]}>
-                    {noteText || ''}
-                  </Text>
-                </View>
+                {noteText ? (
+                  <View style={tw`w-full`}>
+                    <Text
+                      style={[
+                        tw`font-nokia-bold`,
+                        darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                        {
+                          fontSize: scaleTextSize(16),
+                          lineHeight: scaleTextSize(24),
+                          textDecorationLine: 'underline',
+                          textDecorationColor: '#EA9215',
+                          textDecorationStyle: 'solid',
+                          flexWrap: 'wrap',
+                        },
+                      ]}>
+                      {noteText}
+                    </Text>
+                  </View>
+                ) : null}
                 <TouchableOpacity
                   onPress={() => setActiveNoteId(noteId)}
                   style={tw`self-start px-3 py-1 rounded-full bg-accent-6`}>
@@ -670,6 +671,7 @@ const InVerseWeek = ({route}) => {
       setActiveNoteId,
       handleSaveNote,
       activeNoteId,
+      scaleTextSize,
     ],
   );
 
@@ -687,6 +689,7 @@ const InVerseWeek = ({route}) => {
   if ((isQuarterLoading || isWeekLoading) && !loadingTimeout) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
+        <AndroidStatusBarSpacer minHeight={4} />
         <View
           style={[
             tw`mx-4 mt-4 p-3 rounded-3 border flex-row items-center`,
@@ -780,6 +783,7 @@ const InVerseWeek = ({route}) => {
 
   return (
     <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
+      <AndroidStatusBarSpacer minHeight={4} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         ref={scrollRef}

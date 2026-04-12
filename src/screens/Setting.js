@@ -32,10 +32,10 @@ import {
   Heart,
 } from 'phosphor-react-native';
 import {useGetSSLsQuery} from '../services/SabbathSchoolApi';
-import NotificationSettings from '../screens/Settings/NotificationSettings';
 import UserAvatar from '../components/UserAvatar';
 import CacheChecker from '../components/CacheChecker';
 import useReaderFontScale from '../hooks/useReaderFontScale';
+import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
 
 const Setting = ({navigation}) => {
   const dispatch = useDispatch();
@@ -175,6 +175,7 @@ const Setting = ({navigation}) => {
       <ScrollView
         contentContainerStyle={tw`items-center px-4`}
         showsVerticalScrollIndicator={false}>
+        <AndroidStatusBarSpacer minHeight={4} />
         <Animated.View
           style={[
             tw`w-full`,
