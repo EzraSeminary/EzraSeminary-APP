@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Platform, Text, TextInput, View} from 'react-native';
+import HTMLView from 'react-native-htmlview';
 import {getHighlightColors} from '../utils/highlightPalette';
 import HighlightActionSheet from './HighlightActionSheet';
 
@@ -130,6 +131,19 @@ const renderHighlightedText = (content, ranges, darkMode, textStyle) => {
   );
 };
 
+const buildLocalRanges = (blockRange, globalRanges) =>
+  (Array.isArray(globalRanges) ? globalRanges : [])
+    .filter(
+      range =>
+        range.start < blockRange.end && range.end > blockRange.start,
+    )
+    .map(range => ({
+      ...range,
+      start: Math.max(0, range.start - blockRange.start),
+      end: Math.min(blockRange.end, range.end) - blockRange.start,
+    }))
+    .filter(range => range.end > range.start);
+
 const HighlightableHtmlBlocks = ({
   blocks,
   darkMode,
@@ -140,11 +154,17 @@ const HighlightableHtmlBlocks = ({
   onClearHighlight,
   onClearInlineHighlights,
   stylesheet,
+  renderNode,
   blockContainerStyle,
   onFloatingSheetChange,
+  renderHtmlBlocksWhenIdle = false,
+  keepDisplayVisibleDuringSelection = false,
+  selectionSurfaceEditable = true,
+  minContentHeight = 240,
+  renderBlockDisplay,
 }) => {
   const [selection, setSelection] = useState({start: 0, end: 0});
-  const [contentHeight, setContentHeight] = useState(240);
+  const [contentHeight, setContentHeight] = useState(minContentHeight);
   const [inputResetKey, setInputResetKey] = useState(0);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const inputRef = useRef(null);
@@ -299,6 +319,66 @@ const HighlightableHtmlBlocks = ({
     [darkMode, stylesheet?.p],
   );
 
+  const renderedBlocks = useMemo(() => {
+    return (Array.isArray(blocks) ? blocks : []).map(block => {
+      const blockRange = blockRanges.find(range => range.id === block.id);
+      const localRanges = blockRange
+        ? buildLocalRanges(blockRange, globalRanges)
+        : [];
+      const hasHighlights = localRanges.length > 0;
+
+      if (typeof renderBlockDisplay === 'function') {
+        return (
+          <View key={block.id} pointerEvents="box-none">
+            {renderBlockDisplay({
+              block,
+              localRanges,
+              darkMode,
+              textStyle,
+            })}
+          </View>
+        );
+      }
+
+      if (renderHtmlBlocksWhenIdle && block?.html && !hasHighlights) {
+        return (
+          <View key={block.id} pointerEvents="box-none">
+            <HTMLView
+              value={block.html}
+              stylesheet={stylesheet}
+              renderNode={renderNode}
+              addLineBreaks={false}
+            />
+          </View>
+        );
+      }
+
+      return (
+        <View key={block.id} pointerEvents="box-none">
+          {renderHighlightedText(
+            block?.text || '',
+            localRanges,
+            darkMode,
+            textStyle,
+          )}
+        </View>
+      );
+    });
+  }, [
+    blocks,
+    blockRanges,
+    darkMode,
+    globalRanges,
+    renderHtmlBlocksWhenIdle,
+    renderBlockDisplay,
+    renderNode,
+    stylesheet,
+    textStyle,
+  ]);
+
+  const shouldRenderBlockDisplay =
+    typeof renderBlockDisplay === 'function' || renderHtmlBlocksWhenIdle;
+
   return (
     <View
       style={[
@@ -308,19 +388,12 @@ const HighlightableHtmlBlocks = ({
           minHeight: contentHeight,
         },
       ]}>
-      <View
-        pointerEvents="none"
-        style={{
-          opacity: isSelectionActive ? 0 : 1,
-        }}>
-        {renderHighlightedText(content, globalRanges, darkMode, textStyle)}
-      </View>
       <TextInput
         key={inputResetKey}
         ref={inputRef}
         multiline
         value={content}
-        editable
+        editable={selectionSurfaceEditable}
         onChangeText={() => {}}
         onFocus={() => setIsInputFocused(true)}
         onBlur={() => setIsInputFocused(false)}
@@ -328,7 +401,9 @@ const HighlightableHtmlBlocks = ({
           setSelection(nativeEvent.selection);
         }}
         onContentSizeChange={({nativeEvent}) => {
-          setContentHeight(Math.max(240, nativeEvent.contentSize.height));
+          setContentHeight(
+            Math.max(minContentHeight, nativeEvent.contentSize.height),
+          );
         }}
         selectionColor={SELECTION_COLOR}
         showSoftInputOnFocus={false}
@@ -348,9 +423,11 @@ const HighlightableHtmlBlocks = ({
             bottom: 0,
             left: 0,
             color: isSelectionActive
-              ? darkMode
-                ? '#F8FAFC'
-                : '#111827'
+              ? keepDisplayVisibleDuringSelection
+                ? 'transparent'
+                : darkMode
+                  ? '#F8FAFC'
+                  : '#111827'
               : 'transparent',
             backgroundColor: 'transparent',
             includeFontPadding: false,
@@ -363,6 +440,16 @@ const HighlightableHtmlBlocks = ({
           },
         ]}
       />
+      <View
+        pointerEvents="box-none"
+        style={{
+          opacity:
+            isSelectionActive && !keepDisplayVisibleDuringSelection ? 0 : 1,
+        }}>
+        {shouldRenderBlockDisplay
+          ? renderedBlocks
+          : renderHighlightedText(content, globalRanges, darkMode, textStyle)}
+      </View>
       {onFloatingSheetChange ? null : (
         <HighlightActionSheet
           visible={Boolean(selectedText)}

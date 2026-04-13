@@ -44,6 +44,7 @@ import HtmlContent from '../../components/HtmlContent';
 import HighlightableHtmlBlocks from '../../components/HighlightableHtmlBlocks';
 import tw from './../../../tailwind';
 import LinearGradient from 'react-native-linear-gradient';
+import HTMLView from 'react-native-htmlview';
 import ErrorScreen from '../../components/ErrorScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {format} from 'date-fns';
@@ -52,6 +53,192 @@ import {extractHtmlBlocks} from '../../utils/htmlBlocks';
 import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
+import HighlightActionSheet from '../../components/HighlightActionSheet';
+import {getHighlightColors} from '../../utils/highlightPalette';
+
+const decodeHtmlEntities = text =>
+  (text || '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+
+const normalizeInlineText = text => decodeHtmlEntities(text || '');
+
+const stripInlineHtml = html =>
+  normalizeInlineText(
+    (html || '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, ''),
+  );
+
+const VERSE_LINK_REGEX =
+  /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+const GENERIC_VERSE_REFERENCE_REGEX =
+  /(?:[1-4፩-፬]\s*)?[A-Za-z\u1200-\u137F]+(?:[.\-][A-Za-z\u1200-\u137F]+)*(?:\s+[A-Za-z\u1200-\u137F]+(?:[.\-][A-Za-z\u1200-\u137F]+)*)?\s+\d+:\d+(?:-\d+)?/g;
+
+const readHtmlAttribute = (attributes, name) => {
+  const pattern = new RegExp(
+    `${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`,
+    'i',
+  );
+  const match = String(attributes || '').match(pattern);
+  return match?.[1] || match?.[2] || match?.[3] || '';
+};
+
+const hasVerseClass = classValue =>
+  String(classValue || '')
+    .toLowerCase()
+    .split(/\s+/)
+    .includes('verse');
+
+const resolveVerseReference = attributes => {
+  const verseValue =
+    attributes?.verse ||
+    attributes?.['data-verse'] ||
+    attributes?.['data-verse-id'] ||
+    '';
+  const normalizedHref = String(attributes?.href || '')
+    .replace(/^#/, '')
+    .trim();
+
+  return String(
+    verseValue ||
+      (normalizedHref && !/^https?:/i.test(normalizedHref) ? normalizedHref : ''),
+  ).trim();
+};
+
+const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const normalizeVerseLookupKey = value =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[“”"'/\\()[\]{}.,;፣፤፥፦፧።]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const extractVerseAddress = value => {
+  const match = String(value || '').match(/\d+:\d+(?:-\d+)?/);
+  return match?.[0] || '';
+};
+
+const splitTextByVersePattern = (text, versePattern) => {
+  const input = String(text || '');
+
+  if (!input) {
+    return [];
+  }
+
+  const regexes = [];
+  if (versePattern) {
+    regexes.push(new RegExp(versePattern.source, versePattern.flags));
+  }
+  regexes.push(new RegExp(GENERIC_VERSE_REFERENCE_REGEX.source, 'g'));
+
+  const parts = [];
+  let consumed = 0;
+
+  while (consumed < input.length) {
+    let earliestMatch = null;
+
+    regexes.forEach(regex => {
+      regex.lastIndex = consumed;
+      const match = regex.exec(input);
+      if (!match) {
+        return;
+      }
+
+      if (
+        !earliestMatch ||
+        (match.index ?? 0) < (earliestMatch.index ?? 0)
+      ) {
+        earliestMatch = match;
+      }
+    });
+
+    if (!earliestMatch) {
+      parts.push({text: input.slice(consumed)});
+      break;
+    }
+
+    const verseText = earliestMatch[0];
+    const matchIndex = earliestMatch.index ?? 0;
+
+    if (matchIndex > consumed) {
+      parts.push({text: input.slice(consumed, matchIndex)});
+    }
+
+    parts.push({
+      text: verseText,
+      verseRef: verseText,
+    });
+    consumed = matchIndex + verseText.length;
+  }
+
+  return parts.filter(part => part.text);
+};
+
+const parseParagraphDisplayParts = html => {
+  const innerHtml = String(html || '')
+    .replace(/^<p[^>]*>/i, '')
+    .replace(/<\/p>$/i, '');
+
+  const parts = [];
+  let cursor = 0;
+  let match;
+
+  while ((match = VERSE_LINK_REGEX.exec(innerHtml)) !== null) {
+    const [fullMatch, attributes = '', anchorHtml = ''] = match;
+    const matchStart = match.index;
+
+    if (matchStart > cursor) {
+      const beforeHtml = innerHtml.slice(cursor, matchStart);
+      const beforeText = stripInlineHtml(beforeHtml);
+      if (beforeText) {
+        parts.push({text: beforeText});
+      }
+    }
+
+    const classValue = readHtmlAttribute(attributes, 'class');
+    const verseValue =
+      readHtmlAttribute(attributes, 'verse') ||
+      readHtmlAttribute(attributes, 'data-verse') ||
+      readHtmlAttribute(attributes, 'data-verse-id');
+    const hrefValue = readHtmlAttribute(attributes, 'href');
+    const anchorText = stripInlineHtml(anchorHtml);
+    const normalizedHref = hrefValue.replace(/^#/, '').trim();
+    const resolvedVerseRef =
+      verseValue.trim() ||
+      (normalizedHref && !/^https?:/i.test(normalizedHref)
+        ? normalizedHref
+        : '');
+
+    if (
+      anchorText &&
+      (hasVerseClass(classValue) || resolvedVerseRef)
+    ) {
+      parts.push({
+        text: anchorText,
+        verseRef: resolvedVerseRef || anchorText,
+      });
+    } else if (anchorText) {
+      parts.push({text: anchorText});
+    }
+
+    cursor = matchStart + fullMatch.length;
+  }
+
+  if (cursor < innerHtml.length) {
+    const tailText = stripInlineHtml(innerHtml.slice(cursor));
+    if (tailText) {
+      parts.push({text: tailText});
+    }
+  }
+
+  return parts.filter(part => part.text);
+};
 
 const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
   const [noteText, setNoteText] = useState(initialText || '');
@@ -173,6 +360,9 @@ const SSLWeek = ({route}) => {
   const [cachedSSLWeek, setCachedSSLWeek] = useState(null);
   const [cachedSSLQuarter, setCachedSSLQuarter] = useState(null);
   const [isUsingCache, setIsUsingCache] = useState(false);
+  const [floatingHighlightSheet, setFloatingHighlightSheet] = useState({
+    visible: false,
+  });
 
   const {
     data: SSLQuarter,
@@ -250,6 +440,64 @@ const SSLWeek = ({route}) => {
     () => extractHtmlBlocks(sanitizedContent),
     [sanitizedContent],
   );
+  const contentSegments = useMemo(() => {
+    const isHighlightableBlock = block => {
+      const html = String(block?.html || '').trim();
+      const normalizedHtml = html.toLowerCase();
+
+      if (!normalizedHtml.startsWith('<p')) {
+        return false;
+      }
+
+      if (normalizedHtml.includes('supplemental egw notes')) {
+        return false;
+      }
+
+      return true;
+    };
+
+    const segments = [];
+    let currentHighlightableBlocks = [];
+
+    contentBlocks.forEach(block => {
+      if (isHighlightableBlock(block)) {
+        const displayParts = parseParagraphDisplayParts(block.html);
+        const normalizedText = displayParts.map(part => part.text).join('');
+
+        currentHighlightableBlocks.push({
+          ...block,
+          text: normalizedText || block.text,
+          displayParts,
+        });
+        return;
+      }
+
+      if (currentHighlightableBlocks.length > 0) {
+        segments.push({
+          id: `highlight-group-${segments.length}`,
+          type: 'highlightable',
+          blocks: currentHighlightableBlocks,
+        });
+        currentHighlightableBlocks = [];
+      }
+
+      segments.push({
+        id: `static-block-${block.id}`,
+        type: 'static',
+        block,
+      });
+    });
+
+    if (currentHighlightableBlocks.length > 0) {
+      segments.push({
+        id: `highlight-group-${segments.length}`,
+        type: 'highlightable',
+        blocks: currentHighlightableBlocks,
+      });
+    }
+
+    return segments;
+  }, [contentBlocks]);
 
   const year = ssl.substring(0, 4);
   const quarter = ssl.substring(5, 7);
@@ -286,6 +534,10 @@ const SSLWeek = ({route}) => {
     scrollRef.current?.scrollTo({y: 0, animated: true});
   }, [check]);
 
+  useEffect(() => {
+    scrollRef.current?.scrollTo({y: 0, animated: false});
+  }, [weekId, displaySSLWeek?.date]);
+
   const darkMode = useSelector(state => state.ui.darkMode);
   const highlightCacheKey = useMemo(
     () => `ssl:${ssl}:${weekId}:${check}`,
@@ -318,22 +570,174 @@ const SSLWeek = ({route}) => {
     };
   }, [isQuarterLoading, isWeekLoading]);
 
-  const handleVerseClick = verseKey => {
+  const handleVerseClick = useCallback(verseKey => {
     const weekData = displaySSLWeek;
-    if (
-      weekData &&
-      weekData.bible &&
-      weekData.bible.length > 0 &&
-      weekData.bible[[0]].verses &&
-      weekData.bible[[0]].verses[verseKey]
-    ) {
-      setSelectedVerseKey(verseKey);
-      setSelectedVerseContent(weekData.bible[[0]].verses[verseKey]);
-      setIsModalOpen(true);
-    } else {
+    const verses = weekData?.bible?.[0]?.verses || {};
+    const verseKeys = Object.keys(verses);
+
+    if (!verseKeys.length) {
       console.error(`Verse key "${verseKey}" not found`);
+      return;
     }
-  };
+
+    if (verses[verseKey]) {
+      setSelectedVerseKey(verseKey);
+      setSelectedVerseContent(verses[verseKey]);
+      setIsModalOpen(true);
+      return;
+    }
+
+    const normalizedRequested = normalizeVerseLookupKey(verseKey);
+    const requestedAddress = extractVerseAddress(verseKey);
+
+    const resolvedKey =
+      verseKeys.find(key => normalizeVerseLookupKey(key) === normalizedRequested) ||
+      verseKeys.find(key => {
+        const candidateAddress = extractVerseAddress(key);
+        if (!requestedAddress || candidateAddress !== requestedAddress) {
+          return false;
+        }
+
+        const normalizedCandidate = normalizeVerseLookupKey(key);
+        return (
+          normalizedCandidate.includes(normalizedRequested) ||
+          normalizedRequested.includes(normalizedCandidate)
+        );
+      }) ||
+      verseKeys.find(key => extractVerseAddress(key) === requestedAddress);
+
+    if (resolvedKey && verses[resolvedKey]) {
+      setSelectedVerseKey(resolvedKey);
+      setSelectedVerseContent(verses[resolvedKey]);
+      setIsModalOpen(true);
+      return;
+    }
+
+    console.error(`Verse key "${verseKey}" not found`);
+  }, [displaySSLWeek]);
+  const verseReferencePattern = useMemo(() => {
+    const verseKeys = Object.keys(displaySSLWeek?.bible?.[0]?.verses || {})
+      .filter(Boolean)
+      .sort((first, second) => second.length - first.length);
+
+    if (!verseKeys.length) {
+      return null;
+    }
+
+    return new RegExp(verseKeys.map(escapeRegex).join('|'), 'g');
+  }, [displaySSLWeek]);
+
+  const renderHighlightableParagraph = useCallback(
+    ({block, localRanges, textStyle}) => {
+      const parts = Array.isArray(block?.displayParts) && block.displayParts.length
+        ? block.displayParts
+        : [{text: block?.text || ''}];
+
+      let cursor = 0;
+      const renderedSegments = [];
+
+      parts.forEach((part, partIndex) => {
+        const partText = String(part?.text || '');
+        if (!partText) {
+          return;
+        }
+
+        const partStart = cursor;
+        const partEnd = partStart + partText.length;
+        const overlappingRanges = (Array.isArray(localRanges) ? localRanges : [])
+          .filter(range => range.start < partEnd && range.end > partStart)
+          .map(range => ({
+            ...range,
+            start: Math.max(0, range.start - partStart),
+            end: Math.min(partText.length, range.end - partStart),
+          }))
+          .filter(range => range.end > range.start)
+          .sort((first, second) => first.start - second.start);
+
+        let localCursor = 0;
+
+        overlappingRanges.forEach((range, rangeIndex) => {
+          if (range.start > localCursor) {
+            renderedSegments.push({
+              key: `${block.id}-${partIndex}-plain-${rangeIndex}-${localCursor}`,
+              text: partText.slice(localCursor, range.start),
+              verseRef: part.verseRef,
+              colorId: null,
+            });
+          }
+
+          renderedSegments.push({
+            key: `${block.id}-${partIndex}-hl-${rangeIndex}-${range.start}`,
+            text: partText.slice(range.start, range.end),
+            verseRef: part.verseRef,
+            colorId: range.colorId,
+          });
+
+          localCursor = range.end;
+        });
+
+        if (localCursor < partText.length) {
+          renderedSegments.push({
+            key: `${block.id}-${partIndex}-tail-${localCursor}`,
+            text: partText.slice(localCursor),
+            verseRef: part.verseRef,
+            colorId: null,
+          });
+        }
+
+        cursor = partEnd;
+      });
+
+      const interactiveSegments = renderedSegments.flatMap(segment => {
+        if (segment.verseRef) {
+          return [segment];
+        }
+
+        return splitTextByVersePattern(segment.text, verseReferencePattern).map(
+          (part, partIndex) => ({
+            ...segment,
+            key: `${segment.key}-verse-${partIndex}`,
+            text: part.text,
+            verseRef: part.verseRef || null,
+          }),
+        );
+      });
+
+      return (
+        <Text style={textStyle}>
+          {interactiveSegments.map(segment => {
+            const highlightColors = segment.colorId
+              ? getHighlightColors(segment.colorId, darkMode)
+              : null;
+
+            return (
+              <Text
+                key={segment.key}
+                onPress={
+                  segment.verseRef
+                    ? () => handleVerseClick(segment.verseRef)
+                    : undefined
+                }
+                style={[
+                  segment.verseRef
+                    ? {
+                        color: '#EA9215',
+                        textDecorationLine: 'underline',
+                      }
+                    : null,
+                  highlightColors
+                    ? {backgroundColor: highlightColors.backgroundColor}
+                    : null,
+                ]}>
+                {segment.text}
+              </Text>
+            );
+          })}
+        </Text>
+      );
+    },
+    [darkMode, handleVerseClick, verseReferencePattern],
+  );
 
   const onCloseModal = () => {
     setIsModalOpen(false);
@@ -603,8 +1007,8 @@ const SSLWeek = ({route}) => {
 
   const renderNode = (node, index, siblings, parent, defaultRenderer) => {
     if (node.name === 'a') {
-      const {class: className, verse: verseReference} = node.attribs;
-      if (className === 'verse' && verseReference) {
+      const verseReference = resolveVerseReference(node.attribs);
+      if (hasVerseClass(node.attribs?.class) || verseReference) {
         const onPress = () => handleVerseClick(verseReference);
         return (
           <Text key={index} style={styles.a} onPress={onPress}>
@@ -716,7 +1120,11 @@ const SSLWeek = ({route}) => {
             return child.data || '';
           } else if (child.type === 'tag') {
             // For tag elements, we'll handle them separately
-            if (child.name === 'a' && child.attribs?.class === 'verse') {
+              if (
+                child.name === 'a' &&
+                (hasVerseClass(child.attribs?.class) ||
+                  resolveVerseReference(child.attribs))
+              ) {
               // Extract the text content from the verse element
               const verseText = child.children
                 .map(grandChild => grandChild.data || '')
@@ -738,10 +1146,11 @@ const SSLWeek = ({route}) => {
           child =>
             child.type === 'tag' &&
             child.name === 'a' &&
-            child.attribs?.class === 'verse',
+              (hasVerseClass(child.attribs?.class) ||
+                resolveVerseReference(child.attribs)),
         )
         .map(child => ({
-          verseRef: child.attribs.verse,
+            verseRef: resolveVerseReference(child.attribs),
           text: child.children
             .map(grandChild => grandChild.data || '')
             .join(''),
@@ -796,7 +1205,8 @@ const SSLWeek = ({route}) => {
                   } else if (
                     child.type === 'tag' &&
                     child.name === 'a' &&
-                    child.attribs?.class === 'verse'
+                    (hasVerseClass(child.attribs?.class) ||
+                      resolveVerseReference(child.attribs))
                   ) {
                     const verseText = child.children
                       .map(grandChild => grandChild.data || '')
@@ -805,7 +1215,9 @@ const SSLWeek = ({route}) => {
                       <Text
                         key={childIndex}
                         style={[tw`text-accent-6 underline`]}
-                        onPress={() => handleVerseClick(child.attribs.verse)}>
+                        onPress={() =>
+                          handleVerseClick(resolveVerseReference(child.attribs))
+                        }>
                         {verseText}
                       </Text>
                     );
@@ -889,6 +1301,9 @@ const SSLWeek = ({route}) => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         ref={scrollRef}
+        contentContainerStyle={{
+          paddingBottom: Platform.OS === 'android' ? 96 : 24,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -1006,19 +1421,39 @@ const SSLWeek = ({route}) => {
           </ImageBackground>
 
           <View style={tw`flex flex-col gap-4 px-4 mt-2`}>
-            <HighlightableHtmlBlocks
-              blocks={contentBlocks}
-              darkMode={darkMode}
-              highlights={highlights}
-              inlineHighlights={inlineHighlights}
-              onSelectColor={setHighlight}
-              onSelectInlineColor={setInlineHighlight}
-              onClearHighlight={clearHighlight}
-              onClearInlineHighlights={clearInlineHighlights}
-              stylesheet={styles}
-              renderNode={renderNode}
-              blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
-            />
+            {contentSegments.map(segment => {
+              if (segment.type === 'static') {
+                return (
+                  <View key={segment.id} style={tw`rounded-4 px-2 py-1 mb-2`}>
+                    <HTMLView
+                      value={segment.block.html}
+                      stylesheet={styles}
+                      renderNode={renderNode}
+                      addLineBreaks={false}
+                    />
+                  </View>
+                );
+              }
+
+              return (
+                <HighlightableHtmlBlocks
+                  key={segment.id}
+                  blocks={segment.blocks}
+                  darkMode={darkMode}
+                  highlights={highlights}
+                  inlineHighlights={inlineHighlights}
+                  onSelectColor={setHighlight}
+                  onSelectInlineColor={setInlineHighlight}
+                  onClearHighlight={clearHighlight}
+                  onClearInlineHighlights={clearInlineHighlights}
+                  onFloatingSheetChange={setFloatingHighlightSheet}
+                  stylesheet={styles}
+                  renderBlockDisplay={renderHighlightableParagraph}
+                  minContentHeight={0}
+                  blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
+                />
+              );
+            })}
             <View style={tw`flex flex-row justify-between`}>
               {check !== '01' && (
                 <TouchableOpacity
@@ -1151,6 +1586,35 @@ const SSLWeek = ({route}) => {
           </View>
         </View>
       </Modal>
+      {floatingHighlightSheet?.visible ? (
+        <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+          <View
+            pointerEvents="box-none"
+            style={[tw`absolute left-3 right-3`, {bottom: 16}]}>
+            <HighlightActionSheet
+              visible={Boolean(floatingHighlightSheet?.visible)}
+              useModal={false}
+              darkMode={darkMode}
+              selectedCount={floatingHighlightSheet?.selectedCount || 0}
+              selectedText={floatingHighlightSheet?.selectedText || ''}
+              onClose={floatingHighlightSheet?.onClose || (() => {})}
+              onSelectColor={
+                floatingHighlightSheet?.onSelectColor || (async () => {})
+              }
+              onClearHighlights={
+                floatingHighlightSheet?.onClearHighlights || (async () => {})
+              }
+              onOpenFreeSelection={floatingHighlightSheet?.onOpenFreeSelection}
+              freeSelectionEnabled={Boolean(
+                floatingHighlightSheet?.freeSelectionEnabled,
+              )}
+              allowBlockHighlight={Boolean(
+                floatingHighlightSheet?.allowBlockHighlight,
+              )}
+            />
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 };
