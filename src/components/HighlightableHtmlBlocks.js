@@ -318,7 +318,6 @@ const HighlightableHtmlBlocks = ({
     ],
     [darkMode, stylesheet?.p],
   );
-
   const renderedBlocks = useMemo(() => {
     return (Array.isArray(blocks) ? blocks : []).map(block => {
       const blockRange = blockRanges.find(range => range.id === block.id);

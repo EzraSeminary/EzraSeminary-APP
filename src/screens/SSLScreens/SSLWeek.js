@@ -41,20 +41,16 @@ import {
   Warning,
 } from 'phosphor-react-native';
 import HtmlContent from '../../components/HtmlContent';
-import HighlightableHtmlBlocks from '../../components/HighlightableHtmlBlocks';
 import tw from './../../../tailwind';
 import LinearGradient from 'react-native-linear-gradient';
 import HTMLView from 'react-native-htmlview';
 import ErrorScreen from '../../components/ErrorScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {format} from 'date-fns';
-import usePersistentHighlights from '../../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../../utils/htmlBlocks';
 import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
-import HighlightActionSheet from '../../components/HighlightActionSheet';
-import {getHighlightColors} from '../../utils/highlightPalette';
 
 const decodeHtmlEntities = text =>
   (text || '')
@@ -77,7 +73,7 @@ const stripInlineHtml = html =>
 const VERSE_LINK_REGEX =
   /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
 const GENERIC_VERSE_REFERENCE_REGEX =
-  /(?:[1-4፩-፬]\s*)?[A-Za-z\u1200-\u137F]+(?:[.\-][A-Za-z\u1200-\u137F]+)*(?:\s+[A-Za-z\u1200-\u137F]+(?:[.\-][A-Za-z\u1200-\u137F]+)*)?\s+\d+:\d+(?:-\d+)?/g;
+  /(?:[1-4፩-፬]\s*)?[A-Za-z\u1200-\u137F]+(?:[.-][A-Za-z\u1200-\u137F]+)*(?:\s+[A-Za-z\u1200-\u137F]+(?:[.-][A-Za-z\u1200-\u137F]+)*)?\s+\d+:\d+(?:-\d+)?/g;
 
 const readHtmlAttribute = (attributes, name) => {
   const pattern = new RegExp(
@@ -240,6 +236,20 @@ const parseParagraphDisplayParts = html => {
   return parts.filter(part => part.text);
 };
 
+const blockHasVerseReferences = html => {
+  const displayParts = parseParagraphDisplayParts(html);
+
+  if (displayParts.some(part => part.verseRef)) {
+    return true;
+  }
+
+  return displayParts.some(part =>
+    new RegExp(GENERIC_VERSE_REFERENCE_REGEX.source, 'g').test(
+      String(part?.text || ''),
+    ),
+  );
+};
+
 const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
   const [noteText, setNoteText] = useState(initialText || '');
 
@@ -350,7 +360,6 @@ const SSLWeek = ({route}) => {
     'Thursday',
   ];
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedVerseKey, setSelectedVerseKey] = useState('');
   const [selectedVerseContent, setSelectedVerseContent] = useState('');
   const language = useSelector(state => state.language.language);
 
@@ -360,10 +369,6 @@ const SSLWeek = ({route}) => {
   const [cachedSSLWeek, setCachedSSLWeek] = useState(null);
   const [cachedSSLQuarter, setCachedSSLQuarter] = useState(null);
   const [isUsingCache, setIsUsingCache] = useState(false);
-  const [floatingHighlightSheet, setFloatingHighlightSheet] = useState({
-    visible: false,
-  });
-
   const {
     data: SSLQuarter,
     error: quarterError,
@@ -453,6 +458,10 @@ const SSLWeek = ({route}) => {
         return false;
       }
 
+      if (blockHasVerseReferences(html)) {
+        return false;
+      }
+
       return true;
     };
 
@@ -539,19 +548,6 @@ const SSLWeek = ({route}) => {
   }, [weekId, displaySSLWeek?.date]);
 
   const darkMode = useSelector(state => state.ui.darkMode);
-  const highlightCacheKey = useMemo(
-    () => `ssl:${ssl}:${weekId}:${check}`,
-    [check, ssl, weekId],
-  );
-  const {
-    highlights,
-    inlineHighlights,
-    setHighlight,
-    clearHighlight,
-    setInlineHighlight,
-    clearInlineHighlights,
-  } =
-    usePersistentHighlights(highlightCacheKey);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
 
@@ -581,7 +577,6 @@ const SSLWeek = ({route}) => {
     }
 
     if (verses[verseKey]) {
-      setSelectedVerseKey(verseKey);
       setSelectedVerseContent(verses[verseKey]);
       setIsModalOpen(true);
       return;
@@ -607,7 +602,6 @@ const SSLWeek = ({route}) => {
       verseKeys.find(key => extractVerseAddress(key) === requestedAddress);
 
     if (resolvedKey && verses[resolvedKey]) {
-      setSelectedVerseKey(resolvedKey);
       setSelectedVerseContent(verses[resolvedKey]);
       setIsModalOpen(true);
       return;
@@ -628,120 +622,125 @@ const SSLWeek = ({route}) => {
   }, [displaySSLWeek]);
 
   const renderHighlightableParagraph = useCallback(
-    ({block, localRanges, textStyle}) => {
+    ({block, textStyle}) => {
       const parts = Array.isArray(block?.displayParts) && block.displayParts.length
         ? block.displayParts
         : [{text: block?.text || ''}];
+      const flattenedTextStyle = StyleSheet.flatten(textStyle) || {};
+      const displayTextStyle = {...flattenedTextStyle};
+      const paragraphContainerStyle = {
+        width: '100%',
+        paddingTop:
+          flattenedTextStyle.paddingTop ??
+          flattenedTextStyle.paddingVertical ??
+          flattenedTextStyle.padding ??
+          0,
+        paddingBottom:
+          flattenedTextStyle.paddingBottom ??
+          flattenedTextStyle.paddingVertical ??
+          flattenedTextStyle.padding ??
+          0,
+        paddingLeft:
+          flattenedTextStyle.paddingLeft ??
+          flattenedTextStyle.paddingHorizontal ??
+          flattenedTextStyle.padding ??
+          0,
+        paddingRight:
+          flattenedTextStyle.paddingRight ??
+          flattenedTextStyle.paddingHorizontal ??
+          flattenedTextStyle.padding ??
+          0,
+        marginTop:
+          flattenedTextStyle.marginTop ??
+          flattenedTextStyle.marginVertical ??
+          flattenedTextStyle.margin ??
+          0,
+        marginBottom:
+          flattenedTextStyle.marginBottom ??
+          flattenedTextStyle.marginVertical ??
+          flattenedTextStyle.margin ??
+          0,
+        marginLeft:
+          flattenedTextStyle.marginLeft ??
+          flattenedTextStyle.marginHorizontal ??
+          flattenedTextStyle.margin ??
+          0,
+        marginRight:
+          flattenedTextStyle.marginRight ??
+          flattenedTextStyle.marginHorizontal ??
+          flattenedTextStyle.margin ??
+          0,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'flex-start',
+      };
 
-      let cursor = 0;
-      const renderedSegments = [];
+      delete displayTextStyle.paddingTop;
+      delete displayTextStyle.paddingBottom;
+      delete displayTextStyle.paddingLeft;
+      delete displayTextStyle.paddingRight;
+      delete displayTextStyle.paddingVertical;
+      delete displayTextStyle.paddingHorizontal;
+      delete displayTextStyle.padding;
+      delete displayTextStyle.marginTop;
+      delete displayTextStyle.marginBottom;
+      delete displayTextStyle.marginLeft;
+      delete displayTextStyle.marginRight;
+      delete displayTextStyle.marginVertical;
+      delete displayTextStyle.marginHorizontal;
+      delete displayTextStyle.margin;
 
-      parts.forEach((part, partIndex) => {
-        const partText = String(part?.text || '');
-        if (!partText) {
-          return;
-        }
-
-        const partStart = cursor;
-        const partEnd = partStart + partText.length;
-        const overlappingRanges = (Array.isArray(localRanges) ? localRanges : [])
-          .filter(range => range.start < partEnd && range.end > partStart)
-          .map(range => ({
-            ...range,
-            start: Math.max(0, range.start - partStart),
-            end: Math.min(partText.length, range.end - partStart),
-          }))
-          .filter(range => range.end > range.start)
-          .sort((first, second) => first.start - second.start);
-
-        let localCursor = 0;
-
-        overlappingRanges.forEach((range, rangeIndex) => {
-          if (range.start > localCursor) {
-            renderedSegments.push({
-              key: `${block.id}-${partIndex}-plain-${rangeIndex}-${localCursor}`,
-              text: partText.slice(localCursor, range.start),
+      const interactiveSegments = parts.flatMap((part, partIndex) => {
+        if (part?.verseRef) {
+          return [
+            {
+              key: `${block.id}-${partIndex}`,
+              text: String(part.text || ''),
               verseRef: part.verseRef,
-              colorId: null,
-            });
-          }
-
-          renderedSegments.push({
-            key: `${block.id}-${partIndex}-hl-${rangeIndex}-${range.start}`,
-            text: partText.slice(range.start, range.end),
-            verseRef: part.verseRef,
-            colorId: range.colorId,
-          });
-
-          localCursor = range.end;
-        });
-
-        if (localCursor < partText.length) {
-          renderedSegments.push({
-            key: `${block.id}-${partIndex}-tail-${localCursor}`,
-            text: partText.slice(localCursor),
-            verseRef: part.verseRef,
-            colorId: null,
-          });
+            },
+          ];
         }
 
-        cursor = partEnd;
-      });
-
-      const interactiveSegments = renderedSegments.flatMap(segment => {
-        if (segment.verseRef) {
-          return [segment];
-        }
-
-        return splitTextByVersePattern(segment.text, verseReferencePattern).map(
-          (part, partIndex) => ({
-            ...segment,
-            key: `${segment.key}-verse-${partIndex}`,
-            text: part.text,
-            verseRef: part.verseRef || null,
+        return splitTextByVersePattern(part?.text || '', verseReferencePattern).map(
+          (item, itemIndex) => ({
+            key: `${block.id}-${partIndex}-${itemIndex}`,
+            text: item.text,
+            verseRef: item.verseRef || null,
           }),
         );
       });
 
       return (
-        <Text style={textStyle}>
-          {interactiveSegments.map(segment => {
-            const highlightColors = segment.colorId
-              ? getHighlightColors(segment.colorId, darkMode)
-              : null;
-
-            return (
-              <Text
-                key={segment.key}
-                onPress={
-                  segment.verseRef
-                    ? () => handleVerseClick(segment.verseRef)
-                    : undefined
-                }
-                style={[
-                  segment.verseRef
-                    ? {
-                        color: '#EA9215',
-                        textDecorationLine: 'underline',
-                      }
-                    : null,
-                  highlightColors
-                    ? {backgroundColor: highlightColors.backgroundColor}
-                    : null,
-                ]}>
-                {segment.text}
-              </Text>
-            );
-          })}
-        </Text>
+        <View pointerEvents="box-none" style={paragraphContainerStyle}>
+          {interactiveSegments.map(segment => (
+            <Text
+              key={segment.key}
+              pointerEvents={segment.verseRef ? 'auto' : 'none'}
+              onPress={
+                segment.verseRef
+                  ? () => handleVerseClick(segment.verseRef)
+                  : undefined
+              }
+              style={[
+                displayTextStyle,
+                segment.verseRef
+                  ? {
+                      color: '#EA9215',
+                      textDecorationLine: 'underline',
+                    }
+                  : null,
+              ]}>
+              {segment.text}
+            </Text>
+          ))}
+        </View>
       );
     },
-    [darkMode, handleVerseClick, verseReferencePattern],
+    [handleVerseClick, verseReferencePattern],
   );
 
   const onCloseModal = () => {
     setIsModalOpen(false);
-    setSelectedVerseKey('');
     setSelectedVerseContent('');
   };
 
@@ -1293,7 +1292,10 @@ const SSLWeek = ({route}) => {
     ...tw`font-nokia-bold text-primary-6`,
     fontSize: scaled(18),
   };
-  const modifiedContent = selectedVerseContent;
+  const modifiedContent = String(selectedVerseContent || '').replace(
+    /<h2>/g,
+    '<br><h2>',
+  );
 
   return (
     <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
@@ -1436,22 +1438,13 @@ const SSLWeek = ({route}) => {
               }
 
               return (
-                <HighlightableHtmlBlocks
-                  key={segment.id}
-                  blocks={segment.blocks}
-                  darkMode={darkMode}
-                  highlights={highlights}
-                  inlineHighlights={inlineHighlights}
-                  onSelectColor={setHighlight}
-                  onSelectInlineColor={setInlineHighlight}
-                  onClearHighlight={clearHighlight}
-                  onClearInlineHighlights={clearInlineHighlights}
-                  onFloatingSheetChange={setFloatingHighlightSheet}
-                  stylesheet={styles}
-                  renderBlockDisplay={renderHighlightableParagraph}
-                  minContentHeight={0}
-                  blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
-                />
+                <View key={segment.id} style={tw`rounded-4 px-2 py-1 mb-2`}>
+                  {segment.blocks.map(block => (
+                    <View key={block.id} pointerEvents="box-none">
+                      {renderHighlightableParagraph({block, textStyle: styles.p})}
+                    </View>
+                  ))}
+                </View>
               );
             })}
             <View style={tw`flex flex-row justify-between`}>
@@ -1586,35 +1579,6 @@ const SSLWeek = ({route}) => {
           </View>
         </View>
       </Modal>
-      {floatingHighlightSheet?.visible ? (
-        <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-          <View
-            pointerEvents="box-none"
-            style={[tw`absolute left-3 right-3`, {bottom: 16}]}>
-            <HighlightActionSheet
-              visible={Boolean(floatingHighlightSheet?.visible)}
-              useModal={false}
-              darkMode={darkMode}
-              selectedCount={floatingHighlightSheet?.selectedCount || 0}
-              selectedText={floatingHighlightSheet?.selectedText || ''}
-              onClose={floatingHighlightSheet?.onClose || (() => {})}
-              onSelectColor={
-                floatingHighlightSheet?.onSelectColor || (async () => {})
-              }
-              onClearHighlights={
-                floatingHighlightSheet?.onClearHighlights || (async () => {})
-              }
-              onOpenFreeSelection={floatingHighlightSheet?.onOpenFreeSelection}
-              freeSelectionEnabled={Boolean(
-                floatingHighlightSheet?.freeSelectionEnabled,
-              )}
-              allowBlockHighlight={Boolean(
-                floatingHighlightSheet?.allowBlockHighlight,
-              )}
-            />
-          </View>
-        </View>
-      ) : null}
     </View>
   );
 };
