@@ -16,6 +16,7 @@ import {useGetDevotionsQuery} from '../../redux/api-slices/apiSlice';
 import {toEthiopian} from 'ethiopian-date';
 import {useNavigation} from '@react-navigation/native';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
+import {normalizeEthiopianMonth} from '../../utils/ethiopianCalendar';
 
 const NotificationSettings = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -70,8 +71,10 @@ const NotificationSettings = () => {
     return (
       devotions.find(
         devotion =>
-          devotion.month === ethiopianMonth && Number(devotion.day) === day,
-      ) || devotions[0]
+          normalizeEthiopianMonth(devotion.month) ===
+            normalizeEthiopianMonth(ethiopianMonth) &&
+          Number(devotion.day) === day,
+      ) || null
     );
   };
 

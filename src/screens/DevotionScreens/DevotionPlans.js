@@ -2,17 +2,18 @@ import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
+  ScrollView,
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  FlatList,
-  ScrollView,
   Share,
+  Platform,
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import {useNavigation} from '@react-navigation/native';
-import {ArrowLeft, CheckCircle} from 'phosphor-react-native';
+import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {ArrowLeft} from 'phosphor-react-native';
 import tw from './../../../tailwind';
 import Toast from 'react-native-toast-message';
 import {
@@ -21,20 +22,23 @@ import {
   useStartDevotionPlanMutation,
   useRestartDevotionPlanMutation,
 } from '../../redux/api-slices/apiSlice';
-import DevotionPlanCard from '../../components/DevotionPlanCard';
 import {
   saveHomeScreenToCache,
   getCachedHomeScreen,
 } from '../../utils/homeScreenCache';
 import networkManager from '../../utils/networkManager';
 import {formatDevotionPlanForSharing} from '../../utils/textFormatter';
+import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 
 const DevotionPlans = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const user = useSelector(state => state.auth.user);
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const [tab, setTab] = useState('find'); // 'find', 'my', 'completed'
   const [activeTab, setActiveTab] = useState('plan'); // 'devotional' or 'plan'
+  const listBottomPadding = tabBarHeight + Math.max(insets.bottom, 16) + 24;
 
   const {
     data: findPlans = [],
@@ -56,6 +60,163 @@ const DevotionPlans = () => {
   const [restartPlan] = useRestartDevotionPlanMutation();
   const [cachedHomeData, setCachedHomeData] = useState(null);
   const [isUsingCache, setIsUsingCache] = useState(false);
+
+  const renderTopSection = () => (
+    <>
+      <View style={tw`flex flex-row items-center justify-center my-4 relative`}>
+        <TouchableOpacity
+          style={tw`absolute left-0`}
+          onPress={() => {
+            navigation.getParent()?.navigate('Home');
+          }}>
+          <ArrowLeft size={28} weight="bold" color="#EA9215" />
+        </TouchableOpacity>
+        <View
+          style={[
+            tw`flex-row rounded-full p-1`,
+            {
+              backgroundColor: darkMode ? '#374151' : '#E5E7EB',
+            },
+          ]}>
+          <TouchableOpacity
+            onPress={() => {
+              setActiveTab('devotional');
+              navigation.navigate('Devotional', {
+                screen: 'DevotionalHome',
+              });
+            }}
+            style={[
+              tw`px-4 py-2 rounded-full`,
+              {
+                backgroundColor:
+                  activeTab === 'devotional' ? '#EA9215' : 'transparent',
+              },
+            ]}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm`,
+                {
+                  color:
+                    activeTab === 'devotional'
+                      ? '#FFFFFF'
+                      : darkMode
+                      ? '#D1D5DB'
+                      : '#4B5563',
+                },
+              ]}>
+              Devotional
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setActiveTab('plan')}
+            style={[
+              tw`px-4 py-2 rounded-full`,
+              {
+                backgroundColor:
+                  activeTab === 'plan' ? '#EA9215' : 'transparent',
+              },
+            ]}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm`,
+                {
+                  color:
+                    activeTab === 'plan'
+                      ? '#FFFFFF'
+                      : darkMode
+                      ? '#D1D5DB'
+                      : '#4B5563',
+                },
+              ]}>
+              Devotional Plan
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={tw`absolute right-0 w-7`} />
+      </View>
+
+      <View style={tw`flex-row gap-2 mb-4`}>
+        <TouchableOpacity
+          style={[
+            tw`flex-1 px-4 py-2 rounded-full`,
+            tab === 'find' ? tw`bg-accent-6` : tw`border border-accent-6`,
+          ]}
+          onPress={() => setTab('find')}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center`,
+              tab === 'find'
+                ? tw`text-primary-1`
+                : darkMode
+                ? tw`text-primary-3`
+                : tw`text-secondary-6`,
+            ]}>
+            Find Plans
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            tw`flex-1 px-4 py-2 rounded-full`,
+            tab === 'my' ? tw`bg-accent-6` : tw`border border-accent-6`,
+          ]}
+          onPress={() => setTab('my')}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center`,
+              tab === 'my'
+                ? tw`text-primary-1`
+                : darkMode
+                ? tw`text-primary-3`
+                : tw`text-secondary-6`,
+            ]}>
+            My Plans
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            tw`flex-1 px-4 py-2 rounded-full`,
+            tab === 'completed' ? tw`bg-accent-6` : tw`border border-accent-6`,
+          ]}
+          onPress={() => setTab('completed')}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm text-center`,
+              tab === 'completed'
+                ? tw`text-primary-1`
+                : darkMode
+                ? tw`text-primary-3`
+                : tw`text-secondary-6`,
+            ]}>
+            Completed
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {!user && (
+        <View
+          style={[
+            tw`border border-accent-6 rounded-4 p-3 mb-4`,
+            darkMode ? tw`bg-secondary-8` : tw`bg-primary-5`,
+          ]}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-base mb-1`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            Sign in to track progress
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            Please log in or create an account to save your devotion plan
+            progress.
+          </Text>
+        </View>
+      )}
+    </>
+  );
 
   // Cache home screen data when loaded with internet
   useEffect(() => {
@@ -104,7 +265,9 @@ const DevotionPlans = () => {
     const unsubscribe = networkManager.addListener(async networkState => {
       // When network comes back online, refetch devotion plans
       if (networkState.isNowConnected) {
-        console.log('🌐 Network restored - Refetching devotion plans in DevotionPlans screen...');
+        console.log(
+          '🌐 Network restored - Refetching devotion plans in DevotionPlans screen...',
+        );
         try {
           // Refetch all devotion plan related queries
           await Promise.all([
@@ -112,7 +275,9 @@ const DevotionPlans = () => {
             refetchMy(),
             refetchCompleted(),
           ]);
-          console.log('✅ Devotion plans refetched successfully in DevotionPlans screen');
+          console.log(
+            '✅ Devotion plans refetched successfully in DevotionPlans screen',
+          );
         } catch (error) {
           console.error('❌ Error refetching devotion plans:', error);
         }
@@ -345,366 +510,123 @@ const DevotionPlans = () => {
     );
   };
 
+  const renderPlanList = ({
+    plans,
+    emptyMessage,
+    isLoading,
+    loadingMessage,
+    resolveCompleted,
+    withProgress = false,
+    isCompleted = false,
+  }) => {
+    if (isLoading) {
+      return (
+        <View style={tw`justify-center items-center py-20`}>
+          <ActivityIndicator size="large" color="#EA9215" />
+          <Text
+            style={[
+              tw`font-nokia-bold text-lg mt-4`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            {loadingMessage}
+          </Text>
+        </View>
+      );
+    }
+
+    if (!plans || plans.length === 0) {
+      return (
+        <View style={tw`justify-center items-center py-20`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-lg text-center`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            {emptyMessage}
+          </Text>
+        </View>
+      );
+    }
+
+    return plans.map(item =>
+      renderPlanCard({
+        item,
+        withProgress,
+        isCompleted: resolveCompleted ? resolveCompleted(item) : isCompleted,
+      }),
+    );
+  };
+
   const renderContent = () => {
     if (tab === 'find') {
-      if (loadingFind) {
-        return (
-          <View style={tw`flex-1 justify-center items-center py-20`}>
-            <ActivityIndicator size="large" color="#EA9215" />
-            <Text
-              style={[
-                tw`font-nokia-bold text-lg mt-4`,
-                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-              ]}>
-              Loading Plans...
-            </Text>
-          </View>
-        );
-      }
-
-      if (!displayFindPlans || displayFindPlans.length === 0) {
-        return (
-          <View style={tw`flex-1 justify-center items-center py-20`}>
-            <Text
-              style={[
-                tw`font-nokia-bold text-lg text-center`,
-                darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
-              ]}>
-              No devotion plans available
-            </Text>
-          </View>
-        );
-      }
-
-      // Check which plans are completed
       const completedPlanIds = new Set(
         (displayCompletedPlans || []).map(p => p.planId || p.plan?._id),
       );
 
-      return (
-        <>
-          <View style={tw`mb-64`}>
-            <FlatList
-              data={displayFindPlans}
-              keyExtractor={item => item._id}
-              renderItem={({item}) => {
-                const isCompleted = completedPlanIds.has(item._id);
-                return renderPlanCard({item, isCompleted});
-              }}
-              contentContainerStyle={{marginBottom: 48, paddingHorizontal: 0}}
-              showsVerticalScrollIndicator={false}
-              removeClippedSubviews
-              initialNumToRender={6}
-              maxToRenderPerBatch={6}
-              windowSize={7}
-            />
-          </View>
-        </>
-      );
+      return renderPlanList({
+        plans: displayFindPlans,
+        emptyMessage: 'No devotion plans available',
+        isLoading: loadingFind,
+        loadingMessage: 'Loading Plans...',
+        resolveCompleted: item => completedPlanIds.has(item._id),
+      });
     }
 
     if (tab === 'my') {
-      if (loadingMy) {
-        return (
-          <View style={tw`flex-1 justify-center items-center py-20`}>
-            <ActivityIndicator size="large" color="#EA9215" />
-            <Text
-              style={[
-                tw`font-nokia-bold text-lg mt-4`,
-                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-              ]}>
-              Loading Your Plans...
-            </Text>
-          </View>
-        );
-      }
-
-      if (!displayMyPlans || displayMyPlans.length === 0) {
-        return (
-          <View style={tw`flex-1 justify-center items-center py-20`}>
-            <Text
-              style={[
-                tw`font-nokia-bold text-lg text-center`,
-                darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
-              ]}>
-              No active plans started
-            </Text>
-          </View>
-        );
-      }
-
-      return (
-        <>
-          <View style={tw`mb-64`}>
-            <FlatList
-              data={displayMyPlans}
-              keyExtractor={item => item._id || item.planId}
-              renderItem={({item}) =>
-                renderPlanCard({item, withProgress: true})
-              }
-              contentContainerStyle={{paddingBottom: 32, paddingHorizontal: 0}}
-              showsVerticalScrollIndicator={false}
-              removeClippedSubviews
-              initialNumToRender={6}
-              maxToRenderPerBatch={6}
-              windowSize={7}
-            />
-          </View>
-        </>
-      );
+      return renderPlanList({
+        plans: displayMyPlans,
+        emptyMessage: 'No active plans started',
+        isLoading: loadingMy,
+        loadingMessage: 'Loading Your Plans...',
+        withProgress: true,
+      });
     }
 
     if (tab === 'completed') {
-      if (loadingCompleted) {
-        return (
-          <View style={tw`flex-1 justify-center items-center py-20`}>
-            <ActivityIndicator size="large" color="#EA9215" />
-            <Text
-              style={[
-                tw`font-nokia-bold text-lg mt-4`,
-                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-              ]}>
-              Loading Completed Plans...
-            </Text>
-          </View>
-        );
-      }
-
-      if (!displayCompletedPlans || displayCompletedPlans.length === 0) {
-        return (
-          <View style={tw`flex-1 justify-center items-center py-20`}>
-            <Text
-              style={[
-                tw`font-nokia-bold text-lg text-center`,
-                darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
-              ]}>
-              No completed plans yet
-            </Text>
-          </View>
-        );
-      }
-
-      return (
-        <>
-          <View style={tw`mb-64`}>
-            <FlatList
-              data={displayCompletedPlans}
-              keyExtractor={item => item._id || item.planId}
-              renderItem={({item}) =>
-                renderPlanCard({item, withProgress: true, isCompleted: true})
-              }
-              contentContainerStyle={{paddingBottom: 64, paddingHorizontal: 0}}
-              showsVerticalScrollIndicator={false}
-              removeClippedSubviews
-              initialNumToRender={6}
-              maxToRenderPerBatch={6}
-              windowSize={7}
-            />
-          </View>
-        </>
-      );
+      return renderPlanList({
+        plans: displayCompletedPlans,
+        emptyMessage: 'No completed plans yet',
+        isLoading: loadingCompleted,
+        loadingMessage: 'Loading Completed Plans...',
+        withProgress: true,
+        isCompleted: true,
+      });
     }
 
     return null;
   };
 
   return (
-    <SafeAreaView
-      style={darkMode ? tw`bg-secondary-9 flex-1` : tw`bg-primary-1 flex-1`}>
-      {isUsingCache && (
-        <View
-          style={[
-            tw`px-4 py-2 border-b`,
-            darkMode
-              ? tw`bg-secondary-8 border-secondary-7`
-              : tw`bg-primary-5 border-primary-4`,
-          ]}>
-          <Text
-            style={[
-              tw`font-nokia-bold text-xs text-center`,
-              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
-            ]}>
-            📦 Showing cached content (offline mode)
-          </Text>
-        </View>
-      )}
-      <View style={tw`flex mx-auto w-11/12`}>
-        {/* Header */}
-        <View style={tw`flex-row items-center justify-between my-4`}>
-          <TouchableOpacity
-            onPress={() => {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate('Devotional', {
-                  screen: 'DevotionalHome',
-                });
-              }
-            }}>
-            <ArrowLeft size={24} color={darkMode ? '#F9FAFB' : '#1F2937'} />
-          </TouchableOpacity>
-          <Text
-            style={[
-              tw`font-nokia-bold text-xl`,
-              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-            ]}>
-            Devotion Plans
-          </Text>
-          <View style={tw`flex flex-row items-center gap-2`}>
-            {/* Sliding buttons for Devotional/Devotional Plan */}
-            <View
-              style={[
-                tw`flex-row rounded-full p-1`,
-                {
-                  backgroundColor: darkMode ? '#374151' : '#E5E7EB',
-                },
-              ]}>
-              <TouchableOpacity
-                onPress={() => {
-                  setActiveTab('devotional');
-                  navigation.navigate('Devotional', {
-                    screen: 'DevotionalHome',
-                  });
-                }}
-                style={[
-                  tw`px-3 py-1.5 rounded-full`,
-                  {
-                    backgroundColor:
-                      activeTab === 'devotional' ? '#EA9215' : 'transparent',
-                  },
-                ]}>
-                <Text
-                  style={[
-                    tw`font-nokia-bold text-xs`,
-                    {
-                      color:
-                        activeTab === 'devotional'
-                          ? '#FFFFFF'
-                          : darkMode
-                          ? '#D1D5DB'
-                          : '#4B5563',
-                    },
-                  ]}>
-                  Devotional
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setActiveTab('plan')}
-                style={[
-                  tw`px-3 py-1.5 rounded-full`,
-                  {
-                    backgroundColor:
-                      activeTab === 'plan' ? '#EA9215' : 'transparent',
-                  },
-                ]}>
-                <Text
-                  style={[
-                    tw`font-nokia-bold text-xs`,
-                    {
-                      color:
-                        activeTab === 'plan'
-                          ? '#FFFFFF'
-                          : darkMode
-                          ? '#D1D5DB'
-                          : '#4B5563',
-                    },
-                  ]}>
-                  Devotional Plan
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Tabs */}
-        <View style={tw`flex-row gap-2 mb-4`}>
-          <TouchableOpacity
-            style={[
-              tw`flex-1 px-4 py-2 rounded-full`,
-              tab === 'find' ? tw`bg-accent-6` : tw`border border-accent-6`,
-            ]}
-            onPress={() => setTab('find')}>
-            <Text
-              style={[
-                tw`font-nokia-bold text-sm text-center`,
-                tab === 'find'
-                  ? tw`text-primary-1`
-                  : darkMode
-                  ? tw`text-primary-3`
-                  : tw`text-secondary-6`,
-              ]}>
-              Find Plans
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              tw`flex-1 px-4 py-2 rounded-full`,
-              tab === 'my' ? tw`bg-accent-6` : tw`border border-accent-6`,
-            ]}
-            onPress={() => setTab('my')}>
-            <Text
-              style={[
-                tw`font-nokia-bold text-sm text-center`,
-                tab === 'my'
-                  ? tw`text-primary-1`
-                  : darkMode
-                  ? tw`text-primary-3`
-                  : tw`text-secondary-6`,
-              ]}>
-              My Plans
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              tw`flex-1 px-4 py-2 rounded-full`,
-              tab === 'completed'
-                ? tw`bg-accent-6`
-                : tw`border border-accent-6`,
-            ]}
-            onPress={() => setTab('completed')}>
-            <Text
-              style={[
-                tw`font-nokia-bold text-sm text-center`,
-                tab === 'completed'
-                  ? tw`text-primary-1`
-                  : darkMode
-                  ? tw`text-primary-3`
-                  : tw`text-secondary-6`,
-              ]}>
-              Completed
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Sign in message */}
-        {!user && (
+    <View style={darkMode ? tw`bg-secondary-9` : null}>
+      <SafeAreaView
+        edges={Platform.OS === 'ios' ? undefined : ['left', 'right']}
+        style={tw`flex mx-auto w-[92%]`}>
+        <AndroidStatusBarSpacer minHeight={4} />
+        {isUsingCache && (
           <View
             style={[
-              tw`border border-accent-6 rounded-4 p-3 mb-4`,
-              darkMode ? tw`bg-secondary-8` : tw`bg-primary-5`,
+              tw`px-4 py-2 border-b`,
+              darkMode
+                ? tw`bg-secondary-8 border-secondary-7`
+                : tw`bg-primary-5 border-primary-4`,
             ]}>
             <Text
               style={[
-                tw`font-nokia-bold text-base mb-1`,
-                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-              ]}>
-              Sign in to track progress
-            </Text>
-            <Text
-              style={[
-                tw`font-nokia-bold text-sm`,
+                tw`font-nokia-bold text-xs text-center`,
                 darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
               ]}>
-              Please log in or create an account to save your devotion plan
-              progress.
+              📦 Showing cached content (offline mode)
             </Text>
           </View>
         )}
-
-        {/* Content */}
-        {renderContent()}
-      </View>
-    </SafeAreaView>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{paddingBottom: listBottomPadding}}>
+          {renderTopSection()}
+          {renderContent()}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 

@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import {
@@ -18,7 +18,11 @@ import {
   DotsThreeOutlineVertical,
 } from 'phosphor-react-native';
 import {useDispatch, useSelector} from 'react-redux';
-import {setProgress, selectCurrentUser, updateUser} from '../../redux/authSlice';
+import {
+  setProgress,
+  selectCurrentUser,
+  updateUser,
+} from '../../redux/authSlice';
 import {useFocusEffect} from '@react-navigation/native';
 import {useGetCourseByIdQuery} from './../../services/api';
 import {useNavigation} from '@react-navigation/core';
@@ -91,7 +95,9 @@ const SlideSample2 = ({route}) => {
   const [isVerseComplete, setIsVerseComplete] = useState(false);
   const [isNextButtonVisible, setIsNextButtonVisible] = useState(false);
   const [interactionMessage, setInteractionMessage] = useState('');
+  const [activeElementIndex, setActiveElementIndex] = useState(0);
   const initializedProgressKeyRef = useRef('');
+  const elementLayoutsRef = useRef([]);
 
   const handleImageLoad = () => {
     setIsImageLoaded(true);
@@ -164,7 +170,9 @@ const SlideSample2 = ({route}) => {
     }
     initializedProgressKeyRef.current = initKey;
 
-    const savedProgress = currentUser?.progress?.find(p => p.courseId === courseId);
+    const savedProgress = currentUser?.progress?.find(
+      p => p.courseId === courseId,
+    );
     const isSameChapter =
       savedProgress &&
       savedProgress.currentChapter !== undefined &&
@@ -265,6 +273,42 @@ const SlideSample2 = ({route}) => {
 
   const currentDataNumber = activeIndex + 1;
   const totalDataNumber = data.length;
+  const currentSlideElementCount = currentSlideElements.length;
+
+  const updateActiveElementFromOffset = useCallback(
+    offsetY => {
+      const layouts = elementLayoutsRef.current;
+      if (!layouts.length) {
+        setActiveElementIndex(0);
+        return;
+      }
+
+      const probeLine = offsetY + 120;
+      const matchedIndex = layouts.findIndex(layout => {
+        const startY = layout?.y ?? 0;
+        const endY = startY + (layout?.height ?? 0);
+        return probeLine >= startY && probeLine < endY;
+      });
+
+      if (matchedIndex >= 0) {
+        setActiveElementIndex(matchedIndex);
+        return;
+      }
+
+      if (probeLine < (layouts[0]?.y ?? 0)) {
+        setActiveElementIndex(0);
+        return;
+      }
+
+      setActiveElementIndex(Math.max(layouts.length - 1, 0));
+    },
+    [setActiveElementIndex],
+  );
+
+  useEffect(() => {
+    elementLayoutsRef.current = [];
+    setActiveElementIndex(0);
+  }, [activeIndex, currentSlideSignature]);
 
   const updateIndex = newIndex => {
     const boundedIndex =
@@ -362,7 +406,7 @@ const SlideSample2 = ({route}) => {
         return;
       }
 
-      const token = await AsyncStorage.getItem('token');
+      const token = currentUser?.token || (await AsyncStorage.getItem('token'));
       if (!token) {
         return;
       }
@@ -446,171 +490,226 @@ const SlideSample2 = ({route}) => {
             <View style={tw`border-b border-accent-6 mt-2`} />
           </View>
 
-          <ScrollView
-            contentContainerStyle={tw` flex-grow justify-center pt-8 px-2`}
-            showsVerticalScrollIndicator={false}>
-            {data.map((slides, index) => {
-              if (index === activeIndex) {
-                return (
-                  <>
-                    <Text
-                      style={tw`text-accent-6 text-3xl font-nokia-bold text-center mb-8`}>
-                      {slides.slide}
-                    </Text>
-                    <View key={slides._id} style={tw`flex gap-4`}>
-                      {slides.elements.map(element => {
-                        // console.log(element);
-                        switch (element.type) {
-                          case 'title':
-                            return (
-                              <Title key={element._id} value={element.value} />
-                            );
-                          case 'sub':
-                            return (
-                              <Subtitle
-                                key={element._id}
-                                value={element.value}
-                              />
-                            );
-                          case 'text':
-                            return (
-                              <View style={tw`flex w-[100%]`}>
-                                <TextComponent
-                                  key={element._id}
-                                  value={element.value}
-                                />
-                              </View>
-                            );
-                          case 'mix':
-                            return (
-                              <ScrollMix
-                                key={element._id}
-                                value={element.value}
-                                toggleModal={toggleModal}
-                                isModalVisible={isModalVisible}
-                                isImageLoaded={isImageLoaded}
-                                handleImageLoad={handleImageLoad}
-                                darkMode={darkMode}
-                              />
-                            );
-                          case 'list':
-                            return (
-                              <List key={element._id} value={element.value} />
-                            );
-                          case 'slide':
-                            return (
-                              <Slide
-                                key={element._id}
-                                value={element.value}
-                                setIsSlideComplete={setIsSlideComplete}
-                              />
-                            );
-                          case 'sequence':
-                            return (
-                              <Sequence
-                                key={element._id}
-                                value={element.value}
-                                setIsSequenceComplete={setIsSequenceComplete}
-                              />
-                            );
-                          case 'reveal':
-                            return (
-                              <Reveal
-                                key={element._id}
-                                value={element.value}
-                                setIsRevealComplete={setIsRevealComplete}
-                              />
-                            );
-                          case 'img':
-                            return (
-                              <GestureHandlerRootView style={{flex: 1}}>
-                                <ImageComponent
-                                  key={element._id}
-                                  value={element.value}
-                                  toggleModal={toggleModal}
-                                  isModalVisible={isModalVisible}
-                                  isImageLoaded={isImageLoaded}
-                                  handleImageLoad={handleImageLoad}
-                                  darkMode={darkMode}
-                                />
-                              </GestureHandlerRootView>
-                            );
-                          case 'quiz':
-                            return (
-                              <Quiz
-                                key={element._id}
-                                value={element.value}
-                                setIsAnswerChecked={setIsAnswerChecked}
-                              />
-                            );
-                          case 'accordion':
-                            return (
-                              <AccordionComponent
-                                key={element._id}
-                                value={element.value}
-                                setIsAccordionExpanded={setIsAccordionExpanded}
-                              />
-                            );
-                          case 'range':
-                            return (
-                              <Range
-                                key={element._id}
-                                setIsRangeComplete={setIsRangeComplete}
-                              />
-                            );
-                          case 'verse':
-                            return (
-                              <VerseSection
-                                key={element._id}
-                                value={element.value}
-                                setIsVerseComplete={setIsVerseComplete}
-                              />
-                            );
-                          case 'main-verse':
-                            return (
-                              <MainVerseSection
-                                key={element._id}
-                                value={element.value}
-                              />
-                            );
-                          case 'video':
-                            return (
-                              <VideoPlayer
-                                key={element._id}
-                                value={element.value}
-                              />
-                            );
-                          case 'audio':
-                            return (
-                              <AudioPlayer
-                                key={element._id}
-                                value={`${element.value}`}
-                                onNext={triggerNext}
-                              />
-                            );
-                          case 'dnd':
-                            return (
-                              <GestureHandlerRootView style={{flex: 1}}>
-                                <DND
-                                  key={element._id}
-                                  value={element.value}
-                                  selectedAnswer={selectedAnswer}
-                                  setSelectedAnswer={setSelectedAnswer}
-                                  isAnswerChecked={isAnswerChecked}
-                                  setIsAnswerChecked={setIsAnswerChecked}
-                                />
-                              </GestureHandlerRootView>
-                            );
-                          default:
-                            return null;
-                        }
-                      })}
-                    </View>
-                  </>
-                );
+          <View style={tw`flex-1 relative`}>
+            {currentSlideElementCount > 1 ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  tw`absolute right-2 top-3 z-10 rounded-full px-3 py-1`,
+                  {
+                    backgroundColor: darkMode
+                      ? 'rgba(17,24,39,0.88)'
+                      : 'rgba(255,247,237,0.94)',
+                    borderWidth: 1,
+                    borderColor: '#EA9215',
+                  },
+                ]}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-sm`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                  ]}>
+                  {activeElementIndex + 1}/{currentSlideElementCount}
+                </Text>
+              </View>
+            ) : null}
+            <ScrollView
+              onScroll={event =>
+                updateActiveElementFromOffset(event.nativeEvent.contentOffset.y)
               }
-            })}
-          </ScrollView>
+              scrollEventThrottle={16}
+              contentContainerStyle={tw`flex-grow justify-center pt-8 px-2`}
+              showsVerticalScrollIndicator={false}>
+              {data.map((slides, index) => {
+                if (index === activeIndex) {
+                  return (
+                    <>
+                      <Text
+                        style={tw`text-accent-6 text-3xl font-nokia-bold text-center mb-8`}>
+                        {slides.slide}
+                      </Text>
+                      <View key={slides._id} style={tw`flex gap-4`}>
+                        {slides.elements.map((element, elementIndex) => {
+                          // console.log(element);
+                          const renderElement = () => {
+                            switch (element.type) {
+                              case 'title':
+                                return (
+                                  <Title
+                                    key={element._id}
+                                    value={element.value}
+                                  />
+                                );
+                              case 'sub':
+                                return (
+                                  <Subtitle
+                                    key={element._id}
+                                    value={element.value}
+                                  />
+                                );
+                              case 'text':
+                                return (
+                                  <View style={tw`flex w-[100%]`}>
+                                    <TextComponent
+                                      key={element._id}
+                                      value={element.value}
+                                    />
+                                  </View>
+                                );
+                              case 'mix':
+                                return (
+                                  <ScrollMix
+                                    key={element._id}
+                                    value={element.value}
+                                    toggleModal={toggleModal}
+                                    isModalVisible={isModalVisible}
+                                    isImageLoaded={isImageLoaded}
+                                    handleImageLoad={handleImageLoad}
+                                    darkMode={darkMode}
+                                  />
+                                );
+                              case 'list':
+                                return (
+                                  <List
+                                    key={element._id}
+                                    value={element.value}
+                                  />
+                                );
+                              case 'slide':
+                                return (
+                                  <Slide
+                                    key={element._id}
+                                    value={element.value}
+                                    setIsSlideComplete={setIsSlideComplete}
+                                  />
+                                );
+                              case 'sequence':
+                                return (
+                                  <Sequence
+                                    key={element._id}
+                                    value={element.value}
+                                    setIsSequenceComplete={
+                                      setIsSequenceComplete
+                                    }
+                                  />
+                                );
+                              case 'reveal':
+                                return (
+                                  <Reveal
+                                    key={element._id}
+                                    value={element.value}
+                                    setIsRevealComplete={setIsRevealComplete}
+                                  />
+                                );
+                              case 'img':
+                                return (
+                                  <GestureHandlerRootView style={{flex: 1}}>
+                                    <ImageComponent
+                                      key={element._id}
+                                      value={element.value}
+                                      toggleModal={toggleModal}
+                                      isModalVisible={isModalVisible}
+                                      isImageLoaded={isImageLoaded}
+                                      handleImageLoad={handleImageLoad}
+                                      darkMode={darkMode}
+                                    />
+                                  </GestureHandlerRootView>
+                                );
+                              case 'quiz':
+                                return (
+                                  <Quiz
+                                    key={element._id}
+                                    value={element.value}
+                                    setIsAnswerChecked={setIsAnswerChecked}
+                                  />
+                                );
+                              case 'accordion':
+                                return (
+                                  <AccordionComponent
+                                    key={element._id}
+                                    value={element.value}
+                                    setIsAccordionExpanded={
+                                      setIsAccordionExpanded
+                                    }
+                                  />
+                                );
+                              case 'range':
+                                return (
+                                  <Range
+                                    key={element._id}
+                                    setIsRangeComplete={setIsRangeComplete}
+                                  />
+                                );
+                              case 'verse':
+                                return (
+                                  <VerseSection
+                                    key={element._id}
+                                    value={element.value}
+                                    setIsVerseComplete={setIsVerseComplete}
+                                  />
+                                );
+                              case 'main-verse':
+                                return (
+                                  <MainVerseSection
+                                    key={element._id}
+                                    value={element.value}
+                                  />
+                                );
+                              case 'video':
+                                return (
+                                  <VideoPlayer
+                                    key={element._id}
+                                    value={element.value}
+                                  />
+                                );
+                              case 'audio':
+                                return (
+                                  <AudioPlayer
+                                    key={element._id}
+                                    value={`${element.value}`}
+                                    onNext={triggerNext}
+                                  />
+                                );
+                              case 'dnd':
+                                return (
+                                  <GestureHandlerRootView style={{flex: 1}}>
+                                    <DND
+                                      key={element._id}
+                                      value={element.value}
+                                      selectedAnswer={selectedAnswer}
+                                      setSelectedAnswer={setSelectedAnswer}
+                                      isAnswerChecked={isAnswerChecked}
+                                      setIsAnswerChecked={setIsAnswerChecked}
+                                    />
+                                  </GestureHandlerRootView>
+                                );
+                              default:
+                                return null;
+                            }
+                          };
+
+                          return (
+                            <View
+                              key={
+                                element._id || `${element.type}-${elementIndex}`
+                              }
+                              onLayout={event => {
+                                elementLayoutsRef.current[elementIndex] = {
+                                  y: event.nativeEvent.layout.y,
+                                  height: event.nativeEvent.layout.height,
+                                };
+                              }}>
+                              {renderElement()}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    </>
+                  );
+                }
+              })}
+            </ScrollView>
+          </View>
           <View style={tw`border-b border-accent-6 mt-2`} />
           <View style={tw`flex-none`}>
             <View style={tw`flex-row justify-between px-4 my-2`}>

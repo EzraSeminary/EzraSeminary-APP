@@ -12,10 +12,11 @@ import {
   Modal,
   Linking,
   TextInput,
-  Dimensions,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import {useSelector} from 'react-redux';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import DateConverter from './DateConverter';
 import {
   useGetInVerseOfDayQuery,
@@ -33,6 +34,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
+import ReaderFontSizeControl from '../../components/ReaderFontSizeControl';
 
 // Replace the NoteBox component with this simpler version
 const NoteInput = ({darkMode}) => {
@@ -124,6 +126,7 @@ const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
 };
 
 const InVerseWeek = ({route}) => {
+  const insets = useSafeAreaInsets();
   const {InVerse, weekId} = route.params;
   const scrollRef = useRef();
   const navigation = useNavigation();
@@ -174,6 +177,7 @@ const InVerseWeek = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const {fontScale} = useWindowDimensions();
   const {
     scaleTextSize,
     increaseFontScale,
@@ -181,6 +185,21 @@ const InVerseWeek = ({route}) => {
     readerFontScalePercentage,
   } = useReaderFontScale();
   const [showFontSizePopup, setShowFontSizePopup] = useState(false);
+  const handleReaderScrollBegin = useCallback(() => {
+    setShowFontSizePopup(false);
+  }, []);
+  const accessibilityScale = Math.max(
+    1,
+    Math.min(Math.max(fontScale, 1), 1.8) * (readerFontScalePercentage / 100),
+  );
+  const noteSectionSpacing = Math.max(
+    scaleTextSize(8),
+    Math.round(8 * accessibilityScale),
+  );
+  const noteCardBottomSpacing = Math.max(
+    scaleTextSize(24),
+    Math.round(24 * accessibilityScale),
+  );
 
   // Add timeout for loading state
   useEffect(() => {
@@ -544,19 +563,16 @@ const InVerseWeek = ({route}) => {
         )}`;
         const noteText = notes[noteId] || '';
 
-        const screenWidth = Dimensions.get('window').width;
-        const containerWidth = screenWidth - 32;
         return (
           <View
             key={noteId}
-            style={[
-              {
-                width: containerWidth,
-                maxWidth: containerWidth,
-                marginTop: scaleTextSize(8),
-                marginBottom: scaleTextSize(24),
-              },
-            ]}>
+            style={{
+              width: '100%',
+              maxWidth: '100%',
+              alignSelf: 'stretch',
+              marginTop: scaleTextSize(8),
+              marginBottom: noteCardBottomSpacing,
+            }}>
             <View
               style={[
                 tw`rounded-lg p-2`,
@@ -567,21 +583,33 @@ const InVerseWeek = ({route}) => {
                 },
               ]}>
               <View style={{width: '100%', maxWidth: '100%'}}>
-                <Text
-                  style={[
-                    tw`font-nokia-bold`,
-                    {
-                      color: '#EA9215',
-                      fontSize: scaleTextSize(16),
-                      lineHeight: scaleTextSize(24),
-                      width: '100%',
-                    },
-                  ]}
-                  numberOfLines={undefined}
-                  ellipsizeMode="clip">
+                <View
+                  style={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    minWidth: 0,
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    alignItems: 'flex-start',
+                  }}>
                   {node.children.map((child, childIndex) => {
                     if (child.type === 'text') {
-                      return child.data || '';
+                      return (
+                        <Text
+                          key={childIndex}
+                          style={[
+                            tw`font-nokia-bold`,
+                            {
+                              color: '#EA9215',
+                              fontSize: scaleTextSize(16),
+                              lineHeight: scaleTextSize(24),
+                              maxWidth: '100%',
+                              flexShrink: 1,
+                            },
+                          ]}>
+                          {child.data || ''}
+                        </Text>
+                      );
                     } else if (
                       child.type === 'tag' &&
                       child.name === 'a' &&
@@ -593,27 +621,51 @@ const InVerseWeek = ({route}) => {
                       return (
                         <Text
                           key={childIndex}
-                          style={[tw`text-accent-6 underline`]}
+                          style={[
+                            tw`font-nokia-bold text-accent-6 underline`,
+                            {
+                              fontSize: scaleTextSize(16),
+                              lineHeight: scaleTextSize(24),
+                              maxWidth: '100%',
+                              flexShrink: 1,
+                            },
+                          ]}
                           onPress={() => handleVerseClick(child.attribs.verse)}>
                           {verseText}
                         </Text>
                       );
                     } else if (child.type === 'tag') {
-                      return child.children
+                      const childText = child.children
                         .map(grandChild => grandChild.data || '')
                         .join('');
+                      return childText ? (
+                        <Text
+                          key={childIndex}
+                          style={[
+                            tw`font-nokia-bold`,
+                            {
+                              color: '#EA9215',
+                              fontSize: scaleTextSize(16),
+                              lineHeight: scaleTextSize(24),
+                              maxWidth: '100%',
+                              flexShrink: 1,
+                            },
+                          ]}>
+                          {childText}
+                        </Text>
+                      ) : null;
                     }
-                    return '';
+                    return null;
                   })}
-                </Text>
+                </View>
               </View>
             </View>
             <View
               style={{
-                marginTop: scaleTextSize(8),
-                paddingBottom: scaleTextSize(8),
+                marginTop: noteSectionSpacing,
+                paddingBottom: noteSectionSpacing,
               }}>
-              <View style={{gap: scaleTextSize(6)}}>
+              <View style={{gap: noteSectionSpacing}}>
                 {noteText ? (
                   <View style={tw`w-full`}>
                     <Text
@@ -635,11 +687,24 @@ const InVerseWeek = ({route}) => {
                 ) : null}
                 <TouchableOpacity
                   onPress={() => setActiveNoteId(noteId)}
-                  style={tw`self-start px-3 py-1 rounded-full bg-accent-6`}>
+                  style={[
+                    tw`self-start px-3 rounded-full bg-accent-6`,
+                    {
+                      minHeight: scaleTextSize(36),
+                      paddingVertical: Math.max(
+                        scaleTextSize(5),
+                        noteSectionSpacing - 2,
+                      ),
+                      justifyContent: 'center',
+                    },
+                  ]}>
                   <Text
                     style={[
                       tw`font-nokia-bold text-primary-1`,
-                      {fontSize: scaleTextSize(14)},
+                      {
+                        fontSize: scaleTextSize(14),
+                        lineHeight: scaleTextSize(18),
+                      },
                     ]}>
                     {noteText ? 'Edit Note' : 'Add Note'}
                   </Text>
@@ -671,6 +736,8 @@ const InVerseWeek = ({route}) => {
       setActiveNoteId,
       handleSaveNote,
       activeNoteId,
+      noteCardBottomSpacing,
+      noteSectionSpacing,
       scaleTextSize,
     ],
   );
@@ -683,7 +750,9 @@ const InVerseWeek = ({route}) => {
     ...tw`font-nokia-bold text-primary-6`,
     fontSize: scaleTextSize(18),
   };
-  const modifiedContent = selectedVerseContent.replace(/<h2>/g, '<br><h2>');
+  const modifiedContent = String(selectedVerseContent || '')
+    .replace(/^\s*(<br\s*\/?>|&nbsp;|\s)+/gi, '')
+    .trim();
 
   // Show loading state while data is being fetched - but with timeout
   if ((isQuarterLoading || isWeekLoading) && !loadingTimeout) {
@@ -787,6 +856,7 @@ const InVerseWeek = ({route}) => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         ref={scrollRef}
+        onScrollBeginDrag={handleReaderScrollBegin}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -811,45 +881,14 @@ const InVerseWeek = ({route}) => {
                 position: 'absolute',
                 right: 20,
               }}>
-              <TouchableOpacity
-                onPress={() => setShowFontSizePopup(previous => !previous)}
-                style={[
-                  tw`border border-accent-6 rounded-full px-3 py-1`,
-                  darkMode ? tw`bg-secondary-9` : tw`bg-primary-1`,
-                ]}>
-                <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>A+</Text>
-              </TouchableOpacity>
-              {showFontSizePopup && (
-                <View
-                  style={[
-                    tw`absolute right-0 top-10 rounded-full px-3 py-2 border flex-row items-center`,
-                    darkMode
-                      ? tw`bg-secondary-9 border-secondary-6`
-                      : tw`bg-primary-1 border-primary-4`,
-                  ]}>
-                  <TouchableOpacity
-                    onPress={decreaseFontScale}
-                    style={tw`px-3 py-1 rounded-full bg-accent-6`}>
-                    <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
-                      A-
-                    </Text>
-                  </TouchableOpacity>
-                  <Text
-                    style={[
-                      tw`font-nokia-bold text-sm px-2`,
-                      darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                    ]}>
-                    {readerFontScalePercentage}%
-                  </Text>
-                  <TouchableOpacity
-                    onPress={increaseFontScale}
-                    style={tw`px-3 py-1 rounded-full bg-accent-6`}>
-                    <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
-                      A+
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+              <ReaderFontSizeControl
+                darkMode={darkMode}
+                isVisible={showFontSizePopup}
+                onToggle={() => setShowFontSizePopup(previous => !previous)}
+                onDecrease={decreaseFontScale}
+                onIncrease={increaseFontScale}
+                percentage={readerFontScalePercentage}
+              />
             </View>
             <LinearGradient
               colors={[gradientColor, `${gradientColor}20`]}
@@ -947,13 +986,20 @@ const InVerseWeek = ({route}) => {
         visible={isModalOpen}
         onRequestClose={onCloseModal}>
         <View
-          style={tw`flex-1 justify-center items-center bg-secondary-9 bg-opacity-70`}>
+          style={[
+            tw`flex-1 justify-center items-center bg-secondary-9 bg-opacity-70 px-4`,
+            {
+              paddingTop: Math.max(insets.top, 24),
+              paddingBottom: Math.max(insets.bottom, 24),
+            },
+          ]}>
           <View
             style={[
-              tw`max-h-80% bg-primary-2 p-4 rounded-lg w-11/12 max-w-lg border border-accent-8`,
+              tw`bg-primary-2 p-4 rounded-lg w-full max-w-lg border border-accent-8`,
+              {maxHeight: '100%'},
               darkMode ? tw`bg-secondary-9` : null,
             ]}>
-            <ScrollView>
+            <ScrollView showsVerticalScrollIndicator={false}>
               <HtmlContent
                 html={`<div>${modifiedContent}</div>`}
                 baseStyle={{

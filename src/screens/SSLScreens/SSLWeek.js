@@ -12,13 +12,13 @@ import {
   Modal,
   Linking,
   TextInput,
-  Dimensions,
   useWindowDimensions,
   Platform,
   KeyboardAvoidingView,
   Pressable,
 } from 'react-native';
 import {useSelector} from 'react-redux';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import DateConverter from './DateConverter';
 import {
   useGetSSLOfDayQuery,
@@ -51,6 +51,7 @@ import {extractHtmlBlocks} from '../../utils/htmlBlocks';
 import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
+import ReaderFontSizeControl from '../../components/ReaderFontSizeControl';
 
 const decodeHtmlEntities = text =>
   (text || '')
@@ -65,13 +66,10 @@ const normalizeInlineText = text => decodeHtmlEntities(text || '');
 
 const stripInlineHtml = html =>
   normalizeInlineText(
-    (html || '')
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<[^>]+>/g, ''),
+    (html || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ''),
   );
 
-const VERSE_LINK_REGEX =
-  /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+const VERSE_LINK_REGEX = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
 const GENERIC_VERSE_REFERENCE_REGEX =
   /(?:[1-4፩-፬]\s*)?[A-Za-z\u1200-\u137F]+(?:[.-][A-Za-z\u1200-\u137F]+)*(?:\s+[A-Za-z\u1200-\u137F]+(?:[.-][A-Za-z\u1200-\u137F]+)*)?\s+\d+:\d+(?:-\d+)?/g;
 
@@ -102,7 +100,9 @@ const resolveVerseReference = attributes => {
 
   return String(
     verseValue ||
-      (normalizedHref && !/^https?:/i.test(normalizedHref) ? normalizedHref : ''),
+      (normalizedHref && !/^https?:/i.test(normalizedHref)
+        ? normalizedHref
+        : ''),
   ).trim();
 };
 
@@ -146,10 +146,7 @@ const splitTextByVersePattern = (text, versePattern) => {
         return;
       }
 
-      if (
-        !earliestMatch ||
-        (match.index ?? 0) < (earliestMatch.index ?? 0)
-      ) {
+      if (!earliestMatch || (match.index ?? 0) < (earliestMatch.index ?? 0)) {
         earliestMatch = match;
       }
     });
@@ -211,10 +208,7 @@ const parseParagraphDisplayParts = html => {
         ? normalizedHref
         : '');
 
-    if (
-      anchorText &&
-      (hasVerseClass(classValue) || resolvedVerseRef)
-    ) {
+    if (anchorText && (hasVerseClass(classValue) || resolvedVerseRef)) {
       parts.push({
         text: anchorText,
         verseRef: resolvedVerseRef || anchorText,
@@ -248,6 +242,69 @@ const blockHasVerseReferences = html => {
       String(part?.text || ''),
     ),
   );
+};
+
+const isQuestionBlock = html => /^<code\b/i.test(String(html || '').trim());
+
+const parseQuestionBlockContent = (html, versePattern) => {
+  const innerHtml = String(html || '')
+    .replace(/^<code[^>]*>/i, '')
+    .replace(/<\/code>$/i, '');
+  const plainQuestionText = stripInlineHtml(innerHtml).trim();
+  const verseElements = [];
+  let match;
+
+  VERSE_LINK_REGEX.lastIndex = 0;
+  while ((match = VERSE_LINK_REGEX.exec(innerHtml)) !== null) {
+    const [, attributes = '', anchorHtml = ''] = match;
+    const classValue = readHtmlAttribute(attributes, 'class');
+    const verseValue =
+      readHtmlAttribute(attributes, 'verse') ||
+      readHtmlAttribute(attributes, 'data-verse') ||
+      readHtmlAttribute(attributes, 'data-verse-id');
+    const hrefValue = readHtmlAttribute(attributes, 'href');
+    const anchorText = stripInlineHtml(anchorHtml);
+    const normalizedHref = hrefValue.replace(/^#/, '').trim();
+    const resolvedVerseRef =
+      verseValue.trim() ||
+      (normalizedHref && !/^https?:/i.test(normalizedHref)
+        ? normalizedHref
+        : '');
+
+    if (anchorText && (hasVerseClass(classValue) || resolvedVerseRef)) {
+      verseElements.push({
+        text: anchorText,
+        verseRef: resolvedVerseRef || anchorText,
+      });
+    }
+  }
+
+  const regexVerseRefs = splitTextByVersePattern(
+    plainQuestionText,
+    versePattern,
+  )
+    .filter(part => part.verseRef)
+    .map(part => ({
+      verseRef: part.verseRef,
+      text: part.text,
+    }));
+
+  const references = [...verseElements, ...regexVerseRefs].filter(
+    (item, itemIndex, array) =>
+      item?.verseRef &&
+      item?.text &&
+      itemIndex ===
+        array.findIndex(
+          candidate =>
+            candidate.verseRef === item.verseRef &&
+            candidate.text === item.text,
+        ),
+  );
+
+  return {
+    plainQuestionText,
+    references,
+  };
 };
 
 const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
@@ -345,6 +402,7 @@ const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
 };
 
 const SSLWeek = ({route}) => {
+  const insets = useSafeAreaInsets();
   const {ssl, weekId, lessonData, quarterData, videoLink} = route.params;
   const scrollRef = useRef();
   const navigation = useNavigation();
@@ -469,6 +527,24 @@ const SSLWeek = ({route}) => {
     let currentHighlightableBlocks = [];
 
     contentBlocks.forEach(block => {
+      if (isQuestionBlock(block?.html)) {
+        if (currentHighlightableBlocks.length > 0) {
+          segments.push({
+            id: `highlight-group-${segments.length}`,
+            type: 'highlightable',
+            blocks: currentHighlightableBlocks,
+          });
+          currentHighlightableBlocks = [];
+        }
+
+        segments.push({
+          id: `question-block-${block.id}`,
+          type: 'question',
+          block,
+        });
+        return;
+      }
+
       if (isHighlightableBlock(block)) {
         const displayParts = parseParagraphDisplayParts(block.html);
         const normalizedText = displayParts.map(part => part.text).join('');
@@ -533,10 +609,29 @@ const SSLWeek = ({route}) => {
     readerFontScalePercentage,
   } = useReaderFontScale();
   const [showFontSizePopup, setShowFontSizePopup] = useState(false);
+  const handleReaderScrollBegin = useCallback(() => {
+    setShowFontSizePopup(false);
+  }, []);
   const scaled = useCallback(
     size =>
       scaleTextSize(Math.round(size * Math.min(Math.max(fontScale, 1), 1.8))),
     [fontScale, scaleTextSize],
+  );
+  const accessibilityScale = Math.max(
+    1,
+    Math.min(Math.max(fontScale, 1), 1.8) * (readerFontScalePercentage / 100),
+  );
+  const interQuestionSpacing = Math.max(
+    scaled(10),
+    Math.round(10 * accessibilityScale),
+  );
+  const noteSectionSpacing = Math.max(
+    scaled(8),
+    Math.round(8 * accessibilityScale),
+  );
+  const noteCardBottomSpacing = Math.max(
+    scaled(24),
+    Math.round(24 * accessibilityScale),
   );
 
   useEffect(() => {
@@ -566,49 +661,54 @@ const SSLWeek = ({route}) => {
     };
   }, [isQuarterLoading, isWeekLoading]);
 
-  const handleVerseClick = useCallback(verseKey => {
-    const weekData = displaySSLWeek;
-    const verses = weekData?.bible?.[0]?.verses || {};
-    const verseKeys = Object.keys(verses);
+  const handleVerseClick = useCallback(
+    verseKey => {
+      const weekData = displaySSLWeek;
+      const verses = weekData?.bible?.[0]?.verses || {};
+      const verseKeys = Object.keys(verses);
 
-    if (!verseKeys.length) {
+      if (!verseKeys.length) {
+        console.error(`Verse key "${verseKey}" not found`);
+        return;
+      }
+
+      if (verses[verseKey]) {
+        setSelectedVerseContent(verses[verseKey]);
+        setIsModalOpen(true);
+        return;
+      }
+
+      const normalizedRequested = normalizeVerseLookupKey(verseKey);
+      const requestedAddress = extractVerseAddress(verseKey);
+
+      const resolvedKey =
+        verseKeys.find(
+          key => normalizeVerseLookupKey(key) === normalizedRequested,
+        ) ||
+        verseKeys.find(key => {
+          const candidateAddress = extractVerseAddress(key);
+          if (!requestedAddress || candidateAddress !== requestedAddress) {
+            return false;
+          }
+
+          const normalizedCandidate = normalizeVerseLookupKey(key);
+          return (
+            normalizedCandidate.includes(normalizedRequested) ||
+            normalizedRequested.includes(normalizedCandidate)
+          );
+        }) ||
+        verseKeys.find(key => extractVerseAddress(key) === requestedAddress);
+
+      if (resolvedKey && verses[resolvedKey]) {
+        setSelectedVerseContent(verses[resolvedKey]);
+        setIsModalOpen(true);
+        return;
+      }
+
       console.error(`Verse key "${verseKey}" not found`);
-      return;
-    }
-
-    if (verses[verseKey]) {
-      setSelectedVerseContent(verses[verseKey]);
-      setIsModalOpen(true);
-      return;
-    }
-
-    const normalizedRequested = normalizeVerseLookupKey(verseKey);
-    const requestedAddress = extractVerseAddress(verseKey);
-
-    const resolvedKey =
-      verseKeys.find(key => normalizeVerseLookupKey(key) === normalizedRequested) ||
-      verseKeys.find(key => {
-        const candidateAddress = extractVerseAddress(key);
-        if (!requestedAddress || candidateAddress !== requestedAddress) {
-          return false;
-        }
-
-        const normalizedCandidate = normalizeVerseLookupKey(key);
-        return (
-          normalizedCandidate.includes(normalizedRequested) ||
-          normalizedRequested.includes(normalizedCandidate)
-        );
-      }) ||
-      verseKeys.find(key => extractVerseAddress(key) === requestedAddress);
-
-    if (resolvedKey && verses[resolvedKey]) {
-      setSelectedVerseContent(verses[resolvedKey]);
-      setIsModalOpen(true);
-      return;
-    }
-
-    console.error(`Verse key "${verseKey}" not found`);
-  }, [displaySSLWeek]);
+    },
+    [displaySSLWeek],
+  );
   const verseReferencePattern = useMemo(() => {
     const verseKeys = Object.keys(displaySSLWeek?.bible?.[0]?.verses || {})
       .filter(Boolean)
@@ -623,9 +723,10 @@ const SSLWeek = ({route}) => {
 
   const renderHighlightableParagraph = useCallback(
     ({block, textStyle}) => {
-      const parts = Array.isArray(block?.displayParts) && block.displayParts.length
-        ? block.displayParts
-        : [{text: block?.text || ''}];
+      const parts =
+        Array.isArray(block?.displayParts) && block.displayParts.length
+          ? block.displayParts
+          : [{text: block?.text || ''}];
       const flattenedTextStyle = StyleSheet.flatten(textStyle) || {};
       const displayTextStyle = {...flattenedTextStyle};
       const paragraphContainerStyle = {
@@ -670,9 +771,6 @@ const SSLWeek = ({route}) => {
           flattenedTextStyle.marginHorizontal ??
           flattenedTextStyle.margin ??
           0,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        alignItems: 'flex-start',
       };
 
       delete displayTextStyle.paddingTop;
@@ -701,42 +799,205 @@ const SSLWeek = ({route}) => {
           ];
         }
 
-        return splitTextByVersePattern(part?.text || '', verseReferencePattern).map(
-          (item, itemIndex) => ({
-            key: `${block.id}-${partIndex}-${itemIndex}`,
-            text: item.text,
-            verseRef: item.verseRef || null,
-          }),
-        );
+        return splitTextByVersePattern(
+          part?.text || '',
+          verseReferencePattern,
+        ).map((item, itemIndex) => ({
+          key: `${block.id}-${partIndex}-${itemIndex}`,
+          text: item.text,
+          verseRef: item.verseRef || null,
+        }));
       });
 
       return (
         <View pointerEvents="box-none" style={paragraphContainerStyle}>
-          {interactiveSegments.map(segment => (
-            <Text
-              key={segment.key}
-              pointerEvents={segment.verseRef ? 'auto' : 'none'}
-              onPress={
-                segment.verseRef
-                  ? () => handleVerseClick(segment.verseRef)
-                  : undefined
-              }
-              style={[
-                displayTextStyle,
-                segment.verseRef
-                  ? {
-                      color: '#EA9215',
-                      textDecorationLine: 'underline',
-                    }
-                  : null,
-              ]}>
-              {segment.text}
-            </Text>
-          ))}
+          <Text style={displayTextStyle}>
+            {interactiveSegments.map(segment => (
+              <Text
+                key={segment.key}
+                onPress={
+                  segment.verseRef
+                    ? () => handleVerseClick(segment.verseRef)
+                    : undefined
+                }
+                style={
+                  segment.verseRef
+                    ? {
+                        color: '#EA9215',
+                        textDecorationLine: 'underline',
+                      }
+                    : null
+                }>
+                {segment.text}
+              </Text>
+            ))}
+          </Text>
         </View>
       );
     },
     [handleVerseClick, verseReferencePattern],
+  );
+
+  const inlineCodeTextStyle = useMemo(
+    () => ({
+      color: '#EA9215',
+      fontSize: scaled(16),
+      lineHeight: scaled(24),
+    }),
+    [scaled],
+  );
+
+  const renderQuestionBlock = useCallback(
+    block => {
+      const {plainQuestionText, references} = parseQuestionBlockContent(
+        block?.html,
+        verseReferencePattern,
+      );
+      const noteId = `${weekId}-${check}-${block?.id || 'question'}`;
+      const noteText = notes[noteId] || '';
+
+      return (
+        <View
+          key={noteId}
+          collapsable={false}
+          style={{
+            width: '100%',
+            maxWidth: '100%',
+            alignSelf: 'stretch',
+            marginBottom: noteCardBottomSpacing,
+          }}>
+          <View
+            style={[
+              tw`rounded-lg p-3`,
+              {
+                backgroundColor: darkMode ? '#333' : '#f5f5f5',
+                width: '100%',
+                maxWidth: '100%',
+              },
+            ]}>
+            <Text
+              style={[
+                tw`font-nokia-bold`,
+                inlineCodeTextStyle,
+                {
+                  width: '100%',
+                  flexShrink: 1,
+                },
+              ]}>
+              {plainQuestionText}
+            </Text>
+            {references.length ? (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  gap: scaled(8),
+                  marginTop: scaled(10),
+                }}>
+                {references.map(reference => (
+                  <TouchableOpacity
+                    key={`${noteId}-${reference.verseRef}-${reference.text}`}
+                    onPress={() => handleVerseClick(reference.verseRef)}
+                    style={[
+                      tw`rounded-full border px-3 py-1`,
+                      {
+                        borderColor: '#EA9215',
+                        backgroundColor: darkMode ? '#1F2937' : '#FFF7ED',
+                      },
+                    ]}>
+                    <Text
+                      style={[
+                        tw`font-nokia-bold underline`,
+                        {
+                          color: '#EA9215',
+                          fontSize: scaled(14),
+                          lineHeight: scaled(18),
+                        },
+                      ]}>
+                      {reference.text}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+            <View
+              style={{
+                marginTop: noteSectionSpacing + scaled(4),
+                paddingTop: noteSectionSpacing + scaled(2),
+                paddingBottom: noteSectionSpacing,
+                borderTopWidth: 1,
+                borderTopColor: darkMode ? '#4B5563' : '#D1D5DB',
+                gap: noteSectionSpacing,
+              }}>
+              {noteText ? (
+                <View style={tw`w-full`}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold`,
+                      darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                      {
+                        fontSize: scaled(16),
+                        lineHeight: scaled(24),
+                        textDecorationLine: 'underline',
+                        textDecorationColor: '#EA9215',
+                        textDecorationStyle: 'solid',
+                        flexWrap: 'wrap',
+                      },
+                    ]}>
+                    {noteText}
+                  </Text>
+                </View>
+              ) : null}
+              <TouchableOpacity
+                onPress={() => setActiveNoteId(noteId)}
+                style={[
+                  tw`self-start px-3 rounded-full bg-accent-6`,
+                  {
+                    minHeight: scaled(36),
+                    paddingVertical: Math.max(
+                      scaled(5),
+                      noteSectionSpacing - 2,
+                    ),
+                    justifyContent: 'center',
+                  },
+                ]}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-primary-1`,
+                    {
+                      fontSize: scaled(14),
+                      lineHeight: scaled(18),
+                    },
+                  ]}>
+                  {noteText ? 'Edit Note' : 'Add Note'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <NoteModal
+            isVisible={activeNoteId === noteId}
+            onClose={() => setActiveNoteId(null)}
+            onSave={text => handleSaveNote(noteId, text)}
+            initialText={noteText}
+            darkMode={darkMode}
+          />
+        </View>
+      );
+    },
+    [
+      activeNoteId,
+      check,
+      darkMode,
+      handleSaveNote,
+      handleVerseClick,
+      inlineCodeTextStyle,
+      noteCardBottomSpacing,
+      noteSectionSpacing,
+      notes,
+      scaled,
+      verseReferencePattern,
+      weekId,
+    ],
   );
 
   const onCloseModal = () => {
@@ -924,12 +1185,12 @@ const SSLWeek = ({route}) => {
       : {...tw`font-nokia-bold text-secondary-6`, fontSize: scaled(24)},
     p: darkMode
       ? {
-          ...tw`text-primary-1 font-nokia-bold py-2 flex-wrap`,
+          ...tw`text-primary-1 font-nokia-bold py-2`,
           fontSize: scaled(17),
           lineHeight: scaled(26),
         }
       : {
-          ...tw`text-secondary-6 font-nokia-bold py-2 flex-wrap`,
+          ...tw`text-secondary-6 font-nokia-bold py-2`,
           fontSize: scaled(17),
           lineHeight: scaled(26),
         },
@@ -1112,175 +1373,6 @@ const SSLWeek = ({route}) => {
       ) : null;
     }
 
-    if (node.name === 'code') {
-      const codeContent = (node.children ?? [])
-        .map(child => {
-          if (child.type === 'text') {
-            return child.data || '';
-          } else if (child.type === 'tag') {
-            // For tag elements, we'll handle them separately
-              if (
-                child.name === 'a' &&
-                (hasVerseClass(child.attribs?.class) ||
-                  resolveVerseReference(child.attribs))
-              ) {
-              // Extract the text content from the verse element
-              const verseText = child.children
-                .map(grandChild => grandChild.data || '')
-                .join('');
-              return verseText;
-            }
-            // For other tags, extract their text content
-            return child.children
-              .map(grandChild => grandChild.data || '')
-              .join('');
-          }
-          return '';
-        })
-        .join('');
-
-      // Extract verse elements for rendering as links
-      const verseElements = (node.children ?? [])
-        .filter(
-          child =>
-            child.type === 'tag' &&
-            child.name === 'a' &&
-              (hasVerseClass(child.attribs?.class) ||
-                resolveVerseReference(child.attribs)),
-        )
-        .map(child => ({
-            verseRef: resolveVerseReference(child.attribs),
-          text: child.children
-            .map(grandChild => grandChild.data || '')
-            .join(''),
-        }));
-
-      const noteId = `${weekId}-${check}-${index}-${codeContent.substring(
-        0,
-        20,
-      )}`;
-      const noteText = notes[noteId] || '';
-
-      const screenWidth = Dimensions.get('window').width;
-      const containerWidth = screenWidth - 32;
-
-      return (
-        <View
-          key={noteId}
-          collapsable={false}
-          style={[
-            {
-              width: containerWidth,
-              maxWidth: containerWidth,
-              marginTop: scaled(8),
-              marginBottom: scaled(24),
-            },
-          ]}>
-          <View
-            style={[
-              tw`rounded-lg p-3`,
-              {
-                backgroundColor: darkMode ? '#333' : '#f5f5f5',
-                width: '100%',
-                maxWidth: '100%',
-              },
-            ]}>
-            <View style={{width: '100%', maxWidth: '100%'}}>
-              <Text
-                style={[
-                  tw`font-nokia-bold`,
-                  {
-                    color: '#EA9215',
-                    fontSize: scaled(16),
-                    lineHeight: scaled(24),
-                    width: '100%',
-                  },
-                ]}
-                numberOfLines={undefined}
-                ellipsizeMode="clip">
-                {node.children.map((child, childIndex) => {
-                  if (child.type === 'text') {
-                    return child.data || '';
-                  } else if (
-                    child.type === 'tag' &&
-                    child.name === 'a' &&
-                    (hasVerseClass(child.attribs?.class) ||
-                      resolveVerseReference(child.attribs))
-                  ) {
-                    const verseText = child.children
-                      .map(grandChild => grandChild.data || '')
-                      .join('');
-                    return (
-                      <Text
-                        key={childIndex}
-                        style={[tw`text-accent-6 underline`]}
-                        onPress={() =>
-                          handleVerseClick(resolveVerseReference(child.attribs))
-                        }>
-                        {verseText}
-                      </Text>
-                    );
-                  } else if (child.type === 'tag') {
-                    return child.children
-                      .map(grandChild => grandChild.data || '')
-                      .join('');
-                  }
-                  return '';
-                })}
-              </Text>
-            </View>
-            <View
-              style={{
-                marginTop: scaled(12),
-                paddingTop: scaled(10),
-                paddingBottom: scaled(6),
-                borderTopWidth: 1,
-                borderTopColor: darkMode ? '#4B5563' : '#D1D5DB',
-                gap: scaled(8),
-              }}>
-              {noteText ? (
-                <View style={tw`w-full`}>
-                  <Text
-                    style={[
-                      tw`font-nokia-bold`,
-                      darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                      {
-                        fontSize: scaled(16),
-                        lineHeight: scaled(24),
-                        textDecorationLine: 'underline',
-                        textDecorationColor: '#EA9215',
-                        textDecorationStyle: 'solid',
-                        flexWrap: 'wrap',
-                      },
-                    ]}>
-                    {noteText}
-                  </Text>
-                </View>
-              ) : null}
-              <TouchableOpacity
-                onPress={() => setActiveNoteId(noteId)}
-                style={tw`self-start px-3 py-1 rounded-full bg-accent-6`}>
-                <Text
-                  style={[
-                    tw`font-nokia-bold text-primary-1`,
-                    {fontSize: scaled(14)},
-                  ]}>
-                  {noteText ? 'Edit Note' : 'Add Note'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          <NoteModal
-            isVisible={activeNoteId === noteId}
-            onClose={() => setActiveNoteId(null)}
-            onSave={text => handleSaveNote(noteId, text)}
-            initialText={noteText}
-            darkMode={darkMode}
-          />
-        </View>
-      );
-    }
-
     return undefined;
   };
 
@@ -1292,10 +1384,9 @@ const SSLWeek = ({route}) => {
     ...tw`font-nokia-bold text-primary-6`,
     fontSize: scaled(18),
   };
-  const modifiedContent = String(selectedVerseContent || '').replace(
-    /<h2>/g,
-    '<br><h2>',
-  );
+  const modifiedContent = String(selectedVerseContent || '')
+    .replace(/^\s*(<br\s*\/?>|&nbsp;|\s)+/gi, '')
+    .trim();
 
   return (
     <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
@@ -1303,6 +1394,7 @@ const SSLWeek = ({route}) => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         ref={scrollRef}
+        onScrollBeginDrag={handleReaderScrollBegin}
         contentContainerStyle={{
           paddingBottom: Platform.OS === 'android' ? 96 : 24,
         }}
@@ -1336,46 +1428,14 @@ const SSLWeek = ({route}) => {
                 flexDirection: 'row',
                 gap: 8,
               }}>
-              <TouchableOpacity
-                onPress={() => setShowFontSizePopup(previous => !previous)}
-                style={[
-                  tw`border border-accent-6 rounded-full px-3 py-1`,
-                  darkMode ? tw`bg-secondary-9` : tw`bg-primary-1`,
-                ]}>
-                <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>A+</Text>
-              </TouchableOpacity>
-              {showFontSizePopup && (
-                <View
-                  style={[
-                    tw`absolute rounded-full px-3 py-2 border flex-row items-center`,
-                    darkMode
-                      ? tw`bg-secondary-9 border-secondary-6`
-                      : tw`bg-primary-1 border-primary-4`,
-                    {top: 38, right: 42},
-                  ]}>
-                  <TouchableOpacity
-                    onPress={decreaseFontScale}
-                    style={tw`px-3 py-1 rounded-full bg-accent-6`}>
-                    <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
-                      A-
-                    </Text>
-                  </TouchableOpacity>
-                  <Text
-                    style={[
-                      tw`font-nokia-bold text-sm px-2`,
-                      darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                    ]}>
-                    {readerFontScalePercentage}%
-                  </Text>
-                  <TouchableOpacity
-                    onPress={increaseFontScale}
-                    style={tw`px-3 py-1 rounded-full bg-accent-6`}>
-                    <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
-                      A+
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+              <ReaderFontSizeControl
+                darkMode={darkMode}
+                isVisible={showFontSizePopup}
+                onToggle={() => setShowFontSizePopup(previous => !previous)}
+                onDecrease={decreaseFontScale}
+                onIncrease={increaseFontScale}
+                percentage={readerFontScalePercentage}
+              />
               <TouchableOpacity onPress={handleWatchYouTube}>
                 <YoutubeLogo size={36} weight="fill" color={'#EA9215'} />
               </TouchableOpacity>
@@ -1422,11 +1482,20 @@ const SSLWeek = ({route}) => {
             </View>
           </ImageBackground>
 
-          <View style={tw`flex flex-col gap-4 px-4 mt-2`}>
+          <View
+            style={[
+              tw`flex flex-col px-4 mt-2`,
+              {rowGap: Math.max(scaled(12), interQuestionSpacing)},
+            ]}>
             {contentSegments.map(segment => {
               if (segment.type === 'static') {
                 return (
-                  <View key={segment.id} style={tw`rounded-4 px-2 py-1 mb-2`}>
+                  <View
+                    key={segment.id}
+                    style={[
+                      tw`rounded-4 px-2 py-1`,
+                      {marginBottom: interQuestionSpacing},
+                    ]}>
                     <HTMLView
                       value={segment.block.html}
                       stylesheet={styles}
@@ -1437,11 +1506,32 @@ const SSLWeek = ({route}) => {
                 );
               }
 
+              if (segment.type === 'question') {
+                return (
+                  <View
+                    key={segment.id}
+                    style={[
+                      tw`rounded-4 px-2 py-1`,
+                      {marginBottom: interQuestionSpacing},
+                    ]}>
+                    {renderQuestionBlock(segment.block)}
+                  </View>
+                );
+              }
+
               return (
-                <View key={segment.id} style={tw`rounded-4 px-2 py-1 mb-2`}>
+                <View
+                  key={segment.id}
+                  style={[
+                    tw`rounded-4 px-2 py-1`,
+                    {marginBottom: interQuestionSpacing},
+                  ]}>
                   {segment.blocks.map(block => (
                     <View key={block.id} pointerEvents="box-none">
-                      {renderHighlightableParagraph({block, textStyle: styles.p})}
+                      {renderHighlightableParagraph({
+                        block,
+                        textStyle: styles.p,
+                      })}
                     </View>
                   ))}
                 </View>
@@ -1482,93 +1572,117 @@ const SSLWeek = ({route}) => {
         animationType="slide"
         transparent={true}
         visible={isModalOpen}
+        statusBarTranslucent
+        presentationStyle="overFullScreen"
         onRequestClose={onCloseModal}>
         <View
-          style={tw`flex-1 justify-center items-center bg-secondary-9 bg-opacity-70`}>
+          style={[
+            tw`flex-1 justify-center items-center px-4`,
+            {
+              paddingTop: Math.max(insets.top, 24),
+              paddingBottom: Math.max(insets.bottom, 24),
+            },
+          ]}>
+          <Pressable
+            onPress={onCloseModal}
+            style={tw`absolute inset-0 bg-secondary-9 bg-opacity-70`}
+          />
           <View
-            style={[
-              tw`max-h-80% bg-primary-2 p-5 rounded-2xl w-11/12 max-w-lg border border-accent-8`,
-              darkMode ? tw`bg-secondary-9` : null,
-            ]}>
-            <ScrollView contentContainerStyle={tw`p-0`}>
-              <HtmlContent
-                html={`<div>${modifiedContent}</div>`}
-                baseStyle={{
-                  fontFamily: 'Nokia Pure Headline Bold',
-                  color: darkMode ? '#F8FAFC' : '#1F2937',
-                  fontSize: scaled(16),
-                  lineHeight: scaled(24),
-                  margin: 0,
-                  padding: 0,
-                }}
-                tagsStyles={{
-                  p: {
+            style={{
+              width: '100%',
+              maxWidth: 560,
+              maxHeight: '70%',
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: '#EA9215',
+              padding: 20,
+              overflow: 'hidden',
+              backgroundColor: darkMode ? '#111827' : '#FFFFFF',
+            }}>
+            <View style={{flexShrink: 1}}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                style={{flexShrink: 1}}
+                contentContainerStyle={{paddingBottom: 8}}>
+                <HtmlContent
+                  html={`<div>${modifiedContent}</div>`}
+                  baseStyle={{
                     fontFamily: 'Nokia Pure Headline Bold',
                     color: darkMode ? '#F8FAFC' : '#1F2937',
                     fontSize: scaled(16),
                     lineHeight: scaled(24),
-                    textAlign: 'left',
-                    marginTop: 0,
-                    marginBottom: 12,
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                  },
-                  div: {
-                    fontFamily: 'Nokia Pure Headline Bold',
-                    color: darkMode ? '#F8FAFC' : '#1F2937',
-                    fontSize: scaled(16),
-                    lineHeight: scaled(24),
-                    textAlign: 'left',
-                    marginTop: 0,
-                    marginBottom: 0,
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                  },
-                  h2: {
-                    fontFamily: 'Nokia Pure Headline Bold',
-                    color: '#EA9215',
-                    fontSize: scaled(24),
-                    marginTop: 0,
-                    marginBottom: 12,
-                    paddingTop: 0,
-                  },
-                  sup: {
-                    fontFamily: 'Nokia Pure Headline Bold',
-                    fontSize: scaled(12),
-                    color: '#EA9215',
-                  },
-                  ol: {
-                    fontFamily: 'Nokia Pure Headline Bold',
-                    color: darkMode ? '#F8FAFC' : '#1F2937',
-                    fontSize: scaled(16),
-                    lineHeight: scaled(24),
-                    textAlign: 'left',
-                    marginTop: 0,
-                    marginBottom: 12,
-                    paddingLeft: 16,
-                  },
-                  ul: {
-                    fontFamily: 'Nokia Pure Headline Bold',
-                    color: darkMode ? '#F8FAFC' : '#1F2937',
-                    fontSize: scaled(16),
-                    lineHeight: scaled(24),
-                    textAlign: 'left',
-                    marginTop: 0,
-                    marginBottom: 12,
-                    paddingLeft: 16,
-                  },
-                  li: {
-                    fontFamily: 'Nokia Pure Headline Bold',
-                    color: darkMode ? '#F8FAFC' : '#1F2937',
-                    fontSize: scaled(16),
-                    lineHeight: scaled(24),
-                    textAlign: 'left',
-                    marginTop: 0,
-                    marginBottom: 8,
-                  },
-                }}
-              />
-            </ScrollView>
+                    margin: 0,
+                    padding: 0,
+                  }}
+                  tagsStyles={{
+                    p: {
+                      fontFamily: 'Nokia Pure Headline Bold',
+                      color: darkMode ? '#F8FAFC' : '#1F2937',
+                      fontSize: scaled(16),
+                      lineHeight: scaled(24),
+                      textAlign: 'left',
+                      marginTop: 0,
+                      marginBottom: 12,
+                      paddingTop: 0,
+                      paddingBottom: 0,
+                    },
+                    div: {
+                      fontFamily: 'Nokia Pure Headline Bold',
+                      color: darkMode ? '#F8FAFC' : '#1F2937',
+                      fontSize: scaled(16),
+                      lineHeight: scaled(24),
+                      textAlign: 'left',
+                      marginTop: 0,
+                      marginBottom: 0,
+                      paddingTop: 0,
+                      paddingBottom: 0,
+                    },
+                    h2: {
+                      fontFamily: 'Nokia Pure Headline Bold',
+                      color: '#EA9215',
+                      fontSize: scaled(24),
+                      marginTop: 0,
+                      marginBottom: 12,
+                      paddingTop: 0,
+                    },
+                    sup: {
+                      fontFamily: 'Nokia Pure Headline Bold',
+                      fontSize: scaled(12),
+                      color: '#EA9215',
+                    },
+                    ol: {
+                      fontFamily: 'Nokia Pure Headline Bold',
+                      color: darkMode ? '#F8FAFC' : '#1F2937',
+                      fontSize: scaled(16),
+                      lineHeight: scaled(24),
+                      textAlign: 'left',
+                      marginTop: 0,
+                      marginBottom: 12,
+                      paddingLeft: 16,
+                    },
+                    ul: {
+                      fontFamily: 'Nokia Pure Headline Bold',
+                      color: darkMode ? '#F8FAFC' : '#1F2937',
+                      fontSize: scaled(16),
+                      lineHeight: scaled(24),
+                      textAlign: 'left',
+                      marginTop: 0,
+                      marginBottom: 12,
+                      paddingLeft: 16,
+                    },
+                    li: {
+                      fontFamily: 'Nokia Pure Headline Bold',
+                      color: darkMode ? '#F8FAFC' : '#1F2937',
+                      fontSize: scaled(16),
+                      lineHeight: scaled(24),
+                      textAlign: 'left',
+                      marginTop: 0,
+                      marginBottom: 8,
+                    },
+                  }}
+                />
+              </ScrollView>
+            </View>
             <TouchableOpacity
               style={tw`bg-accent-6 mt-4 rounded-lg p-2`}
               onPress={onCloseModal}>

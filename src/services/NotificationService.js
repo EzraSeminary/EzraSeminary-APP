@@ -7,12 +7,44 @@ import notifee, {
 } from '@notifee/react-native';
 import {Platform, PermissionsAndroid, AppState} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {toEthiopian} from 'ethiopian-date';
+import {EthDateTime} from 'ethiopian-calendar-date-converter';
+import {
+  ETHIOPIAN_MONTHS,
+  normalizeEthiopianMonth,
+} from '../utils/ethiopianCalendar';
 
 const DAILY_NOTIFICATION_ENABLED_KEY = 'dailyNotificationEnabled';
 const DAILY_NOTIFICATION_TIME_KEY = 'dailyNotificationTime';
 const NOTIFICATION_BOOTSTRAP_KEY = 'notifications_bootstrapped_v1';
 const FIRST_INSTALL_TEST_KEY = 'notifications_first_install_test_sent_v1';
+
+const toEthDate = date => {
+  const ethDateTime = EthDateTime.fromEuropeanDate(date);
+
+  return {
+    year: ethDateTime.year,
+    day: ethDateTime.date,
+    monthName: normalizeEthiopianMonth(ETHIOPIAN_MONTHS[ethDateTime.month]),
+  };
+};
+
+const findDevotionWithOffset = (devotions, offset, baseDate, targetYear) => {
+  const date = new Date(baseDate);
+  date.setDate(baseDate.getDate() - offset);
+  const ethDate = toEthDate(date);
+  const targetYearNumber = Number(targetYear);
+
+  return devotions.find(devotion => {
+    const devotionYear = devotion?.year;
+    const hasYear = devotionYear !== undefined && devotionYear !== null;
+
+    return (
+      normalizeEthiopianMonth(devotion?.month) === ethDate.monthName &&
+      Number(devotion?.day) === ethDate.day &&
+      (!hasYear || Number(devotionYear) === targetYearNumber)
+    );
+  });
+};
 
 class NotificationService {
   constructor() {
@@ -534,30 +566,31 @@ class NotificationService {
 
   async getTodaysDevotion() {
     try {
-      const ethiopianMonths = [
-        '',
-        'መስከረም',
-        'ጥቅምት',
-        'ህዳር',
-        'ታህሳስ',
-        'ጥር',
-        'የካቲት',
-        'መጋቢት',
-        'ሚያዝያ',
-        'ግንቦት',
-        'ሰኔ',
-        'ሐምሌ',
-        'ነሐሴ',
-        'ጳጉሜ',
-      ];
-
       const today = new Date();
-      const [year, month, day] = toEthiopian(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        today.getDate(),
-      );
-      const ethiopianMonth = ethiopianMonths[month];
+      const {year, monthName: ethiopianMonth} = toEthDate(today);
+      const alternateMonthName =
+        ethiopianMonth === 'ሚያዚያ'
+          ? 'ሚያዝያ'
+          : ethiopianMonth === 'ሚያዝያ'
+          ? 'ሚያዚያ'
+          : ethiopianMonth === 'ሐምሌ'
+          ? 'ሀምሌ'
+          : ethiopianMonth === 'ሀምሌ'
+          ? 'ሐምሌ'
+          : null;
+
+      const findMatchingDevotion = devotions => {
+        if (!Array.isArray(devotions) || devotions.length === 0) {
+          return null;
+        }
+
+        return (
+          findDevotionWithOffset(devotions, 0, today, year) ||
+          findDevotionWithOffset(devotions, 1, today, year) ||
+          findDevotionWithOffset(devotions, 2, today, year) ||
+          null
+        );
+      };
 
       // 1) Try cached home data (same key pattern as Home screen: home_data_cache_${year}_${month})
       try {
@@ -590,17 +623,16 @@ class NotificationService {
         if (cachedString) {
           const cached = JSON.parse(cachedString);
           const devotions = cached?.devotions || [];
-          const match =
-            devotions.find(
-              d => d.month === ethiopianMonth && Number(d.day) === day,
-            ) || devotions[0];
-          if (match) return match;
+          const match = findMatchingDevotion(devotions);
+          if (match) {
+            return match;
+          }
         }
       } catch (e) {
         console.warn('Failed to read cached devotions:', e);
       }
 
-      // 2) Fallback to API
+      // 2) Fallback to the month endpoint used by the Devotion screen.
       let baseUrl = 'https://ezrabackend.online/';
       try {
         const override = await AsyncStorage.getItem('apiBaseUrl');
@@ -609,23 +641,32 @@ class NotificationService {
         }
       } catch {}
 
-      const response = await fetch(`${baseUrl}devotion/show`);
-      if (!response.ok) {
-        console.warn('Failed to fetch devotions:', response.status);
-        return null;
-      }
-      const data = await response.json();
-      const devotions = Array.isArray(data?.devotions)
-        ? data.devotions
-        : Array.isArray(data)
-        ? data
-        : [];
+      const monthsToCheck = [ethiopianMonth, alternateMonthName].filter(Boolean);
+      for (const monthName of monthsToCheck) {
+        const response = await fetch(
+          `${baseUrl}devotion/year/${year}/month/${encodeURIComponent(monthName)}`,
+        );
+        if (!response.ok) {
+          console.warn('Failed to fetch devotions:', response.status, monthName);
+          continue;
+        }
 
-      const match =
-        devotions.find(
-          d => d.month === ethiopianMonth && Number(d.day) === day,
-        ) || devotions[0];
-      return match || null;
+        const data = await response.json();
+        const devotions = Array.isArray(data?.items)
+          ? data.items
+          : Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data)
+          ? data
+          : [];
+
+        const match = findMatchingDevotion(devotions);
+        if (match) {
+          return match;
+        }
+      }
+
+      return null;
     } catch (error) {
       console.error("Error getting today's devotion:", error);
       return null;

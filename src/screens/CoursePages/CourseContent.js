@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import React, {useState, useCallback, useEffect} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -110,7 +111,8 @@ const CourseContent = ({route}) => {
           return;
         }
 
-        const token = await AsyncStorage.getItem('token');
+        const token =
+          currentUser?.token || (await AsyncStorage.getItem('token'));
         if (!token) {
           return;
         }
@@ -130,7 +132,7 @@ const CourseContent = ({route}) => {
     };
 
     syncPendingProgress();
-  }, [courseId, currentUser?._id, dispatch]);
+  }, [courseId, currentUser?._id, currentUser?.token, dispatch]);
 
   // Find user progress for the specific course
   const userProgress = currentUser?.progress?.find(
@@ -259,6 +261,9 @@ const CourseContent = ({route}) => {
         <AndroidStatusBarSpacer minHeight={4} />
         <ScrollView
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: Platform.OS === 'android' ? 120 : 32,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -359,8 +364,7 @@ const CourseContent = ({route}) => {
                       Toast.show({
                         type: 'info',
                         text1: 'ምዕራፉ ተቆልፏል',
-                        text2:
-                          'ቀደም ያሉትን ምዕራፎች በመጀመሪያ ማጠናቀቅ ያስፈልጋል።',
+                        text2: 'ቀደም ያሉትን ምዕራፎች በመጀመሪያ ማጠናቀቅ ያስፈልጋል።',
                       });
                       return;
                     }

@@ -3,6 +3,23 @@ import axios from 'axios';
 
 const PENDING_COURSE_PROGRESS_KEY = 'pending_course_progress';
 
+const getAuthErrorStatus = error => {
+  const directStatus = error?.response?.status || error?.status;
+  if (directStatus) {
+    return directStatus;
+  }
+
+  const message = error?.message || '';
+  if (message.includes('401')) {
+    return 401;
+  }
+  if (message.includes('403')) {
+    return 403;
+  }
+
+  return null;
+};
+
 const mergeProgressEntry = (progress = [], entry) => {
   const existing = Array.isArray(progress) ? [...progress] : [];
   const index = existing.findIndex(item => item.courseId === entry.courseId);
@@ -38,7 +55,10 @@ const readPendingProgressMap = async () => {
 
 const writePendingProgressMap = async map => {
   try {
-    await AsyncStorage.setItem(PENDING_COURSE_PROGRESS_KEY, JSON.stringify(map));
+    await AsyncStorage.setItem(
+      PENDING_COURSE_PROGRESS_KEY,
+      JSON.stringify(map),
+    );
   } catch (error) {
     console.error('Error writing pending course progress:', error);
   }
@@ -141,8 +161,13 @@ export const syncPendingCourseProgressForCourse = async ({
 
     return {synced: true, user: nextUser};
   } catch (error) {
+    const status = getAuthErrorStatus(error);
+
+    if (status === 401 || status === 403) {
+      return {synced: false, authError: true};
+    }
+
     console.error('Error syncing pending course progress:', error);
-    return {synced: false};
+    return {synced: false, authError: false};
   }
 };
-

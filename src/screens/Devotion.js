@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Animated,
+  Platform,
 } from 'react-native';
 import React, {useState, useCallback, useEffect, useMemo, useRef} from 'react';
 import {useSelector} from 'react-redux';
@@ -69,6 +70,7 @@ import {
   normalizeEthiopianMonth,
 } from '../utils/ethiopianCalendar';
 import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
+import ReaderFontSizeControl from '../components/ReaderFontSizeControl';
 
 const toEthDate = date => {
   const ethDateTime = EthDateTime.fromEuropeanDate(date);
@@ -116,8 +118,12 @@ const Devotion = () => {
 
   // Get current Ethiopian date
   const today = useMemo(() => new Date(), []);
-  const {year: ethYear, month: ethMonth, day: ethDay, monthName: currentEthiopianMonth} =
-    toEthDate(today);
+  const {
+    year: ethYear,
+    month: ethMonth,
+    day: ethDay,
+    monthName: currentEthiopianMonth,
+  } = toEthDate(today);
   const yearToFetch = ethYear;
   const alternateMonthName = useMemo(() => {
     if (currentEthiopianMonth === 'ሚያዚያ') {
@@ -161,10 +167,13 @@ const Devotion = () => {
     const merged = [...primaryMonthDevotions, ...alternateMonthDevotions];
     const getDevotionKey = devotion =>
       devotion?._id ||
-      `${devotion?.year || 'legacy'}-${devotion?.month || ''}-${devotion?.day || ''}-${devotion?.title || ''}`;
+      `${devotion?.year || 'legacy'}-${devotion?.month || ''}-${
+        devotion?.day || ''
+      }-${devotion?.title || ''}`;
     const unique = merged.filter(
       (item, index, arr) =>
-        index === arr.findIndex(other => getDevotionKey(other) === getDevotionKey(item)),
+        index ===
+        arr.findIndex(other => getDevotionKey(other) === getDevotionKey(item)),
     );
     return unique.length > 0 ? unique : primaryMonthDevotions;
   }, [primaryMonthDevotions, alternateMonthDevotions]);
@@ -248,6 +257,9 @@ const Devotion = () => {
     readerFontScalePercentage,
   } = useReaderFontScale();
   const [showFontSizePopup, setShowFontSizePopup] = useState(false);
+  const handleReaderScrollBegin = useCallback(() => {
+    setShowFontSizePopup(false);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -408,8 +420,14 @@ const Devotion = () => {
       }`,
     [devotionToDisplay?._id, ethDay, ethMonth, ethYear],
   );
-  const {highlights, inlineHighlights, setHighlight, clearHighlight, setInlineHighlight} =
-    usePersistentHighlights(devotionHighlightKey);
+  const {
+    highlights,
+    inlineHighlights,
+    setHighlight,
+    clearHighlight,
+    setInlineHighlight,
+    clearInlineHighlights,
+  } = usePersistentHighlights(devotionHighlightKey);
   const devotionBodyBlocks = useMemo(
     () => extractHtmlBlocks(devotionToDisplay?.body || []),
     [devotionToDisplay?.body],
@@ -507,10 +525,14 @@ const Devotion = () => {
     }
 
     try {
-      const didShare = await handleShare(setIsSharing, devotionToDisplay.image || '', {
-        message: formatDevotionalForSharing(devotionToDisplay),
-        title: devotionToDisplay.title || 'Daily Devotional',
-      });
+      const didShare = await handleShare(
+        setIsSharing,
+        devotionToDisplay.image || '',
+        {
+          message: formatDevotionalForSharing(devotionToDisplay),
+          title: devotionToDisplay.title || 'Daily Devotional',
+        },
+      );
       if (!didShare) {
         return;
       }
@@ -782,9 +804,11 @@ const Devotion = () => {
   const scheduleNotificationForCurrentDevotion = async devotion => {
     try {
       const settings = await NotificationService.getDailyNotificationSettings();
-      if (settings.enabled && devotion) {
+      const currentDevotion =
+        (await NotificationService.getTodaysDevotion()) || devotion;
+      if (settings.enabled && currentDevotion) {
         await NotificationService.scheduleDailyVerseNotification(
-          devotion,
+          currentDevotion,
           settings.time,
         );
       }
@@ -917,6 +941,10 @@ const Devotion = () => {
         <AndroidStatusBarSpacer minHeight={4} />
         <ScrollView
           showsVerticalScrollIndicator={false}
+          onScrollBeginDrag={handleReaderScrollBegin}
+          contentContainerStyle={{
+            paddingBottom: Platform.OS === 'android' ? 112 : 32,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -936,45 +964,15 @@ const Devotion = () => {
               }}>
               <ArrowLeft size={28} weight="bold" color="#EA9215" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                tw`absolute right-0 border border-accent-6 rounded-full px-3 py-1`,
-                darkMode ? tw`bg-secondary-8` : tw`bg-primary-1`,
-              ]}
-              onPress={() => setShowFontSizePopup(previous => !previous)}>
-              <Text style={tw`font-nokia-bold text-accent-6 text-sm`}>A+</Text>
-            </TouchableOpacity>
-            {showFontSizePopup && (
-              <View
-                style={[
-                  tw`absolute right-0 top-11 rounded-full px-3 py-2 border flex-row items-center`,
-                  darkMode
-                    ? tw`bg-secondary-9 border-secondary-6`
-                    : tw`bg-primary-1 border-primary-4`,
-                ]}>
-                <TouchableOpacity
-                  onPress={decreaseFontScale}
-                  style={tw`px-3 py-1 rounded-full bg-accent-6`}>
-                  <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
-                    A-
-                  </Text>
-                </TouchableOpacity>
-                <Text
-                  style={[
-                    tw`font-nokia-bold text-sm px-2`,
-                    darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                  ]}>
-                  {readerFontScalePercentage}%
-                </Text>
-                <TouchableOpacity
-                  onPress={increaseFontScale}
-                  style={tw`px-3 py-1 rounded-full bg-accent-6`}>
-                  <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
-                    A+
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            <ReaderFontSizeControl
+              darkMode={darkMode}
+              isVisible={showFontSizePopup}
+              onToggle={() => setShowFontSizePopup(previous => !previous)}
+              onDecrease={decreaseFontScale}
+              onIncrease={increaseFontScale}
+              percentage={readerFontScalePercentage}
+              wrapperStyle={tw`absolute right-0`}
+            />
             {/* Sliding buttons for Devotional/Devotional Plan */}
             <View
               style={[
@@ -1125,18 +1123,21 @@ const Devotion = () => {
             </HighlightableBlock>
           </View>
           <View style={tw`mt-8`}>
-                  <HighlightableHtmlBlocks
-                    blocks={devotionBodyBlocks}
-                    darkMode={darkMode}
-                    highlights={highlights}
-                    inlineHighlights={inlineHighlights}
-                    onSelectColor={setHighlight}
-                    onSelectInlineColor={setInlineHighlight}
-                    onClearHighlight={clearHighlight}
-                    onFloatingSheetChange={setFloatingHighlightSheet}
-                    stylesheet={tailwindStyles}
-                    blockContainerStyle={tw`rounded-4 px-2 py-1 mb-2`}
-                  />
+            <HighlightableHtmlBlocks
+              blocks={devotionBodyBlocks}
+              darkMode={darkMode}
+              highlights={highlights}
+              inlineHighlights={inlineHighlights}
+              onSelectColor={setHighlight}
+              onSelectInlineColor={setInlineHighlight}
+              onClearHighlight={clearHighlight}
+              onClearInlineHighlights={clearInlineHighlights}
+              onFloatingSheetChange={setFloatingHighlightSheet}
+              stylesheet={tailwindStyles}
+              blockContainerStyle={tw`rounded-4 mb-2`}
+              displayPointerEvents="none"
+              minContentHeight={0}
+            />
           </View>
           <View
             style={[
