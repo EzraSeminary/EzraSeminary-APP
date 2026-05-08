@@ -10,7 +10,6 @@ import {
   RefreshControl,
   ImageBackground,
   Modal,
-  Linking,
   TextInput,
   useWindowDimensions,
   Platform,
@@ -44,6 +43,7 @@ import HtmlContent from '../../components/HtmlContent';
 import tw from './../../../tailwind';
 import LinearGradient from 'react-native-linear-gradient';
 import HTMLView from 'react-native-htmlview';
+import {WebView} from 'react-native-webview';
 import ErrorScreen from '../../components/ErrorScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {format} from 'date-fns';
@@ -594,13 +594,12 @@ const SSLWeek = ({route}) => {
   });
 
   const handleWatchYouTube = () => {
-    if (videoLinkData && videoLinkData.videoUrl) {
-      Linking.openURL(videoLinkData.videoUrl);
-    } else {
-      alert('Video link not available');
-    }
+    setShowVideoOptionsModal(true);
   };
   const [showSupplementalNotes, setShowSupplementalNotes] = useState(false);
+  const [showVideoOptionsModal, setShowVideoOptionsModal] = useState(false);
+  const [directVideoMeta, setDirectVideoMeta] = useState(null);
+  const [selectedVideoEntry, setSelectedVideoEntry] = useState(null);
   const {fontScale} = useWindowDimensions();
   const {
     scaleTextSize,
@@ -617,6 +616,34 @@ const SSLWeek = ({route}) => {
       scaleTextSize(Math.round(size * Math.min(Math.max(fontScale, 1), 1.8))),
     [fontScale, scaleTextSize],
   );
+  const extractYouTubeVideoId = useCallback(url => {
+    const normalizedUrl = String(url || '').trim();
+    if (!normalizedUrl) {
+      return '';
+    }
+
+    const shortMatch = normalizedUrl.match(/youtu\.be\/([^?&/]+)/i);
+    if (shortMatch?.[1]) {
+      return shortMatch[1];
+    }
+
+    const watchMatch = normalizedUrl.match(/[?&]v=([^?&/]+)/i);
+    if (watchMatch?.[1]) {
+      return watchMatch[1];
+    }
+
+    const embedMatch = normalizedUrl.match(/\/embed\/([^?&/]+)/i);
+    if (embedMatch?.[1]) {
+      return embedMatch[1];
+    }
+
+    const shortsMatch = normalizedUrl.match(/\/shorts\/([^?&/]+)/i);
+    if (shortsMatch?.[1]) {
+      return shortsMatch[1];
+    }
+
+    return '';
+  }, []);
   const accessibilityScale = Math.max(
     1,
     Math.min(Math.max(fontScale, 1), 1.8) * (readerFontScalePercentage / 100),
@@ -633,6 +660,61 @@ const SSLWeek = ({route}) => {
     scaled(24),
     Math.round(24 * accessibilityScale),
   );
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadDirectVideoMeta = async () => {
+      const url = videoLinkData?.videoUrl;
+      const videoId = extractYouTubeVideoId(url);
+
+      if (!url || !videoId) {
+        if (isActive) {
+          setDirectVideoMeta(null);
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `https://www.youtube.com/oembed?url=${encodeURIComponent(
+            url,
+          )}&format=json`,
+        );
+        const payload = await response.json();
+
+        if (!isActive) {
+          return;
+        }
+
+        setDirectVideoMeta({
+          title: payload?.title || displaySSLWeek?.title || 'Sabbath School',
+          channel: payload?.author_name || 'YouTube',
+          thumbnail:
+            payload?.thumbnail_url ||
+            `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+          videoId,
+        });
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setDirectVideoMeta({
+          title: displaySSLWeek?.title || 'Sabbath School',
+          channel: 'YouTube',
+          thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+          videoId,
+        });
+      }
+    };
+
+    loadDirectVideoMeta();
+
+    return () => {
+      isActive = false;
+    };
+  }, [displaySSLWeek?.title, extractYouTubeVideoId, videoLinkData?.videoUrl]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({y: 0, animated: true});
@@ -1284,14 +1366,65 @@ const SSLWeek = ({route}) => {
     }
 
     if (node.name === 'blockquote') {
+      const blockquoteText = extractNodeText(node);
+      const memoryText = parseMemoryText(blockquoteText);
+
+      if (memoryText) {
+        return (
+          <View key={index} style={tw`border-l-4 border-accent-6 pl-4 mb-4`}>
+            <Text
+              style={[
+                tw`font-nokia-bold`,
+                darkMode ? tw`text-secondary-5` : tw`text-secondary-6`,
+                {
+                  fontSize: scaled(28),
+                  lineHeight: scaled(34),
+                  marginBottom: 12,
+                },
+              ]}>
+              {memoryText.label}
+            </Text>
+            <Text
+              style={[
+                tw`font-nokia-bold`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                {
+                  fontSize: scaled(19),
+                  lineHeight: scaled(31),
+                  marginBottom: 10,
+                },
+              ]}>
+              {memoryText.verse}
+            </Text>
+            {memoryText.reference ? (
+              <Text
+                style={[
+                  tw`font-nokia-bold text-accent-6`,
+                  {
+                    fontSize: scaled(26),
+                    lineHeight: scaled(32),
+                    textDecorationLine: 'underline',
+                  },
+                ]}>
+                {memoryText.reference}
+              </Text>
+            ) : null}
+          </View>
+        );
+      }
+
       const childrenWithStyles = node.children.map((child, childIndex) => {
         if (child.type === 'text') {
           return (
             <Text
               key={childIndex}
               style={[
-                tw`font-nokia-bold text-lg`,
+                tw`font-nokia-bold`,
                 darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                {
+                  fontSize: scaled(18),
+                  lineHeight: scaled(28),
+                },
               ]}>
               {child.data}
             </Text>
@@ -1343,20 +1476,25 @@ const SSLWeek = ({route}) => {
           key={index}
           onPress={handleToggleSupplementalNotes}
           style={[
-            tw`flex flex-row justify-between p-2 rounded-lg mt-4 border border-lg h-8`,
+            tw`flex-row items-center justify-between rounded-2xl mt-4 px-4 py-3 border`,
+            {
+              minHeight: scaled(56),
+              borderColor: '#EA9215',
+              backgroundColor: darkMode ? '#1F2937' : '#FFF7ED',
+            },
           ]}>
           <Text
             style={[
-              tw`font-nokia-bold`,
-              darkMode ? tw`text-accent-6` : tw`text-secondary-6`,
-              {fontSize: scaled(16)},
+              tw`font-nokia-bold flex-1`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+              {fontSize: scaled(18), lineHeight: scaled(24)},
             ]}>
             {node.children[0].data}
           </Text>
           {showSupplementalNotes ? (
-            <CaretUp size={24} color={darkMode ? '#FFFFFF' : '#000000'} />
+            <CaretUp size={22} color="#EA9215" weight="bold" />
           ) : (
-            <CaretDown size={24} color={darkMode ? '#FFFFFF' : '#000000'} />
+            <CaretDown size={22} color="#EA9215" weight="bold" />
           )}
         </TouchableOpacity>
       );
@@ -1384,9 +1522,109 @@ const SSLWeek = ({route}) => {
     ...tw`font-nokia-bold text-primary-6`,
     fontSize: scaled(18),
   };
+  const extractNodeText = function extractNodeText(node) {
+    if (!node) {
+      return '';
+    }
+
+    if (node.type === 'text') {
+      return node.data || '';
+    }
+
+    return (node.children || []).map(extractNodeText).join('');
+  };
+  const parseMemoryText = rawText => {
+    const compactText = decodeHtmlEntities(rawText || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!/^memory text:/i.test(compactText)) {
+      return null;
+    }
+
+    const withoutLabel = compactText.replace(/^memory text:\s*/i, '').trim();
+    const referenceMatch = withoutLabel.match(
+      /\(?([1-4]?\s?[A-Za-z][A-Za-z\s]+?\d+:\d+(?:,\s*\d+)*(?:,\s*[A-Z]{2,})?)\)?\.?$/i,
+    );
+
+    if (!referenceMatch || referenceMatch.index == null) {
+      return {
+        label: 'Memory Text:',
+        verse: withoutLabel,
+        reference: '',
+      };
+    }
+
+    const verse = withoutLabel
+      .slice(0, referenceMatch.index)
+      .trim()
+      .replace(/\(?\s*$/, '')
+      .trim();
+
+    return {
+      label: 'Memory Text:',
+      verse,
+      reference: referenceMatch[1].trim(),
+    };
+  };
   const modifiedContent = String(selectedVerseContent || '')
     .replace(/^\s*(<br\s*\/?>|&nbsp;|\s)+/gi, '')
     .trim();
+  const directVideoEntries = directVideoMeta
+    ? [
+        {
+          id: 'direct-linked-video',
+          provider: directVideoMeta.channel,
+          title: directVideoMeta.title,
+          image: directVideoMeta.thumbnail,
+          webUrl: `https://www.youtube.com/embed/${directVideoMeta.videoId}?autoplay=1&playsinline=1`,
+          isDirectVideo: true,
+        },
+      ]
+    : [];
+  const videoSearchOptions = (() => {
+    const lessonTitle = displaySSLWeek?.title || '';
+    const quarterTitle = displaySSLQuarter?.quarterly?.title || '';
+    const queryBase = [quarterTitle, lessonTitle].filter(Boolean).join(' ');
+
+    return [
+      {
+        id: 'hope-sabbath-school',
+        provider: 'Hope Sabbath School',
+        title: 'Latest Hope Sabbath School',
+        subtitle: lessonTitle || quarterTitle || 'Current quarter videos',
+        image: '',
+        webUrl: `https://m.youtube.com/results?search_query=${encodeURIComponent(
+          `${queryBase} Hope Sabbath School`,
+        )}`,
+      },
+      {
+        id: 'it-is-written',
+        provider: 'It Is Written',
+        title: 'Latest It Is Written',
+        subtitle: lessonTitle || quarterTitle || 'Current quarter videos',
+        image: '',
+        webUrl: `https://m.youtube.com/results?search_query=${encodeURIComponent(
+          `${queryBase} It Is Written Sabbath School`,
+        )}`,
+      },
+      {
+        id: 'hopelives365',
+        provider: 'Hope Lives 365',
+        title: 'Latest Hope Lives 365',
+        subtitle: lessonTitle || quarterTitle || 'Current quarter videos',
+        image: '',
+        webUrl: `https://m.youtube.com/results?search_query=${encodeURIComponent(
+          `${queryBase} HopeLives365 Sabbath School`,
+        )}`,
+      },
+    ];
+  })();
+  const hasQuarterVideoEntries =
+    directVideoEntries.length > 0 || videoSearchOptions.length > 0;
+  const handleOpenVideoOption = entry => {
+    setSelectedVideoEntry(entry);
+  };
 
   return (
     <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
@@ -1692,6 +1930,236 @@ const SSLWeek = ({route}) => {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+      <Modal
+        animationType="slide"
+        transparent
+        visible={showVideoOptionsModal}
+        statusBarTranslucent
+        presentationStyle="overFullScreen"
+        onRequestClose={() => setShowVideoOptionsModal(false)}>
+        <View
+          style={[
+            tw`flex-1 justify-end`,
+            {backgroundColor: 'rgba(17, 24, 39, 0.45)'},
+          ]}>
+          <Pressable
+            style={tw`absolute inset-0`}
+            onPress={() => setShowVideoOptionsModal(false)}
+          />
+          <View
+            style={[
+              tw`rounded-t-[32px] px-5 pt-4 pb-8`,
+              {
+                minHeight: '58%',
+                maxHeight: '78%',
+                backgroundColor: darkMode ? '#F8FAFC' : '#FFFFFF',
+              },
+            ]}>
+            <View
+              style={[
+                tw`self-center rounded-full mb-6`,
+                {width: 58, height: 7, backgroundColor: '#4B5563'},
+              ]}
+            />
+            <Text
+              style={[
+                tw`font-nokia-bold mb-3`,
+                {fontSize: scaled(28), color: '#111827'},
+              ]}>
+              Video
+            </Text>
+            <Text
+              style={[
+                tw`font-nokia-bold mb-5`,
+                {fontSize: scaled(14), color: '#4B69A6'},
+              ]}>
+              {displaySSLWeek?.title || displaySSLQuarter?.quarterly?.title}
+            </Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{paddingBottom: 12}}>
+              {directVideoEntries.length ? (
+                <View style={tw`mb-6`}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold mb-4`,
+                      {fontSize: scaled(16), color: '#4B69A6'},
+                    ]}>
+                    Lesson Video
+                  </Text>
+                  {directVideoEntries.map(option => (
+                    <TouchableOpacity
+                      key={option.id}
+                      activeOpacity={0.9}
+                      style={tw`mb-4`}
+                      onPress={() => handleOpenVideoOption(option)}>
+                      <ImageBackground
+                        source={{uri: option.image}}
+                        imageStyle={{borderRadius: 18}}
+                        style={[
+                          tw`w-full mb-3 overflow-hidden justify-end`,
+                          {height: 210},
+                        ]}>
+                        <LinearGradient
+                          colors={['rgba(0,0,0,0.04)', 'rgba(0,0,0,0.42)']}
+                          style={tw`absolute inset-0`}
+                        />
+                      </ImageBackground>
+                      <Text
+                        style={[
+                          tw`font-nokia-bold`,
+                          {fontSize: scaled(18), color: '#111827'},
+                        ]}>
+                        {option.title}
+                      </Text>
+                      <Text
+                        style={[
+                          tw`font-nokia-bold`,
+                          {fontSize: scaled(15), color: '#6B7280'},
+                        ]}>
+                        {option.provider}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
+
+              {videoSearchOptions.length ? (
+                <View style={tw`mb-4`}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold mb-2`,
+                      {fontSize: scaled(16), color: '#4B69A6'},
+                    ]}>
+                    English Videos
+                  </Text>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold mb-4`,
+                      {fontSize: scaled(13), color: '#6B7280'},
+                    ]}>
+                    Browse the quarter sources and open any result in full
+                    screen.
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{paddingRight: 8}}>
+                    {videoSearchOptions.map(option => (
+                      <TouchableOpacity
+                        key={option.id}
+                        activeOpacity={0.9}
+                        style={{width: 286, marginRight: 16}}
+                        onPress={() => handleOpenVideoOption(option)}>
+                        <View
+                          style={[
+                            tw`w-full rounded-2xl mb-3 items-start justify-end p-5 overflow-hidden`,
+                            {height: 190, backgroundColor: '#E5E7EB'},
+                          ]}>
+                          <LinearGradient
+                            colors={['#243B53', '#486581']}
+                            style={tw`absolute inset-0`}
+                          />
+                          <Text
+                            style={[
+                              tw`font-nokia-bold text-primary-1`,
+                              {fontSize: scaled(26), lineHeight: scaled(30)},
+                            ]}>
+                            {option.provider}
+                          </Text>
+                          <Text
+                            style={[
+                              tw`font-nokia-bold text-primary-2 mt-2`,
+                              {fontSize: scaled(15), lineHeight: scaled(20)},
+                            ]}>
+                            {option.subtitle || 'Open YouTube results in-app'}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            tw`font-nokia-bold`,
+                            {fontSize: scaled(18), color: '#111827'},
+                          ]}>
+                          {option.title}
+                        </Text>
+                        <Text
+                          style={[
+                            tw`font-nokia-bold`,
+                            {fontSize: scaled(15), color: '#6B7280'},
+                          ]}>
+                          {option.provider}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
+
+              {!hasQuarterVideoEntries ? (
+                <View
+                  style={[
+                    tw`rounded-2xl p-5`,
+                    {
+                      backgroundColor: '#F3F4F6',
+                      borderWidth: 1,
+                      borderColor: '#E5E7EB',
+                    },
+                  ]}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold mb-2`,
+                      {fontSize: scaled(16), color: '#111827'},
+                    ]}>
+                    No videos found yet
+                  </Text>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold`,
+                      {fontSize: scaled(14), color: '#6B7280'},
+                    ]}>
+                    Add quarter video links or provider details to populate this
+                    list.
+                  </Text>
+                </View>
+              ) : null}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        animationType="slide"
+        visible={Boolean(selectedVideoEntry)}
+        presentationStyle="fullScreen"
+        onRequestClose={() => setSelectedVideoEntry(null)}>
+        <SafeAreaView style={tw`flex-1 bg-secondary-9`}>
+          <View
+            style={tw`flex-row items-center justify-between px-4 py-3 border-b border-secondary-7`}>
+            <Text
+              style={[
+                tw`font-nokia-bold flex-1 pr-3`,
+                {fontSize: scaled(18), color: '#F8FAFC'},
+              ]}
+              numberOfLines={1}>
+              {selectedVideoEntry?.title || 'Video'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setSelectedVideoEntry(null)}
+              style={tw`px-3 py-2 rounded-full bg-accent-6`}>
+              <Text style={tw`font-nokia-bold text-primary-1`}>Close</Text>
+            </TouchableOpacity>
+          </View>
+          {selectedVideoEntry?.webUrl ? (
+            <WebView
+              source={{uri: selectedVideoEntry.webUrl}}
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
+              javaScriptEnabled
+              domStorageEnabled
+              startInLoadingState
+            />
+          ) : null}
+        </SafeAreaView>
       </Modal>
     </View>
   );

@@ -96,7 +96,7 @@ android {
         applicationId "com.ezraapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 56
+        versionCode 57
         versionName "1.3.4"
     }
     
