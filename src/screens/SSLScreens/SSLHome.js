@@ -444,7 +444,7 @@ const SSLHome = ({onReload}) => {
       }
     }
 
-    navigation.navigate('SSLWeek', {
+    navigation.push('SSLWeek', {
       ssl: quarter,
       weekId: week,
     });

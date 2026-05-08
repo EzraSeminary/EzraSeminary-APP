@@ -39,16 +39,18 @@ import {
   CloudSlash,
   Warning,
 } from 'phosphor-react-native';
-import HtmlContent from '../../components/HtmlContent';
 import tw from './../../../tailwind';
 import LinearGradient from 'react-native-linear-gradient';
+import HtmlContent from '../../components/HtmlContent';
 import HTMLView from 'react-native-htmlview';
 import {WebView} from 'react-native-webview';
+import YoutubePlayer from 'react-native-youtube-iframe';
 import ErrorScreen from '../../components/ErrorScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {format} from 'date-fns';
-import {extractHtmlBlocks} from '../../utils/htmlBlocks';
+import {extractHtmlBlocks, stripHtmlTags} from '../../utils/htmlBlocks';
 import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
+import {fetchQuarterVideoSections} from '../../utils/sslQuarterVideoFeed';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 import ReaderFontSizeControl from '../../components/ReaderFontSizeControl';
@@ -118,6 +120,47 @@ const normalizeVerseLookupKey = value =>
 const extractVerseAddress = value => {
   const match = String(value || '').match(/\d+:\d+(?:-\d+)?/);
   return match?.[0] || '';
+};
+
+const normalizeVerseContent = value =>
+  String(value || '')
+    .replace(/^\s*(<br\s*\/?>|&nbsp;|\s)+/gi, '')
+    .trim();
+
+const normalizeVisibleText = value =>
+  String(value || '')
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
+    .trim();
+
+const resolveVerseContent = value => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(resolveVerseContent).filter(Boolean).join(' ');
+  }
+
+  if (value && typeof value === 'object') {
+    const preferredKeys = [
+      'content',
+      'text',
+      'verse',
+      'value',
+      'body',
+      'am',
+      'en',
+    ];
+
+    for (const key of preferredKeys) {
+      const resolved = resolveVerseContent(value[key]);
+      if (normalizeVerseContent(resolved)) {
+        return resolved;
+      }
+    }
+  }
+
+  return '';
 };
 
 const splitTextByVersePattern = (text, versePattern) => {
@@ -244,7 +287,7 @@ const blockHasVerseReferences = html => {
   );
 };
 
-const isQuestionBlock = html => /^<code\b/i.test(String(html || '').trim());
+const isQuestionBlock = html => /<code\b/i.test(String(html || '').trim());
 
 const parseQuestionBlockContent = (html, versePattern) => {
   const innerHtml = String(html || '')
@@ -360,18 +403,21 @@ const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
               onChangeText={setNoteText}
               placeholder="Write your note here..."
               placeholderTextColor="#AAB0B4"
-              style={[
-                tw`border border-accent-6 px-3 py-3 mb-4`,
-                darkMode
-                  ? tw`text-primary-1 bg-secondary-7`
-                  : tw`text-secondary-6 bg-primary-2`,
-                tw`font-nokia-bold text-base`,
-                {
-                  minHeight: Platform.OS === 'android' ? 180 : 160,
-                  borderRadius: 14,
-                  textAlignVertical: 'top',
-                },
-              ]}
+              style={{
+                minHeight: Platform.OS === 'android' ? 180 : 160,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: '#EA9215',
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                marginBottom: 16,
+                color: darkMode ? '#F8FAFC' : '#1F2937',
+                backgroundColor: darkMode ? '#1F2937' : '#FFFFFF',
+                fontFamily: 'Nokia Pure Headline Bold',
+                fontSize: 16,
+                lineHeight: 22,
+                textAlignVertical: 'top',
+              }}
               autoCapitalize="none"
               autoCorrect={false}
               spellCheck={false}
@@ -418,6 +464,7 @@ const SSLWeek = ({route}) => {
     'Thursday',
   ];
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedVerseKey, setSelectedVerseKey] = useState('');
   const [selectedVerseContent, setSelectedVerseContent] = useState('');
   const language = useSelector(state => state.language.language);
 
@@ -599,8 +646,9 @@ const SSLWeek = ({route}) => {
   const [showSupplementalNotes, setShowSupplementalNotes] = useState(false);
   const [showVideoOptionsModal, setShowVideoOptionsModal] = useState(false);
   const [directVideoMeta, setDirectVideoMeta] = useState(null);
+  const [quarterVideoSections, setQuarterVideoSections] = useState([]);
   const [selectedVideoEntry, setSelectedVideoEntry] = useState(null);
-  const {fontScale} = useWindowDimensions();
+  const {fontScale, height: windowHeight} = useWindowDimensions();
   const {
     scaleTextSize,
     increaseFontScale,
@@ -660,6 +708,16 @@ const SSLWeek = ({route}) => {
     scaled(24),
     Math.round(24 * accessibilityScale),
   );
+  const verseModalMaxHeight = Math.min(
+    windowHeight * 0.72,
+    Math.max(
+      windowHeight -
+        Math.max(insets.top, 24) -
+        Math.max(insets.bottom, 24) -
+        32,
+      320,
+    ),
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -717,6 +775,42 @@ const SSLWeek = ({route}) => {
   }, [displaySSLWeek?.title, extractYouTubeVideoId, videoLinkData?.videoUrl]);
 
   useEffect(() => {
+    let isActive = true;
+
+    const loadQuarterVideoEntries = async () => {
+      if (!ssl || !weekId) {
+        if (isActive) {
+          setQuarterVideoSections([]);
+        }
+        return;
+      }
+
+      try {
+        const sections = await fetchQuarterVideoSections({
+          language: 'en',
+          quarterId: ssl.substring(0, 7),
+        });
+
+        if (isActive) {
+          setQuarterVideoSections(
+            sections.filter(section => section.entries?.length),
+          );
+        }
+      } catch (error) {
+        if (isActive) {
+          setQuarterVideoSections([]);
+        }
+      }
+    };
+
+    loadQuarterVideoEntries();
+
+    return () => {
+      isActive = false;
+    };
+  }, [ssl, weekId]);
+
+  useEffect(() => {
     scrollRef.current?.scrollTo({y: 0, animated: true});
   }, [check]);
 
@@ -755,6 +849,7 @@ const SSLWeek = ({route}) => {
       }
 
       if (verses[verseKey]) {
+        setSelectedVerseKey(verseKey);
         setSelectedVerseContent(verses[verseKey]);
         setIsModalOpen(true);
         return;
@@ -772,7 +867,6 @@ const SSLWeek = ({route}) => {
           if (!requestedAddress || candidateAddress !== requestedAddress) {
             return false;
           }
-
           const normalizedCandidate = normalizeVerseLookupKey(key);
           return (
             normalizedCandidate.includes(normalizedRequested) ||
@@ -782,6 +876,7 @@ const SSLWeek = ({route}) => {
         verseKeys.find(key => extractVerseAddress(key) === requestedAddress);
 
       if (resolvedKey && verses[resolvedKey]) {
+        setSelectedVerseKey(resolvedKey);
         setSelectedVerseContent(verses[resolvedKey]);
         setIsModalOpen(true);
         return;
@@ -920,170 +1015,106 @@ const SSLWeek = ({route}) => {
     [handleVerseClick, verseReferencePattern],
   );
 
-  const inlineCodeTextStyle = useMemo(
-    () => ({
-      color: '#EA9215',
-      fontSize: scaled(16),
-      lineHeight: scaled(24),
-    }),
-    [scaled],
-  );
+  const renderQuestionBlock = block => {
+    const {plainQuestionText, references} = parseQuestionBlockContent(
+      block?.html,
+      verseReferencePattern,
+    );
+    const noteId = `${weekId}-${check}-${block?.id || 'question'}`;
+    const noteText = notes[noteId] || '';
 
-  const renderQuestionBlock = useCallback(
-    block => {
-      const {plainQuestionText, references} = parseQuestionBlockContent(
-        block?.html,
-        verseReferencePattern,
-      );
-      const noteId = `${weekId}-${check}-${block?.id || 'question'}`;
-      const noteText = notes[noteId] || '';
-
-      return (
+    return (
+      <View
+        key={noteId}
+        collapsable={false}
+        style={{
+          width: '100%',
+          maxWidth: '100%',
+          alignSelf: 'stretch',
+          marginBottom: noteCardBottomSpacing,
+        }}>
         <View
-          key={noteId}
-          collapsable={false}
-          style={{
-            width: '100%',
-            maxWidth: '100%',
-            alignSelf: 'stretch',
-            marginBottom: noteCardBottomSpacing,
-          }}>
+          style={[
+            tw`rounded-lg p-3`,
+            {
+              backgroundColor: darkMode ? '#333' : '#f5f5f5',
+              width: '100%',
+              maxWidth: '100%',
+            },
+          ]}>
+          <View style={{width: '100%', flexShrink: 1}}>
+            <HTMLView
+              value={block?.html}
+              stylesheet={styles}
+              renderNode={renderNode}
+              addLineBreaks={false}
+            />
+          </View>
           <View
-            style={[
-              tw`rounded-lg p-3`,
-              {
-                backgroundColor: darkMode ? '#333' : '#f5f5f5',
-                width: '100%',
-                maxWidth: '100%',
-              },
-            ]}>
-            <Text
-              style={[
-                tw`font-nokia-bold`,
-                inlineCodeTextStyle,
-                {
-                  width: '100%',
-                  flexShrink: 1,
-                },
-              ]}>
-              {plainQuestionText}
-            </Text>
-            {references.length ? (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  gap: scaled(8),
-                  marginTop: scaled(10),
-                }}>
-                {references.map(reference => (
-                  <TouchableOpacity
-                    key={`${noteId}-${reference.verseRef}-${reference.text}`}
-                    onPress={() => handleVerseClick(reference.verseRef)}
-                    style={[
-                      tw`rounded-full border px-3 py-1`,
-                      {
-                        borderColor: '#EA9215',
-                        backgroundColor: darkMode ? '#1F2937' : '#FFF7ED',
-                      },
-                    ]}>
-                    <Text
-                      style={[
-                        tw`font-nokia-bold underline`,
-                        {
-                          color: '#EA9215',
-                          fontSize: scaled(14),
-                          lineHeight: scaled(18),
-                        },
-                      ]}>
-                      {reference.text}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : null}
-            <View
-              style={{
-                marginTop: noteSectionSpacing + scaled(4),
-                paddingTop: noteSectionSpacing + scaled(2),
-                paddingBottom: noteSectionSpacing,
-                borderTopWidth: 1,
-                borderTopColor: darkMode ? '#4B5563' : '#D1D5DB',
-                gap: noteSectionSpacing,
-              }}>
-              {noteText ? (
-                <View style={tw`w-full`}>
-                  <Text
-                    style={[
-                      tw`font-nokia-bold`,
-                      darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                      {
-                        fontSize: scaled(16),
-                        lineHeight: scaled(24),
-                        textDecorationLine: 'underline',
-                        textDecorationColor: '#EA9215',
-                        textDecorationStyle: 'solid',
-                        flexWrap: 'wrap',
-                      },
-                    ]}>
-                    {noteText}
-                  </Text>
-                </View>
-              ) : null}
-              <TouchableOpacity
-                onPress={() => setActiveNoteId(noteId)}
-                style={[
-                  tw`self-start px-3 rounded-full bg-accent-6`,
-                  {
-                    minHeight: scaled(36),
-                    paddingVertical: Math.max(
-                      scaled(5),
-                      noteSectionSpacing - 2,
-                    ),
-                    justifyContent: 'center',
-                  },
-                ]}>
+            style={{
+              marginTop: noteSectionSpacing + scaled(4),
+              paddingTop: noteSectionSpacing + scaled(2),
+              paddingBottom: noteSectionSpacing,
+              borderTopWidth: 1,
+              borderTopColor: darkMode ? '#4B5563' : '#D1D5DB',
+              gap: noteSectionSpacing,
+            }}>
+            {noteText ? (
+              <View style={tw`w-full`}>
                 <Text
                   style={[
-                    tw`font-nokia-bold text-primary-1`,
+                    tw`font-nokia-bold`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
                     {
-                      fontSize: scaled(14),
-                      lineHeight: scaled(18),
+                      fontSize: scaled(16),
+                      lineHeight: scaled(24),
+                      textDecorationLine: 'underline',
+                      textDecorationColor: '#EA9215',
+                      textDecorationStyle: 'solid',
+                      flexWrap: 'wrap',
                     },
                   ]}>
-                  {noteText ? 'Edit Note' : 'Add Note'}
+                  {noteText}
                 </Text>
-              </TouchableOpacity>
-            </View>
+              </View>
+            ) : null}
+            <TouchableOpacity
+              onPress={() => setActiveNoteId(noteId)}
+              style={[
+                tw`self-start px-3 rounded-full bg-accent-6`,
+                {
+                  minHeight: scaled(36),
+                  paddingVertical: Math.max(scaled(5), noteSectionSpacing - 2),
+                  justifyContent: 'center',
+                },
+              ]}>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-primary-1`,
+                  {
+                    fontSize: scaled(14),
+                    lineHeight: scaled(18),
+                  },
+                ]}>
+                {noteText ? 'Edit Note' : 'Add Note'}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <NoteModal
-            isVisible={activeNoteId === noteId}
-            onClose={() => setActiveNoteId(null)}
-            onSave={text => handleSaveNote(noteId, text)}
-            initialText={noteText}
-            darkMode={darkMode}
-          />
         </View>
-      );
-    },
-    [
-      activeNoteId,
-      check,
-      darkMode,
-      handleSaveNote,
-      handleVerseClick,
-      inlineCodeTextStyle,
-      noteCardBottomSpacing,
-      noteSectionSpacing,
-      notes,
-      scaled,
-      verseReferencePattern,
-      weekId,
-    ],
-  );
+        <NoteModal
+          isVisible={activeNoteId === noteId}
+          onClose={() => setActiveNoteId(null)}
+          onSave={text => handleSaveNote(noteId, text)}
+          initialText={noteText}
+          darkMode={darkMode}
+        />
+      </View>
+    );
+  };
 
   const onCloseModal = () => {
     setIsModalOpen(false);
+    setSelectedVerseKey('');
     setSelectedVerseContent('');
   };
 
@@ -1349,7 +1380,8 @@ const SSLWeek = ({route}) => {
 
   const renderNode = (node, index, siblings, parent, defaultRenderer) => {
     if (node.name === 'a') {
-      const verseReference = resolveVerseReference(node.attribs);
+      const anchorText = stripInlineHtml(extractNodeText(node));
+      const verseReference = resolveVerseReference(node.attribs) || anchorText;
       if (hasVerseClass(node.attribs?.class) || verseReference) {
         const onPress = () => handleVerseClick(verseReference);
         return (
@@ -1567,9 +1599,7 @@ const SSLWeek = ({route}) => {
       reference: referenceMatch[1].trim(),
     };
   };
-  const modifiedContent = String(selectedVerseContent || '')
-    .replace(/^\s*(<br\s*\/?>|&nbsp;|\s)+/gi, '')
-    .trim();
+  const modifiedContent = selectedVerseContent;
   const directVideoEntries = directVideoMeta
     ? [
         {
@@ -1577,12 +1607,14 @@ const SSLWeek = ({route}) => {
           provider: directVideoMeta.channel,
           title: directVideoMeta.title,
           image: directVideoMeta.thumbnail,
-          webUrl: `https://www.youtube.com/embed/${directVideoMeta.videoId}?autoplay=1&playsinline=1`,
+          videoId: directVideoMeta.videoId,
+          playbackType: 'youtube',
           isDirectVideo: true,
+          showTitle: true,
         },
       ]
     : [];
-  const videoSearchOptions = (() => {
+  const fallbackVideoSearchOptions = (() => {
     const lessonTitle = displaySSLWeek?.title || '';
     const quarterTitle = displaySSLQuarter?.quarterly?.title || '';
     const queryBase = [quarterTitle, lessonTitle].filter(Boolean).join(' ');
@@ -1597,6 +1629,7 @@ const SSLWeek = ({route}) => {
         webUrl: `https://m.youtube.com/results?search_query=${encodeURIComponent(
           `${queryBase} Hope Sabbath School`,
         )}`,
+        showTitle: true,
       },
       {
         id: 'it-is-written',
@@ -1607,6 +1640,7 @@ const SSLWeek = ({route}) => {
         webUrl: `https://m.youtube.com/results?search_query=${encodeURIComponent(
           `${queryBase} It Is Written Sabbath School`,
         )}`,
+        showTitle: true,
       },
       {
         id: 'hopelives365',
@@ -1617,12 +1651,21 @@ const SSLWeek = ({route}) => {
         webUrl: `https://m.youtube.com/results?search_query=${encodeURIComponent(
           `${queryBase} HopeLives365 Sabbath School`,
         )}`,
+        showTitle: true,
       },
     ];
   })();
+  const englishProviderRows =
+    quarterVideoSections.length > 0
+      ? quarterVideoSections
+      : fallbackVideoSearchOptions.map(option => ({
+          provider: option.provider,
+          entries: [option],
+        }));
   const hasQuarterVideoEntries =
-    directVideoEntries.length > 0 || videoSearchOptions.length > 0;
+    directVideoEntries.length > 0 || englishProviderRows.length > 0;
   const handleOpenVideoOption = entry => {
+    setShowVideoOptionsModal(false);
     setSelectedVideoEntry(entry);
   };
 
@@ -1816,111 +1859,101 @@ const SSLWeek = ({route}) => {
         <View
           style={[
             tw`flex-1 justify-center items-center px-4`,
-            {
-              paddingTop: Math.max(insets.top, 24),
-              paddingBottom: Math.max(insets.bottom, 24),
-            },
+            {backgroundColor: 'rgba(0,0,0,0.6)'},
           ]}>
-          <Pressable
-            onPress={onCloseModal}
-            style={tw`absolute inset-0 bg-secondary-9 bg-opacity-70`}
-          />
           <View
-            style={{
-              width: '100%',
-              maxWidth: 560,
-              maxHeight: '70%',
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: '#EA9215',
-              padding: 20,
-              overflow: 'hidden',
-              backgroundColor: darkMode ? '#111827' : '#FFFFFF',
-            }}>
-            <View style={{flexShrink: 1}}>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                style={{flexShrink: 1}}
-                contentContainerStyle={{paddingBottom: 8}}>
-                <HtmlContent
-                  html={`<div>${modifiedContent}</div>`}
-                  baseStyle={{
+            style={[
+              tw`w-full max-w-lg rounded-2xl border border-accent-8 p-5`,
+              {backgroundColor: darkMode ? '#111827' : '#FFFFFF'},
+            ]}>
+            <ScrollView
+              contentContainerStyle={tw`p-0`}
+              showsVerticalScrollIndicator={false}
+              style={{
+                maxHeight:
+                  windowHeight -
+                  Math.max(insets.top, 40) -
+                  Math.max(insets.bottom, 24) -
+                  160,
+              }}>
+              <HtmlContent
+                html={`<div>${modifiedContent}</div>`}
+                baseStyle={{
+                  fontFamily: 'Nokia Pure Headline Bold',
+                  color: darkMode ? '#F8FAFC' : '#1F2937',
+                  fontSize: scaled(16),
+                  lineHeight: scaled(24),
+                  margin: 0,
+                  padding: 0,
+                }}
+                tagsStyles={{
+                  p: {
                     fontFamily: 'Nokia Pure Headline Bold',
                     color: darkMode ? '#F8FAFC' : '#1F2937',
                     fontSize: scaled(16),
                     lineHeight: scaled(24),
-                    margin: 0,
-                    padding: 0,
-                  }}
-                  tagsStyles={{
-                    p: {
-                      fontFamily: 'Nokia Pure Headline Bold',
-                      color: darkMode ? '#F8FAFC' : '#1F2937',
-                      fontSize: scaled(16),
-                      lineHeight: scaled(24),
-                      textAlign: 'left',
-                      marginTop: 0,
-                      marginBottom: 12,
-                      paddingTop: 0,
-                      paddingBottom: 0,
-                    },
-                    div: {
-                      fontFamily: 'Nokia Pure Headline Bold',
-                      color: darkMode ? '#F8FAFC' : '#1F2937',
-                      fontSize: scaled(16),
-                      lineHeight: scaled(24),
-                      textAlign: 'left',
-                      marginTop: 0,
-                      marginBottom: 0,
-                      paddingTop: 0,
-                      paddingBottom: 0,
-                    },
-                    h2: {
-                      fontFamily: 'Nokia Pure Headline Bold',
-                      color: '#EA9215',
-                      fontSize: scaled(24),
-                      marginTop: 0,
-                      marginBottom: 12,
-                      paddingTop: 0,
-                    },
-                    sup: {
-                      fontFamily: 'Nokia Pure Headline Bold',
-                      fontSize: scaled(12),
-                      color: '#EA9215',
-                    },
-                    ol: {
-                      fontFamily: 'Nokia Pure Headline Bold',
-                      color: darkMode ? '#F8FAFC' : '#1F2937',
-                      fontSize: scaled(16),
-                      lineHeight: scaled(24),
-                      textAlign: 'left',
-                      marginTop: 0,
-                      marginBottom: 12,
-                      paddingLeft: 16,
-                    },
-                    ul: {
-                      fontFamily: 'Nokia Pure Headline Bold',
-                      color: darkMode ? '#F8FAFC' : '#1F2937',
-                      fontSize: scaled(16),
-                      lineHeight: scaled(24),
-                      textAlign: 'left',
-                      marginTop: 0,
-                      marginBottom: 12,
-                      paddingLeft: 16,
-                    },
-                    li: {
-                      fontFamily: 'Nokia Pure Headline Bold',
-                      color: darkMode ? '#F8FAFC' : '#1F2937',
-                      fontSize: scaled(16),
-                      lineHeight: scaled(24),
-                      textAlign: 'left',
-                      marginTop: 0,
-                      marginBottom: 8,
-                    },
-                  }}
-                />
-              </ScrollView>
-            </View>
+                    textAlign: 'left',
+                    marginTop: 0,
+                    marginBottom: 12,
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                  },
+                  div: {
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    fontSize: scaled(16),
+                    lineHeight: scaled(24),
+                    textAlign: 'left',
+                    marginTop: 0,
+                    marginBottom: 0,
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                  },
+                  h2: {
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: '#EA9215',
+                    fontSize: scaled(24),
+                    marginTop: 0,
+                    marginBottom: 12,
+                    paddingTop: 0,
+                  },
+                  sup: {
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    fontSize: scaled(12),
+                    color: '#EA9215',
+                  },
+                  ol: {
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    fontSize: scaled(16),
+                    lineHeight: scaled(24),
+                    textAlign: 'left',
+                    marginTop: 0,
+                    marginBottom: 12,
+                    paddingLeft: 16,
+                  },
+                  ul: {
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    fontSize: scaled(16),
+                    lineHeight: scaled(24),
+                    textAlign: 'left',
+                    marginTop: 0,
+                    marginBottom: 12,
+                    paddingLeft: 16,
+                  },
+                  li: {
+                    fontFamily: 'Nokia Pure Headline Bold',
+                    color: darkMode ? '#F8FAFC' : '#1F2937',
+                    fontSize: scaled(16),
+                    lineHeight: scaled(24),
+                    textAlign: 'left',
+                    marginTop: 0,
+                    marginBottom: 8,
+                  },
+                }}
+              />
+            </ScrollView>
             <TouchableOpacity
               style={tw`bg-accent-6 mt-4 rounded-lg p-2`}
               onPress={onCloseModal}>
@@ -1951,8 +1984,8 @@ const SSLWeek = ({route}) => {
             style={[
               tw`rounded-t-[32px] px-5 pt-4 pb-8`,
               {
-                minHeight: '58%',
-                maxHeight: '78%',
+                minHeight: '70%',
+                maxHeight: '85%',
                 backgroundColor: darkMode ? '#F8FAFC' : '#FFFFFF',
               },
             ]}>
@@ -2025,74 +2058,77 @@ const SSLWeek = ({route}) => {
                 </View>
               ) : null}
 
-              {videoSearchOptions.length ? (
+              {englishProviderRows.length ? (
                 <View style={tw`mb-4`}>
                   <Text
                     style={[
                       tw`font-nokia-bold mb-2`,
                       {fontSize: scaled(16), color: '#4B69A6'},
                     ]}>
-                    English Videos
+                    Quarter Videos
                   </Text>
-                  <Text
-                    style={[
-                      tw`font-nokia-bold mb-4`,
-                      {fontSize: scaled(13), color: '#6B7280'},
-                    ]}>
-                    Browse the quarter sources and open any result in full
-                    screen.
-                  </Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{paddingRight: 8}}>
-                    {videoSearchOptions.map(option => (
-                      <TouchableOpacity
-                        key={option.id}
-                        activeOpacity={0.9}
-                        style={{width: 286, marginRight: 16}}
-                        onPress={() => handleOpenVideoOption(option)}>
-                        <View
-                          style={[
-                            tw`w-full rounded-2xl mb-3 items-start justify-end p-5 overflow-hidden`,
-                            {height: 190, backgroundColor: '#E5E7EB'},
-                          ]}>
-                          <LinearGradient
-                            colors={['#243B53', '#486581']}
-                            style={tw`absolute inset-0`}
-                          />
-                          <Text
-                            style={[
-                              tw`font-nokia-bold text-primary-1`,
-                              {fontSize: scaled(26), lineHeight: scaled(30)},
-                            ]}>
-                            {option.provider}
-                          </Text>
-                          <Text
-                            style={[
-                              tw`font-nokia-bold text-primary-2 mt-2`,
-                              {fontSize: scaled(15), lineHeight: scaled(20)},
-                            ]}>
-                            {option.subtitle || 'Open YouTube results in-app'}
-                          </Text>
-                        </View>
-                        <Text
-                          style={[
-                            tw`font-nokia-bold`,
-                            {fontSize: scaled(18), color: '#111827'},
-                          ]}>
-                          {option.title}
-                        </Text>
-                        <Text
-                          style={[
-                            tw`font-nokia-bold`,
-                            {fontSize: scaled(15), color: '#6B7280'},
-                          ]}>
-                          {option.provider}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                  {englishProviderRows.map(section => (
+                    <View key={section.provider} style={tw`mb-6`}>
+                      <Text
+                        style={[
+                          tw`font-nokia-bold mb-3`,
+                          {fontSize: scaled(15), color: '#6B7280'},
+                        ]}>
+                        {section.provider}
+                      </Text>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{paddingRight: 8}}>
+                        {section.entries.map(option => (
+                          <TouchableOpacity
+                            key={option.id}
+                            activeOpacity={0.9}
+                            style={{width: 286, marginRight: 16}}
+                            onPress={() => handleOpenVideoOption(option)}>
+                            {option.image ? (
+                              <ImageBackground
+                                source={{uri: option.image}}
+                                imageStyle={{borderRadius: 18}}
+                                style={[
+                                  tw`w-full overflow-hidden`,
+                                  {height: 190},
+                                ]}>
+                                <LinearGradient
+                                  colors={[
+                                    'rgba(0,0,0,0.02)',
+                                    'rgba(0,0,0,0.16)',
+                                  ]}
+                                  style={tw`absolute inset-0`}
+                                />
+                              </ImageBackground>
+                            ) : (
+                              <View
+                                style={[
+                                  tw`w-full rounded-2xl items-start justify-end p-5 overflow-hidden`,
+                                  {height: 190, backgroundColor: '#E5E7EB'},
+                                ]}>
+                                <LinearGradient
+                                  colors={['#243B53', '#486581']}
+                                  style={tw`absolute inset-0`}
+                                />
+                                <Text
+                                  style={[
+                                    tw`font-nokia-bold text-primary-1`,
+                                    {
+                                      fontSize: scaled(26),
+                                      lineHeight: scaled(30),
+                                    },
+                                  ]}>
+                                  {option.provider}
+                                </Text>
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  ))}
                 </View>
               ) : null}
 
@@ -2149,9 +2185,58 @@ const SSLWeek = ({route}) => {
               <Text style={tw`font-nokia-bold text-primary-1`}>Close</Text>
             </TouchableOpacity>
           </View>
-          {selectedVideoEntry?.webUrl ? (
+          {selectedVideoEntry?.playbackType === 'youtube' &&
+          selectedVideoEntry?.videoId ? (
+            <View style={tw`flex-1 justify-center bg-black`}>
+              <YoutubePlayer
+                height={260}
+                play={true}
+                videoId={selectedVideoEntry.videoId}
+                webViewStyle={{opacity: 0.99}}
+              />
+            </View>
+          ) : selectedVideoEntry?.webUrl ? (
             <WebView
               source={{uri: selectedVideoEntry.webUrl}}
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
+              javaScriptEnabled
+              domStorageEnabled
+              startInLoadingState
+            />
+          ) : selectedVideoEntry?.mediaUrl ? (
+            <WebView
+              source={{
+                html: `
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                      <style>
+                        html, body {
+                          margin: 0;
+                          padding: 0;
+                          background: #000;
+                          width: 100%;
+                          height: 100%;
+                          overflow: hidden;
+                        }
+                        video {
+                          width: 100%;
+                          height: 100%;
+                          object-fit: contain;
+                          background: #000;
+                        }
+                      </style>
+                    </head>
+                    <body>
+                      <video controls autoplay playsinline webkit-playsinline>
+                        <source src="${selectedVideoEntry.mediaUrl}" type="video/mp4" />
+                      </video>
+                    </body>
+                  </html>
+                `,
+              }}
               allowsInlineMediaPlayback
               mediaPlaybackRequiresUserAction={false}
               javaScriptEnabled

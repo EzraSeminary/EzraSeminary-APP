@@ -25,7 +25,6 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import {ArrowSquareLeft, CaretUp, CaretDown} from 'phosphor-react-native';
 import HTMLView from 'react-native-htmlview';
-import HtmlContent from '../../components/HtmlContent';
 import tw from '../../../tailwind';
 import LinearGradient from 'react-native-linear-gradient';
 import ErrorScreen from '../../components/ErrorScreen';
@@ -35,6 +34,59 @@ import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 import ReaderFontSizeControl from '../../components/ReaderFontSizeControl';
+
+const normalizeVerseLookupKey = value =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[“”"'/\\()[\]{}.,;፣፤፥፦፧።]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const extractVerseAddress = value => {
+  const match = String(value || '').match(/\d+:\d+(?:-\d+)?/);
+  return match?.[0] || '';
+};
+
+const normalizeVerseContent = value =>
+  String(value || '')
+    .replace(/^\s*(<br\s*\/?>|&nbsp;|\s)+/gi, '')
+    .trim();
+
+const normalizeVisibleText = value =>
+  String(value || '')
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
+    .trim();
+
+const resolveVerseContent = value => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(resolveVerseContent).filter(Boolean).join(' ');
+  }
+
+  if (value && typeof value === 'object') {
+    const preferredKeys = [
+      'content',
+      'text',
+      'verse',
+      'value',
+      'body',
+      'am',
+      'en',
+    ];
+
+    for (const key of preferredKeys) {
+      const resolved = resolveVerseContent(value[key]);
+      if (normalizeVerseContent(resolved)) {
+        return resolved;
+      }
+    }
+  }
+
+  return '';
+};
 
 // Replace the NoteBox component with this simpler version
 const NoteInput = ({darkMode}) => {
@@ -177,7 +229,7 @@ const InVerseWeek = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
-  const {fontScale} = useWindowDimensions();
+  const {fontScale, height: windowHeight} = useWindowDimensions();
   const {
     scaleTextSize,
     increaseFontScale,
@@ -261,11 +313,11 @@ const InVerseWeek = ({route}) => {
         InVerseWeek &&
         InVerseWeek.bible &&
         InVerseWeek.bible.length > 0 &&
-        InVerseWeek.bible[[0]].verses &&
-        InVerseWeek.bible[[0]].verses[verseKey]
+        InVerseWeek.bible[0].verses &&
+        InVerseWeek.bible[0].verses[verseKey]
       ) {
         setSelectedVerseKey(verseKey);
-        setSelectedVerseContent(InVerseWeek.bible[[0]].verses[verseKey]);
+        setSelectedVerseContent(InVerseWeek.bible[0].verses[verseKey]);
         setIsModalOpen(true);
       } else {
         console.error(
@@ -750,9 +802,7 @@ const InVerseWeek = ({route}) => {
     ...tw`font-nokia-bold text-primary-6`,
     fontSize: scaleTextSize(18),
   };
-  const modifiedContent = String(selectedVerseContent || '')
-    .replace(/^\s*(<br\s*\/?>|&nbsp;|\s)+/gi, '')
-    .trim();
+  const modifiedContent = selectedVerseContent;
 
   // Show loading state while data is being fetched - but with timeout
   if ((isQuarterLoading || isWeekLoading) && !loadingTimeout) {
@@ -984,22 +1034,28 @@ const InVerseWeek = ({route}) => {
         animationType="slide"
         transparent={true}
         visible={isModalOpen}
+        statusBarTranslucent
+        presentationStyle="overFullScreen"
         onRequestClose={onCloseModal}>
         <View
           style={[
-            tw`flex-1 justify-center items-center bg-secondary-9 bg-opacity-70 px-4`,
-            {
-              paddingTop: Math.max(insets.top, 24),
-              paddingBottom: Math.max(insets.bottom, 24),
-            },
+            tw`flex-1 justify-center items-center px-4`,
+            {backgroundColor: 'rgba(0,0,0,0.6)'},
           ]}>
           <View
             style={[
-              tw`bg-primary-2 p-4 rounded-lg w-full max-w-lg border border-accent-8`,
-              {maxHeight: '100%'},
-              darkMode ? tw`bg-secondary-9` : null,
+              tw`w-full max-w-lg rounded-2xl border border-accent-8 p-5`,
+              {backgroundColor: darkMode ? '#111827' : '#FFFFFF'},
             ]}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={{
+                maxHeight:
+                  windowHeight -
+                  Math.max(insets.top, 40) -
+                  Math.max(insets.bottom, 24) -
+                  160,
+              }}>
               <HtmlContent
                 html={`<div>${modifiedContent}</div>`}
                 baseStyle={{

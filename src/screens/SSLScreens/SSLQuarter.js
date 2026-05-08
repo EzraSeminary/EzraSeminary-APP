@@ -202,7 +202,7 @@ const SSLQuarter = ({route}) => {
         console.error('Error caching SSL quarter data:', error);
       }
     }
-    navigation.navigate('SSLWeek', {ssl, weekId});
+    navigation.push('SSLWeek', {ssl, weekId});
   };
 
   const gradientColor = darkMode
