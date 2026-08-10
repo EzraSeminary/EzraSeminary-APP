@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import tw from './../../../tailwind';
 import {useSelector, useDispatch} from 'react-redux';
-import {logoutUser, deactivateAccount} from '../../redux/authSlice';
+import {logoutUser} from '../../redux/authSlice';
 import {
   useUpdateUserStatusMutation,
   useDeleteUserMutation,
@@ -42,7 +42,7 @@ const AccountSettings = ({navigation}) => {
                   id: user.user._id,
                   status: 'inactive',
                 }).unwrap();
-                dispatch(deactivateAccount());
+                dispatch(logoutUser());
                 navigation.navigate('Login');
               } catch (error) {
                 console.error('Error deactivating account:', error);

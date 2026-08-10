@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect, useMemo} from 'react';
 import {
   View,
   Text,
@@ -49,6 +49,8 @@ import {
   ensureOnlineOrNotify,
 } from '../../utils/refreshCacheManager';
 
+const SSL_PAGE_SIZE = 10;
+
 const SSLHome = ({onReload}) => {
   const currentDate = new Date().toISOString().slice(0, 10);
   const [quarter, week, year] = useCalculateLessonIndex(currentDate);
@@ -57,6 +59,7 @@ const SSLHome = ({onReload}) => {
   const [networkError, setNetworkError] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [visibleLessonCount, setVisibleLessonCount] = useState(SSL_PAGE_SIZE);
   const [reloadingLesson, setReloadingLesson] = useState(false);
   const [invalidateSSLCache] = useInvalidateSSLCacheMutation();
   const [cachedHomeData, setCachedHomeData] = useState(null);
@@ -273,17 +276,37 @@ const SSLHome = ({onReload}) => {
     setSearchTerm(text);
   };
 
-  const filteredData = displaySSL?.filter(item =>
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredData = useMemo(
+    () =>
+      (displaySSL || []).filter(item =>
+        String(item?.title || '')
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()),
+      ),
+    [displaySSL, searchTerm],
   );
+  const visibleFilteredData = useMemo(
+    () => filteredData.slice(0, visibleLessonCount),
+    [filteredData, visibleLessonCount],
+  );
+  const hasMoreLessons = visibleLessonCount < filteredData.length;
 
   const language = useSelector(state => state.language.language);
   const prefetchWeeklyLessons = usePrefetch('getSSLOfDayLesson');
 
   // Refetch data when language changes
   useEffect(() => {
+    setVisibleLessonCount(SSL_PAGE_SIZE);
     onRefresh();
   }, [language, onRefresh]);
+
+  useEffect(() => {
+    setVisibleLessonCount(SSL_PAGE_SIZE);
+  }, [searchTerm, displaySSL]);
+
+  const handleSeeMore = () => {
+    setVisibleLessonCount(previous => previous + SSL_PAGE_SIZE);
+  };
 
   const formatDateRange = (startDate, endDate) => {
     try {
@@ -581,7 +604,7 @@ const SSLHome = ({onReload}) => {
           </Text>
           <View style={tw`border-b border-accent-6 my-1`} />
           <View style={tw`flex flex-col`}>
-            {filteredData.map((item, index) => (
+            {visibleFilteredData.map((item, index) => (
               <View
                 key={item.id}
                 style={tw`flex flex-row gap-3 my-3 border border-accent-6 p-3 rounded-2`}>
@@ -635,6 +658,15 @@ const SSLHome = ({onReload}) => {
               </View>
             ))}
           </View>
+          {hasMoreLessons && (
+            <TouchableOpacity
+              style={tw`bg-accent-6 px-5 py-3 rounded-full self-center my-4`}
+              onPress={handleSeeMore}>
+              <Text style={tw`font-nokia-bold text-primary-1`}>
+                {language === 'en' ? 'See More' : 'ተጨማሪ ይመልከቱ'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </SafeAreaView>
     );
@@ -788,7 +820,7 @@ const SSLHome = ({onReload}) => {
           </Text>
           <View style={tw`border-b border-accent-6 my-1`} />
           <View style={tw`flex flex-col`}>
-            {filteredData.map((item, index) => (
+            {visibleFilteredData.map((item, index) => (
               <View
                 key={item.id}
                 style={tw`flex flex-row gap-3 my-3 border border-accent-6 p-3 rounded-2`}>
@@ -842,6 +874,15 @@ const SSLHome = ({onReload}) => {
               </View>
             ))}
           </View>
+          {hasMoreLessons && (
+            <TouchableOpacity
+              style={tw`bg-accent-6 px-5 py-3 rounded-full self-center my-4`}
+              onPress={handleSeeMore}>
+              <Text style={tw`font-nokia-bold text-primary-1`}>
+                {language === 'en' ? 'See More' : 'ተጨማሪ ይመልከቱ'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </SafeAreaView>
     </View>

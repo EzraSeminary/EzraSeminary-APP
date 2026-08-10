@@ -3,7 +3,6 @@ import notifee, {
   AuthorizationStatus,
   EventType,
   TriggerType,
-  RepeatFrequency,
 } from '@notifee/react-native';
 import {Platform, PermissionsAndroid, AppState} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +16,16 @@ const DAILY_NOTIFICATION_ENABLED_KEY = 'dailyNotificationEnabled';
 const DAILY_NOTIFICATION_TIME_KEY = 'dailyNotificationTime';
 const NOTIFICATION_BOOTSTRAP_KEY = 'notifications_bootstrapped_v1';
 const FIRST_INSTALL_TEST_KEY = 'notifications_first_install_test_sent_v1';
+const DAILY_VERSE_CACHE_KEY = 'daily_verse_devotion_cache_v1';
+const DAILY_VERSE_NOTIFICATION_IDS_KEY = 'daily_verse_notification_ids_v1';
+const DAILY_VERSE_SCHEDULE_DAYS = 30;
+
+const formatDateKey = date => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const toEthDate = date => {
   const ethDateTime = EthDateTime.fromEuropeanDate(date);
@@ -45,6 +54,46 @@ const findDevotionWithOffset = (devotions, offset, baseDate, targetYear) => {
     );
   });
 };
+
+const findDevotionForDate = (devotions, date) => {
+  const ethDate = toEthDate(date);
+
+  return devotions.find(devotion => {
+    const devotionYear = devotion?.year;
+    const hasYear = devotionYear !== undefined && devotionYear !== null;
+
+    return (
+      normalizeEthiopianMonth(devotion?.month) === ethDate.monthName &&
+      Number(devotion?.day) === ethDate.day &&
+      (!hasYear || Number(devotionYear) === Number(ethDate.year))
+    );
+  });
+};
+
+const getAlternateMonthName = monthName => {
+  if (monthName === 'ሚያዚያ') {
+    return 'ሚያዝያ';
+  }
+  if (monthName === 'ሚያዝያ') {
+    return 'ሚያዚያ';
+  }
+  if (monthName === 'ሐምሌ') {
+    return 'ሀምሌ';
+  }
+  if (monthName === 'ሀምሌ') {
+    return 'ሐምሌ';
+  }
+  return null;
+};
+
+const normalizeDevotionsResponse = data =>
+  Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray(data?.data)
+    ? data.data
+    : Array.isArray(data)
+    ? data
+    : [];
 
 class NotificationService {
   constructor() {
@@ -246,7 +295,7 @@ class NotificationService {
 
       const notificationConfig = {
         title: '📖 Daily Verse (Test)',
-        body: devotion.verse || 'Daily devotional verse',
+        body: this.getNotificationBody(devotion),
         subtitle: devotion.title || 'Daily Devotion',
         data: {
           type: 'daily-verse',
@@ -282,8 +331,293 @@ class NotificationService {
     }
   }
 
+  getNotificationBody(devotion) {
+    return (
+      devotion?.mainVerse ||
+      devotion?.main_verse ||
+      devotion?.memoryVerse ||
+      devotion?.verse ||
+      'Daily devotional verse'
+    );
+  }
+
+  async getApiBaseUrl() {
+    let baseUrl = 'https://ezrabackend.online/';
+    try {
+      const override = await AsyncStorage.getItem('apiBaseUrl');
+      if (override && typeof override === 'string') {
+        baseUrl = override.endsWith('/') ? override : `${override}/`;
+      }
+    } catch {}
+    return baseUrl;
+  }
+
+  async getCachedDailyVerseMap() {
+    try {
+      const cachedString = await AsyncStorage.getItem(DAILY_VERSE_CACHE_KEY);
+      if (!cachedString) {
+        return {};
+      }
+      const cached = JSON.parse(cachedString);
+      return cached?.devotionsByDate || {};
+    } catch (error) {
+      console.warn('Failed to read daily verse cache:', error);
+      return {};
+    }
+  }
+
+  async saveDailyVerseMap(devotionsByDate) {
+    try {
+      await AsyncStorage.setItem(
+        DAILY_VERSE_CACHE_KEY,
+        JSON.stringify({
+          devotionsByDate,
+          cachedAt: new Date().toISOString(),
+        }),
+      );
+    } catch (error) {
+      console.warn('Failed to save daily verse cache:', error);
+    }
+  }
+
+  getTargetDates(days = DAILY_VERSE_SCHEDULE_DAYS) {
+    const dates = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let offset = 0; offset < days; offset += 1) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + offset);
+      dates.push(date);
+    }
+
+    return dates;
+  }
+
+  async fetchDevotionsForDates(dates) {
+    const baseUrl = await this.getApiBaseUrl();
+    const monthRequests = new Map();
+
+    dates.forEach(date => {
+      const ethDate = toEthDate(date);
+      const monthNames = [
+        ethDate.monthName,
+        getAlternateMonthName(ethDate.monthName),
+      ].filter(Boolean);
+
+      monthNames.forEach(monthName => {
+        monthRequests.set(`${ethDate.year}:${monthName}`, {
+          year: ethDate.year,
+          monthName,
+        });
+      });
+    });
+
+    const monthDevotions = [];
+    for (const {year, monthName} of monthRequests.values()) {
+      try {
+        const response = await fetch(
+          `${baseUrl}devotion/year/${year}/month/${encodeURIComponent(
+            monthName,
+          )}`,
+        );
+        if (!response.ok) {
+          console.warn('Failed to fetch devotions:', response.status, monthName);
+          continue;
+        }
+
+        const data = await response.json();
+        monthDevotions.push(...normalizeDevotionsResponse(data));
+      } catch (error) {
+        console.warn('Failed to fetch devotion month:', monthName, error);
+      }
+    }
+
+    return monthDevotions;
+  }
+
+  async refreshDailyVerseCache(days = DAILY_VERSE_SCHEDULE_DAYS) {
+    const dates = this.getTargetDates(days);
+    const cachedMap = await this.getCachedDailyVerseMap();
+    const fetchedDevotions = await this.fetchDevotionsForDates(dates);
+    const devotionsByDate = {...cachedMap};
+
+    dates.forEach(date => {
+      const devotion = findDevotionForDate(fetchedDevotions, date);
+      if (devotion) {
+        devotionsByDate[formatDateKey(date)] = devotion;
+      }
+    });
+
+    const validKeys = new Set(dates.map(formatDateKey));
+    Object.keys(devotionsByDate).forEach(key => {
+      if (!validKeys.has(key)) {
+        delete devotionsByDate[key];
+      }
+    });
+
+    await this.saveDailyVerseMap(devotionsByDate);
+    return devotionsByDate;
+  }
+
+  async getDailyVerseMap(days = DAILY_VERSE_SCHEDULE_DAYS) {
+    const cachedMap = await this.getCachedDailyVerseMap();
+    const dates = this.getTargetDates(days);
+    const missingDate = dates.some(date => !cachedMap[formatDateKey(date)]);
+
+    if (!missingDate) {
+      return cachedMap;
+    }
+
+    const refreshedMap = await this.refreshDailyVerseCache(days);
+    return Object.keys(refreshedMap).length > 0 ? refreshedMap : cachedMap;
+  }
+
+  async scheduleRollingDailyVerseNotifications(
+    time = {hour: 8, minute: 0},
+    days = DAILY_VERSE_SCHEDULE_DAYS,
+  ) {
+    this.setLastScheduleError(null);
+    try {
+      let hasPermission = await this.checkPermissionStatus();
+      if (!hasPermission) {
+        hasPermission = await this.requestPermissions();
+      }
+      if (!hasPermission) {
+        console.log('Notification permissions not granted');
+        this.setLastScheduleError('Notification permission is not granted.');
+        return false;
+      }
+
+      const devotionsByDate = await this.getDailyVerseMap(days);
+      const dates = this.getTargetDates(days);
+      const now = new Date();
+      const notificationConfigs = [];
+
+      dates.forEach(date => {
+        const notificationDate = new Date(date);
+        notificationDate.setHours(time.hour, time.minute, 0, 0);
+        if (notificationDate.getTime() <= now.getTime()) {
+          return;
+        }
+
+        const dateKey = formatDateKey(date);
+        const devotion = devotionsByDate[dateKey];
+        if (!devotion) {
+          return;
+        }
+
+        notificationConfigs.push({
+          dateKey,
+          notificationDate,
+          devotion,
+        });
+      });
+
+      if (notificationConfigs.length === 0) {
+        this.setLastScheduleError(
+          'No upcoming devotion verses were available to schedule.',
+        );
+        return false;
+      }
+
+      await this.cancelDailyVerseNotifications();
+
+      let canScheduleExactAlarms = true;
+      if (Platform.OS === 'android' && Platform.Version >= 31) {
+        canScheduleExactAlarms = await this.canUseExactAlarms();
+      }
+
+      const scheduledIds = [];
+      for (const {dateKey, notificationDate, devotion} of notificationConfigs) {
+        const notificationConfig = {
+          id: `daily-verse-${dateKey}`,
+          title: '📖 Daily Verse',
+          body: this.getNotificationBody(devotion),
+          subtitle: devotion.title || 'Daily Devotion',
+          data: {
+            type: 'daily-verse',
+            dateKey,
+            ...(devotion._id && {devotionId: String(devotion._id)}),
+            ...(devotion.year && {year: String(devotion.year)}),
+          },
+          android: {
+            channelId: 'daily-verse',
+            pressAction: {
+              id: 'default',
+            },
+            importance: AndroidImportance.HIGH,
+            sound: 'default',
+            vibration: true,
+          },
+          ios: {
+            sound: 'default',
+            badge: true,
+            foregroundPresentationOptions: {
+              alert: true,
+              badge: true,
+              sound: true,
+            },
+            categoryId: 'daily-verse',
+          },
+        };
+
+        const triggerConfig = {
+          type: TriggerType.TIMESTAMP,
+          timestamp: notificationDate.getTime(),
+        };
+
+        if (
+          Platform.OS === 'android' &&
+          canScheduleExactAlarms &&
+          Platform.Version < 35
+        ) {
+          triggerConfig.alarmManager = {
+            allowWhileIdle: true,
+          };
+        }
+
+        const notificationId = await notifee.createTriggerNotification(
+          notificationConfig,
+          triggerConfig,
+        );
+        scheduledIds.push(notificationId);
+      }
+
+      await AsyncStorage.setItem(
+        DAILY_VERSE_NOTIFICATION_IDS_KEY,
+        JSON.stringify(scheduledIds),
+      );
+      await AsyncStorage.setItem(DAILY_NOTIFICATION_ENABLED_KEY, 'true');
+      await AsyncStorage.setItem(DAILY_NOTIFICATION_TIME_KEY, JSON.stringify(time));
+
+      console.log(`Scheduled ${scheduledIds.length} daily verse notifications`);
+      return true;
+    } catch (error) {
+      console.error('Error scheduling rolling notifications:', error);
+      this.setLastScheduleError(error);
+      return false;
+    }
+  }
+
   // Schedule daily verse notification
   async scheduleDailyVerseNotification(devotion, time = {hour: 8, minute: 0}) {
+    if (devotion) {
+      try {
+        const todayKey = formatDateKey(new Date());
+        const cachedMap = await this.getCachedDailyVerseMap();
+        cachedMap[todayKey] = devotion;
+        await this.saveDailyVerseMap(cachedMap);
+      } catch {}
+    }
+
+    return this.scheduleRollingDailyVerseNotifications(time);
+  }
+
+  async scheduleSingleDailyVerseNotification(
+    devotion,
+    time = {hour: 8, minute: 0},
+  ) {
     this.setLastScheduleError(null);
     try {
       let hasPermission = await this.checkPermissionStatus();
@@ -328,7 +662,7 @@ class NotificationService {
       // Schedule notification
       const notificationConfig = {
         title: '📖 Daily Verse',
-        body: devotion.verse || 'Daily devotional verse',
+        body: this.getNotificationBody(devotion),
         subtitle: devotion.title || 'Daily Devotion',
         data: {
           type: 'daily-verse',
@@ -359,7 +693,6 @@ class NotificationService {
       const triggerConfig = {
         type: TriggerType.TIMESTAMP,
         timestamp: notificationDate.getTime(),
-        repeatFrequency: RepeatFrequency.DAILY,
       };
 
       // Only add alarmManager for Android
@@ -420,8 +753,40 @@ class NotificationService {
   }
 
   async cancelDailyVerseNotifications() {
-    await notifee.cancelAllNotifications();
-    console.log('Daily verse notifications cancelled');
+    try {
+      const storedIdsString = await AsyncStorage.getItem(
+        DAILY_VERSE_NOTIFICATION_IDS_KEY,
+      );
+      const storedIds = storedIdsString ? JSON.parse(storedIdsString) : [];
+      const idsToCancel = new Set(Array.isArray(storedIds) ? storedIds : []);
+
+      if (typeof notifee.getTriggerNotifications === 'function') {
+        const triggers = await notifee.getTriggerNotifications();
+        triggers.forEach(triggerNotification => {
+          const notification = triggerNotification?.notification;
+          if (
+            notification?.data?.type === 'daily-verse' ||
+            String(notification?.id || '').startsWith('daily-verse-')
+          ) {
+            idsToCancel.add(notification.id);
+          }
+        });
+      }
+
+      const ids = [...idsToCancel].filter(Boolean);
+      if (ids.length > 0) {
+        if (typeof notifee.cancelTriggerNotifications === 'function') {
+          await notifee.cancelTriggerNotifications(ids);
+        } else {
+          await Promise.all(ids.map(id => notifee.cancelNotification(id)));
+        }
+      }
+
+      await AsyncStorage.removeItem(DAILY_VERSE_NOTIFICATION_IDS_KEY);
+      console.log(`Daily verse notifications cancelled: ${ids.length}`);
+    } catch (error) {
+      console.warn('Failed to cancel daily verse notifications:', error);
+    }
   }
 
   async cancelAllNotifications() {
@@ -493,6 +858,7 @@ class NotificationService {
       );
       const savedSettings = await this.getDailyNotificationSettings();
       const isFreshInstall = !alreadyBootstrapped && storedEnabledValue === null;
+      await this.refreshDailyVerseCache(DAILY_VERSE_SCHEDULE_DAYS);
 
       let hasPermission = await this.checkPermissionStatus();
       if (!hasPermission) {
@@ -549,13 +915,10 @@ class NotificationService {
     try {
       const settings = await this.getDailyNotificationSettings();
       if (settings.enabled) {
-        // Cancel existing notifications and reschedule
-        await this.cancelDailyVerseNotifications();
-
-        // Get today's devotion and reschedule
-        const devotion = await this.getTodaysDevotion();
-        if (devotion) {
-          await this.scheduleDailyVerseNotification(devotion, settings.time);
+        const scheduled = await this.scheduleRollingDailyVerseNotifications(
+          settings.time,
+        );
+        if (scheduled) {
           console.log('Notifications rescheduled successfully');
         }
       }
@@ -567,29 +930,23 @@ class NotificationService {
   async getTodaysDevotion() {
     try {
       const today = new Date();
+      const dateKey = formatDateKey(today);
+      const dailyVerseMap = await this.getDailyVerseMap(
+        DAILY_VERSE_SCHEDULE_DAYS,
+      );
+      if (dailyVerseMap[dateKey]) {
+        return dailyVerseMap[dateKey];
+      }
+
       const {year, monthName: ethiopianMonth} = toEthDate(today);
-      const alternateMonthName =
-        ethiopianMonth === 'ሚያዚያ'
-          ? 'ሚያዝያ'
-          : ethiopianMonth === 'ሚያዝያ'
-          ? 'ሚያዚያ'
-          : ethiopianMonth === 'ሐምሌ'
-          ? 'ሀምሌ'
-          : ethiopianMonth === 'ሀምሌ'
-          ? 'ሐምሌ'
-          : null;
+      const alternateMonthName = getAlternateMonthName(ethiopianMonth);
 
       const findMatchingDevotion = devotions => {
         if (!Array.isArray(devotions) || devotions.length === 0) {
           return null;
         }
 
-        return (
-          findDevotionWithOffset(devotions, 0, today, year) ||
-          findDevotionWithOffset(devotions, 1, today, year) ||
-          findDevotionWithOffset(devotions, 2, today, year) ||
-          null
-        );
+        return findDevotionWithOffset(devotions, 0, today, year) || null;
       };
 
       // 1) Try cached home data (same key pattern as Home screen: home_data_cache_${year}_${month})
@@ -633,13 +990,7 @@ class NotificationService {
       }
 
       // 2) Fallback to the month endpoint used by the Devotion screen.
-      let baseUrl = 'https://ezrabackend.online/';
-      try {
-        const override = await AsyncStorage.getItem('apiBaseUrl');
-        if (override && typeof override === 'string') {
-          baseUrl = override.endsWith('/') ? override : `${override}/`;
-        }
-      } catch {}
+      const baseUrl = await this.getApiBaseUrl();
 
       const monthsToCheck = [ethiopianMonth, alternateMonthName].filter(Boolean);
       for (const monthName of monthsToCheck) {
@@ -652,16 +1003,13 @@ class NotificationService {
         }
 
         const data = await response.json();
-        const devotions = Array.isArray(data?.items)
-          ? data.items
-          : Array.isArray(data?.data)
-          ? data.data
-          : Array.isArray(data)
-          ? data
-          : [];
+        const devotions = normalizeDevotionsResponse(data);
 
         const match = findMatchingDevotion(devotions);
         if (match) {
+          const cachedMap = await this.getCachedDailyVerseMap();
+          cachedMap[dateKey] = match;
+          await this.saveDailyVerseMap(cachedMap);
           return match;
         }
       }

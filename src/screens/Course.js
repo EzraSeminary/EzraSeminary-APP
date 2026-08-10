@@ -346,6 +346,10 @@ const Course = () => {
 
     //calculate the percentage
     if (userProgress && totalChapter) {
+      if (userProgress.completedCourse) {
+        return 1;
+      }
+
       const currentChapterCount = (userProgress.currentChapter ?? 0) + 1;
       const progressDecimal = currentChapterCount / totalChapter;
       const approximatedProgress = Math.round(progressDecimal * 100) / 100;

@@ -53,6 +53,13 @@ import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 import ReaderFontSizeControl from '../../components/ReaderFontSizeControl';
 
+const getMainVerseText = devotional =>
+  devotional?.mainVerse ||
+  devotional?.main_verse ||
+  devotional?.memoryVerse ||
+  devotional?.verse ||
+  '';
+
 const SelectedDevotional = ({route}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const dispatch = useDispatch();
@@ -333,7 +340,9 @@ const SelectedDevotional = ({route}) => {
     return {verse, reference};
   };
 
-  const {verse, reference} = separateVerseAndReference(devotional.verse);
+  const {verse, reference} = separateVerseAndReference(
+    getMainVerseText(devotional),
+  );
 
   const tailwindStyles = StyleSheet.create({
     p: {

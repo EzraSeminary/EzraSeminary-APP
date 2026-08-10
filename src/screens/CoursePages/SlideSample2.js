@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import {
@@ -66,6 +66,9 @@ const INTERACTIVE_ELEMENT_TYPES = [
   'verse',
 ];
 
+const getElementCompletionKey = (element, index) =>
+  element?._id || `${element?.type || 'element'}-${index}`;
+
 const SlideSample2 = ({route}) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [unlockedIndex, setUnlockedIndex] = useState(0);
@@ -93,6 +96,7 @@ const SlideSample2 = ({route}) => {
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const [isRangeComplete, setIsRangeComplete] = useState(false);
   const [isVerseComplete, setIsVerseComplete] = useState(false);
+  const [completedElementIds, setCompletedElementIds] = useState({});
   const [isNextButtonVisible, setIsNextButtonVisible] = useState(false);
   const [interactionMessage, setInteractionMessage] = useState('');
   const [activeElementIndex, setActiveElementIndex] = useState(0);
@@ -151,13 +155,36 @@ const SlideSample2 = ({route}) => {
   const currentSlideSignature = currentSlideElements
     .map(element => `${element._id}:${element.type}`)
     .join('|');
-  const requiredInteractiveTypes = [
-    ...new Set(
+  const requiredInteractiveElements = useMemo(
+    () =>
       currentSlideElements
-        .map(element => element.type)
-        .filter(type => INTERACTIVE_ELEMENT_TYPES.includes(type)),
-    ),
-  ];
+        .map((element, index) => ({
+          id: getElementCompletionKey(element, index),
+          type: element.type,
+        }))
+        .filter(element => INTERACTIVE_ELEMENT_TYPES.includes(element.type)),
+    [currentSlideSignature, currentSlideElements],
+  );
+
+  const savedProgress = currentUser?.progress?.find(
+    p => p.courseId === courseId,
+  );
+  const hasCompletedChapter =
+    chapterIndex !== undefined &&
+    chapterIndex !== -1 &&
+    Array.isArray(savedProgress?.completedChapterIds) &&
+    savedProgress.completedChapterIds.includes(chapterIndex);
+  const isFinalCourseSlide =
+    onLastSlide &&
+    Array.isArray(courseData?.chapters) &&
+    chapterIndex === courseData.chapters.length - 1;
+
+  const markElementComplete = useCallback((elementId, isComplete = true) => {
+    setCompletedElementIds(previous => ({
+      ...previous,
+      [elementId]: Boolean(isComplete),
+    }));
+  }, []);
 
   useEffect(() => {
     if (!data.length || chapterIndex === undefined || chapterIndex === -1) {
@@ -170,9 +197,6 @@ const SlideSample2 = ({route}) => {
     }
     initializedProgressKeyRef.current = initKey;
 
-    const savedProgress = currentUser?.progress?.find(
-      p => p.courseId === courseId,
-    );
     const isSameChapter =
       savedProgress &&
       savedProgress.currentChapter !== undefined &&
@@ -186,8 +210,15 @@ const SlideSample2 = ({route}) => {
       : 0;
 
     setActiveIndex(startIndex);
-    setUnlockedIndex(startIndex);
-  }, [courseId, chapterId, chapterIndex, data.length, currentUser?.progress]);
+    setUnlockedIndex(hasCompletedChapter ? data.length - 1 : startIndex);
+  }, [
+    courseId,
+    chapterId,
+    chapterIndex,
+    data.length,
+    savedProgress,
+    hasCompletedChapter,
+  ]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -204,6 +235,7 @@ const SlideSample2 = ({route}) => {
     setIsRangeComplete(false);
     setIsVerseComplete(false);
     setIsAnswerChecked(false);
+    setCompletedElementIds({});
     setIsNextButtonVisible(false);
     setInteractionMessage('');
 
@@ -227,22 +259,13 @@ const SlideSample2 = ({route}) => {
   }, [activeIndex, currentSlideSignature]);
 
   useEffect(() => {
-    const completionByType = {
-      quiz: isAnswerChecked,
-      dnd: isAnswerChecked,
-      accordion: isAccordionExpanded,
-      sequence: isSequenceComplete,
-      slide: isSlideComplete,
-      reveal: isRevealComplete,
-      range: isRangeComplete,
-      verse: isVerseComplete,
-    };
     const allInteractionsDone =
-      requiredInteractiveTypes.length === 0 ||
-      requiredInteractiveTypes.every(type => completionByType[type]);
+      hasCompletedChapter ||
+      requiredInteractiveElements.length === 0 ||
+      requiredInteractiveElements.every(element => completedElementIds[element.id]);
 
     if (onLastSlide) {
-      setIsNextButtonVisible(true);
+      setIsNextButtonVisible(hasCompletedChapter || allInteractionsDone);
     } else if (allInteractionsDone !== isNextButtonVisible) {
       setIsNextButtonVisible(allInteractionsDone);
     }
@@ -254,7 +277,9 @@ const SlideSample2 = ({route}) => {
     isRevealComplete,
     isRangeComplete,
     isVerseComplete,
-    requiredInteractiveTypes,
+    requiredInteractiveElements,
+    completedElementIds,
+    hasCompletedChapter,
     onLastSlide,
     isNextButtonVisible,
   ]);
@@ -310,6 +335,8 @@ const SlideSample2 = ({route}) => {
     setActiveElementIndex(0);
   }, [activeIndex, currentSlideSignature]);
 
+  const courseID = courseData && courseData._id ? courseData._id : '';
+
   const updateIndex = newIndex => {
     const boundedIndex =
       newIndex >= data.length ? data.length - 1 : Math.max(newIndex, 0);
@@ -335,34 +362,26 @@ const SlideSample2 = ({route}) => {
   const handleButtonPress = () => {
     setTriggerNext(true);
 
-    if (requiredInteractiveTypes.length > 0) {
-      const completionByType = {
-        quiz: isAnswerChecked,
-        dnd: isAnswerChecked,
-        accordion: isAccordionExpanded,
-        sequence: isSequenceComplete,
-        slide: isSlideComplete,
-        reveal: isRevealComplete,
-        range: isRangeComplete,
-        verse: isVerseComplete,
-      };
-      const firstIncompleteType = requiredInteractiveTypes.find(
-        type => !completionByType[type],
+    if (!hasCompletedChapter && requiredInteractiveElements.length > 0) {
+      const firstIncompleteElement = requiredInteractiveElements.find(
+        element => !completedElementIds[element.id],
       );
 
-      if (firstIncompleteType) {
-        setInteractionMessage(interactionMessages[firstIncompleteType]);
+      if (firstIncompleteElement) {
+        setInteractionMessage(interactionMessages[firstIncompleteElement.type]);
         Toast.show({
           type: 'info',
           text1: 'ከመቀጠልዎ በፊት!',
-          text2: interactionMessages[firstIncompleteType],
+          text2: interactionMessages[firstIncompleteElement.type],
         });
         return;
       }
     }
 
     if (onLastSlide) {
-      void saveAndSyncProgressInBackground(activeIndex);
+      void saveAndSyncProgressInBackground(activeIndex, {
+        completedChapter: true,
+      });
       navigation.navigate('CourseContent', {courseId: courseId});
     } else {
       setIsNextButtonVisible(false);
@@ -385,9 +404,7 @@ const SlideSample2 = ({route}) => {
     }
   };
 
-  const courseID = courseData && courseData._id ? courseData._id : '';
-
-  const saveAndSyncProgressInBackground = async slideIndex => {
+  const saveAndSyncProgressInBackground = async (slideIndex, options = {}) => {
     try {
       if (!courseID || chapterIndex === undefined || chapterIndex === -1) {
         return;
@@ -397,7 +414,15 @@ const SlideSample2 = ({route}) => {
         courseId: courseID,
         currentChapter: chapterIndex,
         currentSlide: slideIndex,
+        completedChapterIds: options.completedChapter ? [chapterIndex] : [],
+        completedCourse: Boolean(options.completedChapter && isFinalCourseSlide),
+        completedAt:
+          options.completedChapter && isFinalCourseSlide
+            ? new Date().toISOString()
+            : undefined,
       };
+
+      dispatch(setProgress(progressEntry));
 
       await saveProgressForLaterSync(progressEntry);
 
@@ -580,7 +605,16 @@ const SlideSample2 = ({route}) => {
                                   <Slide
                                     key={element._id}
                                     value={element.value}
-                                    setIsSlideComplete={setIsSlideComplete}
+                                    setIsSlideComplete={isComplete => {
+                                      setIsSlideComplete(isComplete);
+                                      markElementComplete(
+                                        getElementCompletionKey(
+                                          element,
+                                          elementIndex,
+                                        ),
+                                        isComplete,
+                                      );
+                                    }}
                                   />
                                 );
                               case 'sequence':
@@ -588,9 +622,16 @@ const SlideSample2 = ({route}) => {
                                   <Sequence
                                     key={element._id}
                                     value={element.value}
-                                    setIsSequenceComplete={
-                                      setIsSequenceComplete
-                                    }
+                                    setIsSequenceComplete={isComplete => {
+                                      setIsSequenceComplete(isComplete);
+                                      markElementComplete(
+                                        getElementCompletionKey(
+                                          element,
+                                          elementIndex,
+                                        ),
+                                        isComplete,
+                                      );
+                                    }}
                                   />
                                 );
                               case 'reveal':
@@ -598,7 +639,16 @@ const SlideSample2 = ({route}) => {
                                   <Reveal
                                     key={element._id}
                                     value={element.value}
-                                    setIsRevealComplete={setIsRevealComplete}
+                                    setIsRevealComplete={isComplete => {
+                                      setIsRevealComplete(isComplete);
+                                      markElementComplete(
+                                        getElementCompletionKey(
+                                          element,
+                                          elementIndex,
+                                        ),
+                                        isComplete,
+                                      );
+                                    }}
                                   />
                                 );
                               case 'img':
@@ -620,7 +670,16 @@ const SlideSample2 = ({route}) => {
                                   <Quiz
                                     key={element._id}
                                     value={element.value}
-                                    setIsAnswerChecked={setIsAnswerChecked}
+                                    setIsAnswerChecked={isComplete => {
+                                      setIsAnswerChecked(isComplete);
+                                      markElementComplete(
+                                        getElementCompletionKey(
+                                          element,
+                                          elementIndex,
+                                        ),
+                                        isComplete,
+                                      );
+                                    }}
                                   />
                                 );
                               case 'accordion':
@@ -628,16 +687,32 @@ const SlideSample2 = ({route}) => {
                                   <AccordionComponent
                                     key={element._id}
                                     value={element.value}
-                                    setIsAccordionExpanded={
-                                      setIsAccordionExpanded
-                                    }
+                                    setIsAccordionExpanded={isComplete => {
+                                      setIsAccordionExpanded(isComplete);
+                                      markElementComplete(
+                                        getElementCompletionKey(
+                                          element,
+                                          elementIndex,
+                                        ),
+                                        isComplete,
+                                      );
+                                    }}
                                   />
                                 );
                               case 'range':
                                 return (
                                   <Range
                                     key={element._id}
-                                    setIsRangeComplete={setIsRangeComplete}
+                                    setIsRangeComplete={isComplete => {
+                                      setIsRangeComplete(isComplete);
+                                      markElementComplete(
+                                        getElementCompletionKey(
+                                          element,
+                                          elementIndex,
+                                        ),
+                                        isComplete,
+                                      );
+                                    }}
                                   />
                                 );
                               case 'verse':
@@ -645,7 +720,16 @@ const SlideSample2 = ({route}) => {
                                   <VerseSection
                                     key={element._id}
                                     value={element.value}
-                                    setIsVerseComplete={setIsVerseComplete}
+                                    setIsVerseComplete={isComplete => {
+                                      setIsVerseComplete(isComplete);
+                                      markElementComplete(
+                                        getElementCompletionKey(
+                                          element,
+                                          elementIndex,
+                                        ),
+                                        isComplete,
+                                      );
+                                    }}
                                   />
                                 );
                               case 'main-verse':
@@ -679,7 +763,16 @@ const SlideSample2 = ({route}) => {
                                       selectedAnswer={selectedAnswer}
                                       setSelectedAnswer={setSelectedAnswer}
                                       isAnswerChecked={isAnswerChecked}
-                                      setIsAnswerChecked={setIsAnswerChecked}
+                                      setIsAnswerChecked={isComplete => {
+                                        setIsAnswerChecked(isComplete);
+                                        markElementComplete(
+                                          getElementCompletionKey(
+                                            element,
+                                            elementIndex,
+                                          ),
+                                          isComplete,
+                                        );
+                                      }}
                                     />
                                   </GestureHandlerRootView>
                                 );

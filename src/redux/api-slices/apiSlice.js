@@ -7,6 +7,28 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getApiBaseUrl} from '../../utils/apiBaseUrl';
 import {MOBILE_AUTH_PROVIDERS} from '../../config/authProviders';
 
+const getStoredUser = async () => {
+  try {
+    const userString = await AsyncStorage.getItem('user');
+    return userString ? JSON.parse(userString) : null;
+  } catch {
+    return null;
+  }
+};
+
+const persistAuthenticatedUser = async user => {
+  if (!user) {
+    return;
+  }
+
+  await AsyncStorage.setItem('user', JSON.stringify(user));
+  await AsyncStorage.setItem('token', user?.token || '');
+};
+
+const clearAuthenticatedUser = async () => {
+  await AsyncStorage.multiRemove(['user', 'token']);
+};
+
 const dynamicBaseQuery = async (args, api, extraOptions) => {
   const baseUrl = await getApiBaseUrl();
 
@@ -14,12 +36,9 @@ const dynamicBaseQuery = async (args, api, extraOptions) => {
     baseUrl,
     timeout: 60000, // 60 second timeout to prevent AbortError
     prepareHeaders: async headers => {
-      let token = api.getState()?.auth?.user?.token || '';
-      if (!token) {
-        const userString = await AsyncStorage.getItem('user');
-        const user = userString ? JSON.parse(userString) : null;
-        token = user ? user.token : '';
-      }
+      const storedUser = await getStoredUser();
+      let token = storedUser?.token || api.getState()?.auth?.user?.token || '';
+
       if (!token) {
         try {
           const storedToken = await AsyncStorage.getItem('token');
@@ -33,7 +52,39 @@ const dynamicBaseQuery = async (args, api, extraOptions) => {
     },
   });
 
-  return rawBaseQuery(args, api, extraOptions);
+  let result = await rawBaseQuery(args, api, extraOptions);
+
+  const url = typeof args === 'string' ? args : args.url;
+  if (result.error?.status === 401 && url !== '/users/refresh-token') {
+    const storedUser = await getStoredUser();
+    const refreshToken = storedUser?.refreshToken;
+
+    if (refreshToken) {
+      const refreshResult = await rawBaseQuery(
+        {
+          url: '/users/refresh-token',
+          method: 'POST',
+          body: {refreshToken},
+        },
+        api,
+        extraOptions,
+      );
+
+      if (refreshResult.data) {
+        await persistAuthenticatedUser(refreshResult.data);
+        api.dispatch({type: 'auth/login', payload: refreshResult.data});
+        result = await rawBaseQuery(args, api, extraOptions);
+      } else {
+        await clearAuthenticatedUser();
+        api.dispatch({type: 'auth/logout'});
+      }
+    } else {
+      await clearAuthenticatedUser();
+      api.dispatch({type: 'auth/logout'});
+    }
+  }
+
+  return result;
 };
 
 export const apiSlice = createApi({
@@ -198,10 +249,35 @@ export const apiSlice = createApi({
       }),
     }),
     deleteUser: builder.mutation({
-      query: id => ({
-        url: `/users/${id}`,
-        method: 'DELETE',
-      }),
+      queryFn: async (id, api, extraOptions) => {
+        const cascadeResult = await dynamicBaseQuery(
+          {
+            url: `/users/${id}`,
+            method: 'DELETE',
+            params: {cascade: 'true'},
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: {cascade: true, deleteAuth: true},
+          },
+          api,
+          extraOptions,
+        );
+
+        if (!cascadeResult.error) {
+          return cascadeResult;
+        }
+
+        return dynamicBaseQuery(
+          {
+            url: `/users/${id}`,
+            method: 'DELETE',
+          },
+          api,
+          extraOptions,
+        );
+      },
+      invalidatesTags: ['User', 'DevotionPlans', 'Courses'],
     }),
     // Devotion Plans endpoints (according to spec)
     getDevotionPlans: builder.query({

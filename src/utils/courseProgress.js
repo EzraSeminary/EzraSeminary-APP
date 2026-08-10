@@ -20,15 +20,51 @@ const getAuthErrorStatus = error => {
   return null;
 };
 
+const refreshStoredAuth = async () => {
+  const rawUser = await AsyncStorage.getItem('user');
+  const parsedUser = rawUser ? JSON.parse(rawUser) : null;
+  const refreshToken = parsedUser?.refreshToken;
+
+  if (!refreshToken) {
+    await AsyncStorage.multiRemove(['user', 'token']);
+    return null;
+  }
+
+  const response = await axios.post(
+    'https://ezrabackend.online/users/refresh-token',
+    {refreshToken},
+  );
+
+  await AsyncStorage.setItem('user', JSON.stringify(response.data));
+  await AsyncStorage.setItem('token', response.data?.token || '');
+  return response.data;
+};
+
 const mergeProgressEntry = (progress = [], entry) => {
   const existing = Array.isArray(progress) ? [...progress] : [];
   const index = existing.findIndex(item => item.courseId === entry.courseId);
+  const mergeCompletedChapters = previous => {
+    const previousIds = Array.isArray(previous?.completedChapterIds)
+      ? previous.completedChapterIds
+      : [];
+    const nextIds = Array.isArray(entry.completedChapterIds)
+      ? entry.completedChapterIds
+      : [];
+    return [...new Set([...previousIds, ...nextIds])];
+  };
 
   if (index >= 0) {
     existing[index] = {
       ...existing[index],
       currentChapter: entry.currentChapter,
       currentSlide: entry.currentSlide,
+      completedChapterIds: mergeCompletedChapters(existing[index]),
+      completedCourse: Boolean(
+        existing[index].completedCourse || entry.completedCourse,
+      ),
+      completedAt: entry.completedCourse
+        ? entry.completedAt || new Date().toISOString()
+        : existing[index].completedAt,
     };
     return existing;
   }
@@ -39,6 +75,11 @@ const mergeProgressEntry = (progress = [], entry) => {
       courseId: entry.courseId,
       currentChapter: entry.currentChapter,
       currentSlide: entry.currentSlide,
+      completedChapterIds: mergeCompletedChapters(null),
+      completedCourse: Boolean(entry.completedCourse),
+      completedAt: entry.completedCourse
+        ? entry.completedAt || new Date().toISOString()
+        : undefined,
     },
   ];
 };
@@ -142,19 +183,35 @@ export const syncPendingCourseProgressForCourse = async ({
       progress: mergeProgressEntry(parsedUser?.progress, pending),
     };
 
-    await axios.put(
-      `https://ezrabackend.online/users/profile/${userId}`,
-      {
-        userId,
-        progress: nextUser.progress,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+    const syncProgress = authToken =>
+      axios.put(
+        `https://ezrabackend.online/users/profile/${userId}`,
+        {
+          userId,
+          progress: nextUser.progress,
         },
-      },
-    );
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+
+    try {
+      await syncProgress(token);
+    } catch (error) {
+      if (getAuthErrorStatus(error) !== 401) {
+        throw error;
+      }
+
+      const refreshedUser = await refreshStoredAuth();
+      if (!refreshedUser?.token) {
+        return {synced: false, authError: true};
+      }
+
+      await syncProgress(refreshedUser.token);
+    }
 
     await AsyncStorage.setItem('user', JSON.stringify(nextUser));
     await clearPendingCourseProgress(courseId);

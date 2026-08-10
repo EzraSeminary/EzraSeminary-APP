@@ -110,6 +110,13 @@ const findDevotionWithOffset = (
   });
 };
 
+const getMainVerseText = devotion =>
+  devotion?.mainVerse ||
+  devotion?.main_verse ||
+  devotion?.memoryVerse ||
+  devotion?.verse ||
+  '';
+
 const Devotion = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const user = useSelector(state => state.auth.user);
@@ -357,34 +364,17 @@ const Devotion = () => {
   const devotionToDisplay = useMemo(() => {
     const devotionsToUse = displayFeaturedDevotions;
     if (devotionsToUse.length === 0) {
-      return cachedHomeData?.devotionToDisplay || null;
+      return null;
     }
 
     const normalizeMonth = month => normalizeEthiopianMonth(month);
-    const exactTodayDevotion = findDevotionWithOffset(
+    const todaysDevotion = findDevotionWithOffset(
       devotionsToUse,
       0,
       today,
       yearToFetch,
       normalizeMonth,
     );
-    const minusOneDevotion = findDevotionWithOffset(
-      devotionsToUse,
-      1,
-      today,
-      yearToFetch,
-      normalizeMonth,
-    );
-    const minusTwoDevotion = findDevotionWithOffset(
-      devotionsToUse,
-      2,
-      today,
-      yearToFetch,
-      normalizeMonth,
-    );
-
-    const todaysDevotion =
-      exactTodayDevotion || minusOneDevotion || minusTwoDevotion;
 
     // Log whether we found today's devotion or using fallback
     if (todaysDevotion) {
@@ -397,7 +387,7 @@ const Devotion = () => {
       );
     }
 
-    return todaysDevotion || devotionsToUse[0] || null;
+    return todaysDevotion || null;
   }, [
     displayFeaturedDevotions,
     currentEthiopianMonth,
@@ -411,7 +401,7 @@ const Devotion = () => {
   const url = devotionToDisplay?.image ? `${devotionToDisplay.image}` : '';
   const cachedImage = useCachedImage(url);
   const {verse, reference} = separateVerseAndReference(
-    devotionToDisplay?.verse,
+    getMainVerseText(devotionToDisplay),
   );
   const devotionHighlightKey = useMemo(
     () =>

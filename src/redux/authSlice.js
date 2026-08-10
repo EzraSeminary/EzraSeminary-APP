@@ -1,6 +1,8 @@
 import {createSlice} from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {clearGoogleProviderSession} from '../services/socialAuth';
+import {clearLocalUserSession} from '../utils/sessionStorage';
+import {apiSlice} from './api-slices/apiSlice';
 
 const initialState = {
   user: null,
@@ -14,10 +16,12 @@ const authSlice = createSlice({
     login: (state, action) => {
       const payload = action.payload || {};
       const token = payload.token || state.user?.token || '';
+      const refreshToken = payload.refreshToken || state.user?.refreshToken || '';
       state.user = {
         ...(state.user || {}),
         ...payload,
         ...(token ? {token} : {}),
+        ...(refreshToken ? {refreshToken} : {}),
       };
 
       // Store the token in AsyncStorage
@@ -25,15 +29,20 @@ const authSlice = createSlice({
       AsyncStorage.setItem('user', JSON.stringify(state.user));
     },
     signup: (state, action) => {
-      state.user = action.payload;
+      const payload = action.payload || {};
+      state.user = payload;
+      AsyncStorage.setItem('token', payload.token || '');
+      AsyncStorage.setItem('user', JSON.stringify(payload));
     },
     updateUser: (state, action) => {
       const payload = action.payload || {};
       const token = payload.token || state.user?.token || '';
+      const refreshToken = payload.refreshToken || state.user?.refreshToken || '';
       state.user = {
         ...(state.user || {}),
         ...payload,
         ...(token ? {token} : {}),
+        ...(refreshToken ? {refreshToken} : {}),
       };
 
       // Assuming the token is part of the payload, update it in local storage as well
@@ -45,21 +54,25 @@ const authSlice = createSlice({
     logout: state => {
       state.user = null;
       state.isAuthReady = false;
-
-      // Remove all auth-related data from AsyncStorage
-      AsyncStorage.multiRemove([
-        'token',
-        'user',
-        'userProfile',
-        'authData',
-        'authProvider',
-      ]);
     },
     setAuthReady: (state, action) => {
       state.isAuthReady = action.payload;
     },
     setProgress: (state, action) => {
-      const {courseId, currentChapter, currentSlide} = action.payload;
+      const {
+        courseId,
+        currentChapter,
+        currentSlide,
+        completedChapterIds = [],
+        completedCourse = false,
+        completedAt,
+      } = action.payload;
+      const mergeCompletedChapters = previousIds => [
+        ...new Set([
+          ...(Array.isArray(previousIds) ? previousIds : []),
+          ...(Array.isArray(completedChapterIds) ? completedChapterIds : []),
+        ]),
+      ];
 
       // Error handling for existence of user and progress array
       if (state.user && state.user.progress) {
@@ -70,15 +83,47 @@ const authSlice = createSlice({
 
         // If the course progress does not exist, initialize it
         if (progressIndex === -1) {
-          state.user.progress.push({courseId, currentChapter, currentSlide});
+          state.user.progress.push({
+            courseId,
+            currentChapter,
+            currentSlide,
+            completedChapterIds: mergeCompletedChapters([]),
+            completedCourse,
+            completedAt: completedCourse
+              ? completedAt || new Date().toISOString()
+              : undefined,
+          });
         } else {
           // Update the current chapter and slide in the existing progress item
           state.user.progress[progressIndex].currentChapter = currentChapter;
           state.user.progress[progressIndex].currentSlide = currentSlide;
+          state.user.progress[progressIndex].completedChapterIds =
+            mergeCompletedChapters(
+              state.user.progress[progressIndex].completedChapterIds,
+            );
+          state.user.progress[progressIndex].completedCourse = Boolean(
+            state.user.progress[progressIndex].completedCourse ||
+              completedCourse,
+          );
+          if (completedCourse) {
+            state.user.progress[progressIndex].completedAt =
+              completedAt || new Date().toISOString();
+          }
         }
       } else if (state.user) {
         // If user exists but has no progress, initialize progress with the current details
-        state.user.progress = [{courseId, currentChapter, currentSlide}];
+        state.user.progress = [
+          {
+            courseId,
+            currentChapter,
+            currentSlide,
+            completedChapterIds: mergeCompletedChapters([]),
+            completedCourse,
+            completedAt: completedCourse
+              ? completedAt || new Date().toISOString()
+              : undefined,
+          },
+        ];
       }
 
       if (state.user) {
@@ -89,22 +134,20 @@ const authSlice = createSlice({
     setUser: (state, action) => {
       const payload = action.payload || {};
       const token = payload.token || state.user?.token || '';
+      const refreshToken = payload.refreshToken || state.user?.refreshToken || '';
       state.user = {
         ...(state.user || {}),
         ...payload,
         ...(token ? {token} : {}),
+        ...(refreshToken ? {refreshToken} : {}),
       };
 
       // Store the token in AsyncStorage
       AsyncStorage.setItem('token', token);
+      AsyncStorage.setItem('user', JSON.stringify(state.user));
     },
     deactivateAccount: state => {
       state.user = null;
-
-      // Remove the token from AsyncStorage
-      AsyncStorage.removeItem('token');
-      AsyncStorage.removeItem('user');
-      AsyncStorage.removeItem('authProvider');
     },
   },
 });
@@ -122,29 +165,25 @@ export const {
 
 export const loginUser = userData => async dispatch => {
   await AsyncStorage.setItem('token', userData.token);
+  await AsyncStorage.setItem('user', JSON.stringify(userData));
   dispatch(authSlice.actions.login(userData));
 };
 
 export const signupUser = userData => async dispatch => {
   await AsyncStorage.setItem('token', userData.token);
+  await AsyncStorage.setItem('user', JSON.stringify(userData));
   dispatch(authSlice.actions.signup(userData));
 };
 
 export const logoutUser = () => async dispatch => {
   try {
     await clearGoogleProviderSession();
-    // Clear all auth-related data
-    await AsyncStorage.multiRemove([
-      'token',
-      'user',
-      'userProfile',
-      'authData',
-      'authProvider',
-      'home_data_cache',
-    ]);
+    await clearLocalUserSession();
+    dispatch(apiSlice.util.resetApiState());
     dispatch(authSlice.actions.logout());
   } catch (error) {
     console.error('Logout error:', error);
+    dispatch(apiSlice.util.resetApiState());
     dispatch(authSlice.actions.logout());
   }
 };
@@ -158,6 +197,8 @@ export const deactivateUserAccount = id => async dispatch => {
       },
       body: JSON.stringify({status: 'inactive'}),
     });
+    await clearLocalUserSession();
+    dispatch(apiSlice.util.resetApiState());
     dispatch(authSlice.actions.deactivateAccount());
   } catch (error) {
     console.error('Error deactivating account:', error);

@@ -15,6 +15,13 @@ import Toast from 'react-native-toast-message';
 import {handleShare as shareWithImage} from './handleShare';
 import {formatDevotionalForSharing} from '../utils/textFormatter';
 
+const getMainVerseText = devotion =>
+  devotion?.mainVerse ||
+  devotion?.main_verse ||
+  devotion?.memoryVerse ||
+  devotion?.verse ||
+  '';
+
 const DevotionCard = ({devotion, darkMode, navigation}) => {
   const user = useSelector(state => state.auth.user);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
@@ -155,11 +162,10 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
     setShowCommentsModal(true);
   };
   // Safety check: return null if devotion is missing
-  if (!devotion || !devotion.verse || !devotion._id) {
+  const verseText = getMainVerseText(devotion);
+  if (!devotion || !verseText || !devotion._id) {
     return null;
   }
-
-  const verseText = devotion.verse || '';
 
   // Extract the verse content and reference
   // Handle various quote types: double quotes, single quotes, and mixed quotes

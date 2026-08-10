@@ -167,6 +167,13 @@ const CourseContent = ({route}) => {
       return false;
     }
 
+    if (
+      Array.isArray(userProgress.completedChapterIds) &&
+      userProgress.completedChapterIds.includes(index)
+    ) {
+      return true;
+    }
+
     if (index < userProgress.currentChapter) {
       return true;
     }
@@ -186,6 +193,10 @@ const CourseContent = ({route}) => {
 
     if (!userProgress || userProgress.currentChapter === undefined) {
       return 0;
+    }
+
+    if (userProgress.completedCourse) {
+      return data.length - 1;
     }
 
     const safeCurrentChapter = Math.min(
@@ -208,6 +219,10 @@ const CourseContent = ({route}) => {
   };
 
   const progressValue = () => {
+    if (userProgress?.completedCourse) {
+      return '100';
+    }
+
     if (
       userProgress &&
       userProgress.currentChapter !== undefined &&

@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import tw from './../../tailwind';
-import {Cross} from 'phosphor-react-native';
 
 const {width, height} = Dimensions.get('window');
 
@@ -131,11 +130,13 @@ const SplashScreen = ({onFinish}) => {
                 top: Math.random() * height,
               },
             ]}>
-            <Cross
-              size={20}
-              color={darkMode ? '#EA9215' : '#D1D5DB'}
-              weight="light"
-            />
+            <Text
+              style={[
+                tw`text-xl`,
+                {color: darkMode ? '#EA9215' : '#D1D5DB'},
+              ]}>
+              +
+            </Text>
           </Animated.View>
         ))}
       </View>
@@ -232,11 +233,13 @@ const SplashScreen = ({onFinish}) => {
             ]}
           />
           <Animated.View>
-            <Cross
-              size={16}
-              color={darkMode ? '#EA9215' : '#9CA3AF'}
-              weight="bold"
-            />
+            <Text
+              style={[
+                tw`text-base font-nokia-bold`,
+                {color: darkMode ? '#EA9215' : '#9CA3AF'},
+              ]}>
+              +
+            </Text>
           </Animated.View>
           <View
             style={[

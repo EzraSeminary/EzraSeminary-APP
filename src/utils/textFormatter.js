@@ -238,7 +238,12 @@ export const stripHtmlTags = html => {
 export const formatDevotionalForSharing = devotional => {
   if (!devotional) return '';
 
-  const verse = devotional.verse?.trim() || '';
+  const verse =
+    devotional.mainVerse?.trim() ||
+    devotional.main_verse?.trim() ||
+    devotional.memoryVerse?.trim() ||
+    devotional.verse?.trim() ||
+    '';
   const link = getDevotionalShareLink(devotional);
 
   if (verse) {
@@ -255,7 +260,12 @@ export const formatDevotionalForRichSharing = devotional => {
   const date = `${devotional.month || ''} ${devotional.day || ''}`.trim();
   const title = devotional.title || '';
   const chapter = devotional.chapter || '';
-  const verse = devotional.verse || '';
+  const verse =
+    devotional.mainVerse ||
+    devotional.main_verse ||
+    devotional.memoryVerse ||
+    devotional.verse ||
+    '';
   const body = stripHtmlTags(devotional.body?.[0] || '');
   const prayer = devotional.prayer || '';
 
