@@ -71,6 +71,7 @@ import {
 } from '../utils/ethiopianCalendar';
 import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
 import ReaderFontSizeControl from '../components/ReaderFontSizeControl';
+import useReaderFontFamily from '../hooks/useReaderFontFamily';
 
 const toEthDate = date => {
   const ethDateTime = EthDateTime.fromEuropeanDate(date);
@@ -263,6 +264,7 @@ const Devotion = () => {
     decreaseFontScale,
     readerFontScalePercentage,
   } = useReaderFontScale();
+  const {readerFontStyle} = useReaderFontFamily();
   const [showFontSizePopup, setShowFontSizePopup] = useState(false);
   const handleReaderScrollBegin = useCallback(() => {
     setShowFontSizePopup(false);
@@ -392,7 +394,6 @@ const Devotion = () => {
     displayFeaturedDevotions,
     currentEthiopianMonth,
     ethDay,
-    cachedHomeData,
     today,
     yearToFetch,
   ]);
@@ -426,18 +427,19 @@ const Devotion = () => {
   const {data: likesData, refetch: refetchLikes} = useGetDevotionLikesQuery(
     devotionToDisplay?._id,
     {
-      skip: !user || !devotionToDisplay?._id,
+      skip: !devotionToDisplay?._id,
     },
   );
 
-  // Refetch likes when user logs in to ensure persistence
+  // Refetch likes when user changes to keep counts aligned across screens.
   useEffect(() => {
-    if (user && devotionToDisplay?._id) {
+    if (devotionToDisplay?._id) {
       refetchLikes();
     }
   }, [user, devotionToDisplay?._id, refetchLikes]);
 
-  const {data: commentsData} = useGetDevotionCommentsQuery(
+  const {data: commentsData, refetch: refetchComments} =
+    useGetDevotionCommentsQuery(
     devotionToDisplay?._id,
     {
       skip: !devotionToDisplay?._id,
@@ -448,6 +450,25 @@ const Devotion = () => {
     useToggleDevotionLikeMutation();
   const [trackShare, {isLoading: isTrackingShare}] =
     useTrackDevotionShareMutation();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (devotionToDisplay?._id) {
+        refetchLikes();
+        refetchComments();
+      }
+      if (networkManager.isOnline) {
+        refetchFeaturedMonthDevotions();
+        refetchDiscoverDevotions();
+      }
+    }, [
+      devotionToDisplay?._id,
+      refetchLikes,
+      refetchComments,
+      refetchFeaturedMonthDevotions,
+      refetchDiscoverDevotions,
+    ]),
+  );
 
   // Update likes, shares, and comments state when data changes
   useEffect(() => {
@@ -631,45 +652,53 @@ const Devotion = () => {
       ...(darkMode
         ? tw`text-primary-1 font-nokia-bold`
         : tw`text-secondary-6 font-nokia-bold`),
+      ...readerFontStyle,
       fontSize: scaleTextSize(14),
       lineHeight: scaleTextSize(20),
       marginVertical: 0,
     },
     a: {
       ...tw`text-accent-6 font-nokia-bold underline`,
+      ...readerFontStyle,
       fontSize: scaleTextSize(14),
       lineHeight: scaleTextSize(20),
     },
     h1: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(24),
           lineHeight: scaleTextSize(32),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(24),
           lineHeight: scaleTextSize(32),
         },
     h2: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(20),
           lineHeight: scaleTextSize(28),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(20),
           lineHeight: scaleTextSize(28),
         },
     h3: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(18),
           lineHeight: scaleTextSize(26),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(18),
           lineHeight: scaleTextSize(26),
         },
@@ -961,6 +990,7 @@ const Devotion = () => {
               onDecrease={decreaseFontScale}
               onIncrease={increaseFontScale}
               percentage={readerFontScalePercentage}
+              popupPosition={{top: 110, right: 24}}
               wrapperStyle={tw`absolute right-0`}
             />
             {/* Sliding buttons for Devotional/Devotional Plan */}
@@ -1088,6 +1118,7 @@ const Devotion = () => {
                     tw`font-nokia-bold text-secondary-6`,
                     darkMode ? tw`text-primary-1` : null,
                     {
+                      ...readerFontStyle,
                       fontSize: scaleTextSize(18),
                       lineHeight: scaleTextSize(26),
                     },
@@ -1101,6 +1132,7 @@ const Devotion = () => {
                         tw`font-nokia-bold text-accent-6`,
                         darkMode ? tw`text-accent-6` : null,
                         {
+                          ...readerFontStyle,
                           fontSize: scaleTextSize(18),
                           lineHeight: scaleTextSize(26),
                         },
@@ -1146,6 +1178,7 @@ const Devotion = () => {
                 style={[
                   tw`font-nokia-bold text-accent-6 text-center`,
                   {
+                    ...readerFontStyle,
                     fontSize: scaleTextSize(14),
                     lineHeight: scaleTextSize(20),
                   },

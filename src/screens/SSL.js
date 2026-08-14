@@ -3,12 +3,10 @@ import {
   Text,
   SafeAreaView,
   TouchableOpacity,
-  ScrollView,
-  RefreshControl,
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import React, {useState, useCallback} from 'react';
+import React, {useState} from 'react';
 import tw from './../../tailwind';
 import {useSelector, useDispatch} from 'react-redux';
 import {setLanguage} from '../redux/languageSlice';
@@ -27,7 +25,6 @@ const SSL = ({navigation}) => {
   const dispatch = useDispatch();
 
   const [activeTab, setActiveTab] = useState('SSL'); // State to toggle between SSL and InVerse
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
 
@@ -65,30 +62,6 @@ const SSL = ({navigation}) => {
       }`,
     });
   };
-
-  const onRefresh = useCallback(async () => {
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      Toast.show({
-        type: 'info',
-        text1: 'Internet Connection Required',
-        text2: 'Please connect to the internet to reload data.',
-      });
-      setIsRefreshing(false);
-      return;
-    }
-
-    try {
-      setIsRefreshing(true);
-      // Add a small delay to show the refresh animation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // Force re-render of the active component
-      setActiveTab(prev => (prev === 'SSL' ? 'InVerse' : 'SSL'));
-      setActiveTab(prev => (prev === 'InVerse' ? 'SSL' : 'InVerse'));
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, []);
 
   const handleReload = async () => {
     const netInfo = await NetInfo.fetch();
@@ -202,22 +175,13 @@ const SSL = ({navigation}) => {
         </View>
 
         {/* Render Active Component */}
-        <ScrollView
-          contentContainerStyle={{flexGrow: 1}}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={onRefresh}
-              colors={['#EA9215']}
-              tintColor="#EA9215"
-            />
-          }>
+        <View style={tw`flex-1`}>
           {activeTab === 'SSL' ? (
             <SSLHome onReload={handleReload} />
           ) : (
             <InVerseHome onReload={handleReload} />
           )}
-        </ScrollView>
+        </View>
       </View>
 
       {/* Language Selection Modal */}

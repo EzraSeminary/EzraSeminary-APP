@@ -36,7 +36,7 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
   const {data: likesData, refetch: refetchLikes} = useGetDevotionLikesQuery(
     devotion._id,
     {
-      skip: !user || !devotion._id,
+      skip: !devotion._id,
     },
   );
 
@@ -49,9 +49,9 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
   const [trackShare, {isLoading: isTrackingShare}] =
     useTrackDevotionShareMutation();
 
-  // Refetch likes when user logs in to ensure persistence
+  // Refetch likes when user changes to keep counts aligned across screens.
   React.useEffect(() => {
-    if (user && devotion._id) {
+    if (devotion._id) {
       refetchLikes();
     }
   }, [user, devotion._id, refetchLikes]);

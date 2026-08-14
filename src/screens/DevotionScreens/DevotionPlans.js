@@ -298,9 +298,10 @@ const DevotionPlans = () => {
       return plan.numItems != null && plan.numItems > 0;
     });
   };
+  const getPlanId = item => item?.planId || item?.plan?._id || item?._id;
 
   // Use cached data if available and filter plans with data
-  const displayFindPlans = filterPlansWithData(
+  const allFindPlans = filterPlansWithData(
     findPlans.length > 0 ? findPlans : cachedHomeData?.findPlans || [],
   );
   const displayMyPlans = filterPlansWithData(
@@ -310,6 +311,12 @@ const DevotionPlans = () => {
     completedPlans.length > 0
       ? completedPlans
       : cachedHomeData?.completedPlans || [],
+  );
+  const startedPlanIds = new Set(
+    [...displayMyPlans, ...displayCompletedPlans].map(getPlanId).filter(Boolean),
+  );
+  const displayFindPlans = allFindPlans.filter(
+    plan => !startedPlanIds.has(getPlanId(plan)),
   );
 
   const handleStartPlan = async planId => {
@@ -548,28 +555,72 @@ const DevotionPlans = () => {
       );
     }
 
-    return plans.map(item =>
-      renderPlanCard({
-        item,
-        withProgress,
-        isCompleted: resolveCompleted ? resolveCompleted(item) : isCompleted,
-      }),
-    );
+    return plans.map((item, index) => (
+      <React.Fragment key={`${getPlanId(item) || 'plan'}-${index}`}>
+        {renderPlanCard({
+          item,
+          withProgress,
+          isCompleted: resolveCompleted ? resolveCompleted(item) : isCompleted,
+        })}
+      </React.Fragment>
+    ));
   };
 
   const renderContent = () => {
     if (tab === 'find') {
-      const completedPlanIds = new Set(
-        (displayCompletedPlans || []).map(p => p.planId || p.plan?._id),
-      );
+      const showEmptyFindState =
+        !loadingFind &&
+        displayFindPlans.length === 0 &&
+        displayCompletedPlans.length === 0;
 
-      return renderPlanList({
-        plans: displayFindPlans,
-        emptyMessage: 'No devotion plans available',
-        isLoading: loadingFind,
-        loadingMessage: 'Loading Plans...',
-        resolveCompleted: item => completedPlanIds.has(item._id),
-      });
+      return (
+        <>
+          {showEmptyFindState || loadingFind
+            ? renderPlanList({
+                plans: displayFindPlans,
+                emptyMessage: 'No new devotion plans available',
+                isLoading: loadingFind,
+                loadingMessage: 'Loading Plans...',
+              })
+            : displayFindPlans.map((item, index) => (
+                <React.Fragment key={`${getPlanId(item) || 'find'}-${index}`}>
+                  {renderPlanCard({
+                    item,
+                  })}
+                </React.Fragment>
+              ))}
+          {displayCompletedPlans.length > 0 && (
+            <View style={tw`mt-2 mb-2`}>
+              <View style={tw`border-t border-accent-6 pt-4 mb-3`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-lg`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  Finished Plans
+                </Text>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-sm mt-1`,
+                    darkMode ? tw`text-primary-3` : tw`text-secondary-5`,
+                  ]}>
+                  Plans you have already completed.
+                </Text>
+              </View>
+              {displayCompletedPlans.map((item, index) => (
+                <React.Fragment
+                  key={`${getPlanId(item) || 'completed'}-${index}`}>
+                  {renderPlanCard({
+                    item,
+                    withProgress: true,
+                    isCompleted: true,
+                  })}
+                </React.Fragment>
+              ))}
+            </View>
+          )}
+        </>
+      );
     }
 
     if (tab === 'my') {

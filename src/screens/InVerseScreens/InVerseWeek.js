@@ -34,6 +34,8 @@ import {ensureOnlineOrNotify} from '../../utils/refreshCacheManager';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 import ReaderFontSizeControl from '../../components/ReaderFontSizeControl';
+import useReaderFontFamily from '../../hooks/useReaderFontFamily';
+import HtmlContent from '../../components/HtmlContent';
 
 const normalizeVerseLookupKey = value =>
   String(value || '')
@@ -236,6 +238,7 @@ const InVerseWeek = ({route}) => {
     decreaseFontScale,
     readerFontScalePercentage,
   } = useReaderFontScale();
+  const {readerFontStyle} = useReaderFontFamily();
   const [showFontSizePopup, setShowFontSizePopup] = useState(false);
   const handleReaderScrollBegin = useCallback(() => {
     setShowFontSizePopup(false);
@@ -367,61 +370,86 @@ const InVerseWeek = ({route}) => {
 
   // Styles definition should be here, after hooks and before early returns if it uses darkMode
   const styles = StyleSheet.create({
-    text: tw`font-nokia-bold`,
+    text: {...tw`font-nokia-bold`, ...readerFontStyle},
     h3: darkMode
-      ? {...tw`font-nokia-bold text-primary-1`, fontSize: scaleTextSize(24)}
-      : {...tw`font-nokia-bold text-secondary-6`, fontSize: scaleTextSize(24)},
+      ? {
+          ...tw`font-nokia-bold text-primary-1`,
+          ...readerFontStyle,
+          fontSize: scaleTextSize(24),
+        }
+      : {
+          ...tw`font-nokia-bold text-secondary-6`,
+          ...readerFontStyle,
+          fontSize: scaleTextSize(24),
+        },
     p: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(17),
           lineHeight: scaleTextSize(26),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(17),
           lineHeight: scaleTextSize(26),
         },
     blockquote: darkMode
-      ? {...tw`text-primary-1 font-nokia-bold`, fontSize: scaleTextSize(20)}
-      : {...tw`text-secondary-6 font-nokia-bold`, fontSize: scaleTextSize(20)},
+      ? {
+          ...tw`text-primary-1 font-nokia-bold`,
+          ...readerFontStyle,
+          fontSize: scaleTextSize(20),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold`,
+          ...readerFontStyle,
+          fontSize: scaleTextSize(20),
+        },
     ol: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(17),
           lineHeight: scaleTextSize(26),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(17),
           lineHeight: scaleTextSize(26),
         },
     ul: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(17),
           lineHeight: scaleTextSize(26),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(17),
           lineHeight: scaleTextSize(26),
         },
     li: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold py-1`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(17),
           lineHeight: scaleTextSize(26),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold py-1`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(17),
           lineHeight: scaleTextSize(26),
         },
-    'blockquote.p': tw`font-nokia-bold text-4xl`,
+    'blockquote.p': {...tw`font-nokia-bold text-4xl`, ...readerFontStyle},
     em: tw`mt-4`,
     code: {
       ...tw`font-nokia-bold`,
+      ...readerFontStyle,
       color: '#EA9215',
       backgroundColor: darkMode ? '#333' : '#f5f5f5',
       fontSize: scaleTextSize(16),
@@ -430,9 +458,10 @@ const InVerseWeek = ({route}) => {
       borderRadius: 4,
     },
     strong: {fontSize: scaleTextSize(20)},
-    a: darkMode
-      ? tw`text-accent-6 font-nokia-bold py-2`
-      : tw`text-accent-6 font-nokia-bold py-2`,
+    a: {
+      ...tw`text-accent-6 font-nokia-bold py-2`,
+      ...readerFontStyle,
+    },
     table: tw`border border-gray-300 my-4`,
     td: tw`border-r border-gray-300 p-2`,
   });
@@ -800,6 +829,7 @@ const InVerseWeek = ({route}) => {
   const gradientColor = '#000000';
   const dateStyle = {
     ...tw`font-nokia-bold text-primary-6`,
+    ...readerFontStyle,
     fontSize: scaleTextSize(18),
   };
   const modifiedContent = selectedVerseContent;
@@ -996,7 +1026,7 @@ const InVerseWeek = ({route}) => {
                   style: [
                     tw`font-nokia-bold`,
                     darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                    {flexWrap: 'wrap'},
+                    {...readerFontStyle, flexWrap: 'wrap'},
                   ],
                 }}
               />
@@ -1059,38 +1089,38 @@ const InVerseWeek = ({route}) => {
               <HtmlContent
                 html={`<div>${modifiedContent}</div>`}
                 baseStyle={{
-                  fontFamily: 'Nokia Pure Headline Bold',
+                  ...readerFontStyle,
                   color: darkMode ? '#F8FAFC' : '#1F2937',
                   fontSize: scaleTextSize(16),
                   lineHeight: scaleTextSize(24),
                 }}
                 tagsStyles={{
                   p: {
-                    fontFamily: 'Nokia Pure Headline Bold',
+                    ...readerFontStyle,
                     color: darkMode ? '#F8FAFC' : '#1F2937',
                     fontSize: scaleTextSize(16),
                     lineHeight: scaleTextSize(24),
                     textAlign: 'left',
                   },
                   div: {
-                    fontFamily: 'Nokia Pure Headline Bold',
+                    ...readerFontStyle,
                     color: darkMode ? '#F8FAFC' : '#1F2937',
                     fontSize: scaleTextSize(16),
                     lineHeight: scaleTextSize(24),
                     textAlign: 'left',
                   },
                   h2: {
-                    fontFamily: 'Nokia Pure Headline Bold',
+                    ...readerFontStyle,
                     color: '#EA9215',
                     fontSize: scaleTextSize(24),
                   },
                   sup: {
-                    fontFamily: 'Nokia Pure Headline Bold',
+                    ...readerFontStyle,
                     color: '#EA9215',
                     fontSize: scaleTextSize(12),
                   },
                   ol: {
-                    fontFamily: 'Nokia Pure Headline Bold',
+                    ...readerFontStyle,
                     color: darkMode ? '#F8FAFC' : '#1F2937',
                     fontSize: scaleTextSize(16),
                     lineHeight: scaleTextSize(24),
@@ -1098,7 +1128,7 @@ const InVerseWeek = ({route}) => {
                     paddingVertical: 8,
                   },
                   ul: {
-                    fontFamily: 'Nokia Pure Headline Bold',
+                    ...readerFontStyle,
                     color: darkMode ? '#F8FAFC' : '#1F2937',
                     fontSize: scaleTextSize(16),
                     lineHeight: scaleTextSize(24),
@@ -1106,7 +1136,7 @@ const InVerseWeek = ({route}) => {
                     paddingVertical: 8,
                   },
                   li: {
-                    fontFamily: 'Nokia Pure Headline Bold',
+                    ...readerFontStyle,
                     color: darkMode ? '#F8FAFC' : '#1F2937',
                     fontSize: scaleTextSize(16),
                     lineHeight: scaleTextSize(24),

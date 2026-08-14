@@ -37,6 +37,7 @@ import HighlightableHtmlBlocks from '../../components/HighlightableHtmlBlocks';
 import HighlightActionSheet from '../../components/HighlightActionSheet';
 import usePersistentHighlights from '../../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../../utils/htmlBlocks';
+import useReaderFontFamily from '../../hooks/useReaderFontFamily';
 
 // Completion Modal Component with Animation
 const CompletionModal = ({
@@ -171,6 +172,7 @@ const CompletionModal = ({
 
 const PlanDevotionViewer = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
+  const {readerFontStyle} = useReaderFontFamily();
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const route = useRoute();
@@ -677,35 +679,38 @@ const PlanDevotionViewer = () => {
     p: [
       tw`text-secondary-6 font-nokia-bold text-sm leading-snug`,
       darkMode ? tw`text-primary-1` : null,
-      {marginVertical: 0},
+      {...readerFontStyle, marginVertical: 0},
     ],
-    a: tw`text-accent-6 font-nokia-bold text-sm underline`,
+    a: {...tw`text-accent-6 font-nokia-bold text-sm underline`, ...readerFontStyle},
     h1: [
       tw`text-secondary-6 font-nokia-bold text-2xl leading-snug`,
       darkMode ? tw`text-primary-1` : null,
+      readerFontStyle,
     ],
     h2: [
       tw`text-secondary-6 font-nokia-bold text-xl leading-snug`,
       darkMode ? tw`text-primary-1` : null,
+      readerFontStyle,
     ],
     h3: [
       tw`text-secondary-6 font-nokia-bold text-lg leading-snug`,
       darkMode ? tw`text-primary-1` : null,
+      readerFontStyle,
     ],
     ol: [
       tw`text-secondary-6 font-nokia-bold text-sm leading-snug`,
       darkMode ? tw`text-primary-1` : null,
-      {marginVertical: 0, paddingLeft: 20},
+      {...readerFontStyle, marginVertical: 0, paddingLeft: 20},
     ],
     ul: [
       tw`text-secondary-6 font-nokia-bold text-sm leading-snug`,
       darkMode ? tw`text-primary-1` : null,
-      {marginVertical: 0, paddingLeft: 20},
+      {...readerFontStyle, marginVertical: 0, paddingLeft: 20},
     ],
     li: [
       tw`text-secondary-6 font-nokia-bold text-sm leading-snug`,
       darkMode ? tw`text-primary-1` : null,
-      {marginVertical: -5},
+      {...readerFontStyle, marginVertical: -5},
     ],
   };
 

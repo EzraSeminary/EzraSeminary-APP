@@ -2,6 +2,34 @@
   "migIndex": 1,
   "data": [
     {
+      "path": "assets/fonts/Amhara_reduced_5105c5b37c.otf",
+      "sha1": "0b08fa1ae82a27044f66e8b560139e16f0cb58c5"
+    },
+    {
+      "path": "assets/fonts/Font.et - Amhara reduced - Unknown Designer/license.txt",
+      "sha1": "a395a49773f032c5d5d2553624da862045631e28"
+    },
+    {
+      "path": "assets/fonts/Font.et - Menbere - Aleme Tadesse/license.txt",
+      "sha1": "11d0d66200d34409832680fd478c43943120f3d7"
+    },
+    {
+      "path": "assets/fonts/Font.et - Menbere - Aleme Tadesse/Menbere_Variable_Font_wght_2c787a3cf0.ttf",
+      "sha1": "887a507e9436c3a7344ef8763fc1aa681fef9830"
+    },
+    {
+      "path": "assets/fonts/Font.et - SurGraphics Black - Unknown Designer/license.txt",
+      "sha1": "52371b06838bf4df7b0c4fdedaf5894e51719e24"
+    },
+    {
+      "path": "assets/fonts/Font.et - ዋልድባ - ውቂያኖስ - Abass Alamnehe/license.txt",
+      "sha1": "166e44bccdae7434452efaeb7ce85ec34be571b8"
+    },
+    {
+      "path": "assets/fonts/Font.et - ዋልድባ - ውቂያኖስ - Abass Alamnehe/Waldba_Wookianos_Regular_82dc20e729.ttf",
+      "sha1": "074a1855377736253dfbcf3dc5f9dfd7b21fb134"
+    },
+    {
       "path": "assets/fonts/Lato-Black.ttf",
       "sha1": "a001eb827743636e04f8efa7d4aeedf0541c46ac"
     },
@@ -22,10 +50,6 @@
       "sha1": "07290446bee3f81ce501a3c3dbfde6097c70ca15"
     },
     {
-      "path": "assets/fonts/NOKIAPUREHEADLINE_RG.TTF",
-      "sha1": "695c25021a1786525ac6fe420a2cb071753486ff"
-    },
-    {
       "path": "assets/fonts/Nokia Pure Headline Bold.ttf",
       "sha1": "e94bf6bb7acbcd4e265eddd47a5b038b77425808"
     },
@@ -38,8 +62,16 @@
       "sha1": "b025ed9cf6afd042566810c9c073f9e7f6eb9a7a"
     },
     {
+      "path": "assets/fonts/NOKIAPUREHEADLINE_RG.TTF",
+      "sha1": "695c25021a1786525ac6fe420a2cb071753486ff"
+    },
+    {
       "path": "assets/fonts/NokiaPureHeadline_XBd..ttf",
       "sha1": "b3745bee1ee8f5352ee4a6d311e20a032480cf45"
+    },
+    {
+      "path": "assets/fonts/Sur_Graphics_Extra_Bold_15c4e92309.ttf",
+      "sha1": "5606ed31d71fb8664ec3c30d37c908d874948e42"
     }
   ]
 }

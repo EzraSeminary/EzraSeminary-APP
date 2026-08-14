@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useEffect, useMemo} from 'react';
 import {
   View,
   Text,
@@ -23,8 +23,14 @@ import {useNavigation} from '@react-navigation/native';
 import {useSelector} from 'react-redux';
 import {useGetSSLOfQuarterQuery} from '../../services/SabbathSchoolApi';
 import LinearGradient from 'react-native-linear-gradient';
-import {saveSSLLessonToCache} from '../../utils/sslCache';
+import {
+  cacheSSLQuarterData,
+  getCachedSSLQuarter,
+  getCachedSSLQuarterLessonIds,
+  saveSSLLessonToCache,
+} from '../../utils/sslCache';
 import {formatSslDateRange} from '../../utils/sslDateFormatter';
+import networkManager from '../../utils/networkManager';
 
 const SSLQuarter = ({route}) => {
   const {sslId} = route.params;
@@ -41,9 +47,106 @@ const SSLQuarter = ({route}) => {
   const textStyle = 'font-nokia-bold text-sm text-secondary-4';
   const [showModal, setShowModal] = useState(false);
   const [fullDescription, setFullDescription] = useState('');
+  const [cachedQuarter, setCachedQuarter] = useState(null);
+  const [cachedLessonIds, setCachedLessonIds] = useState([]);
+  const [isUsingCache, setIsUsingCache] = useState(false);
+  const [isCachingQuarter, setIsCachingQuarter] = useState(false);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadCachedQuarter = async () => {
+      if (!sslId) {
+        return;
+      }
+
+      try {
+        const [quarterCache, lessonIds] = await Promise.all([
+          getCachedSSLQuarter(sslId, language),
+          getCachedSSLQuarterLessonIds(sslId, language),
+        ]);
+
+        if (!isActive) {
+          return;
+        }
+
+        setCachedQuarter(quarterCache);
+        setCachedLessonIds(lessonIds);
+        setIsUsingCache(
+          Boolean(quarterCache) && Boolean(!networkManager.isOnline || error),
+        );
+      } catch (cacheError) {
+        console.error('Error loading cached SSL quarter:', cacheError);
+      }
+    };
+
+    loadCachedQuarter();
+
+    return () => {
+      isActive = false;
+    };
+  }, [sslId, language, error]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const cacheQuarter = async () => {
+      if (!sslQuarter || !sslId || !networkManager.isOnline) {
+        return;
+      }
+
+      try {
+        setIsCachingQuarter(true);
+        const result = await cacheSSLQuarterData({
+          ssl: sslId,
+          quarterData: sslQuarter,
+          language,
+        });
+
+        if (!isActive) {
+          return;
+        }
+
+        setCachedQuarter(sslQuarter);
+        const lessonIds = await getCachedSSLQuarterLessonIds(sslId, language);
+
+        if (isActive) {
+          setCachedLessonIds(lessonIds);
+          setIsUsingCache(false);
+        }
+
+        console.log(
+          `✅ SSL quarter cache ready: ${result.lessonsCached} lessons, ${result.daysCached} days`,
+        );
+      } catch (cacheError) {
+        console.error('Error caching SSL quarter:', cacheError);
+      } finally {
+        if (isActive) {
+          setIsCachingQuarter(false);
+        }
+      }
+    };
+
+    cacheQuarter();
+
+    return () => {
+      isActive = false;
+    };
+  }, [sslQuarter, sslId, language]);
+
+  const displaySSLQuarter = sslQuarter || cachedQuarter;
+  const visibleLessons = useMemo(() => {
+    const lessons = displaySSLQuarter?.lessons || [];
+
+    if (!isUsingCache) {
+      return lessons;
+    }
+
+    return lessons.filter(item => cachedLessonIds.includes(item.id));
+  }, [cachedLessonIds, displaySSLQuarter?.lessons, isUsingCache]);
 
   const handleMorePress = () => {
-    setFullDescription(sslQuarter.quarterly.introduction);
+    setFullDescription(displaySSLQuarter?.quarterly?.introduction || '');
     setShowModal(true);
   };
 
@@ -60,7 +163,7 @@ const SSLQuarter = ({route}) => {
     }
   }, [refetch]);
 
-  if (isLoading) {
+  if (isLoading && !displaySSLQuarter) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <View style={tw`flex-1`}>
@@ -117,7 +220,7 @@ const SSLQuarter = ({route}) => {
     );
   }
 
-  if (error) {
+  if (error && !displaySSLQuarter) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <View style={tw`flex-1`}>
@@ -191,13 +294,59 @@ const SSLQuarter = ({route}) => {
     );
   }
 
+  if (!displaySSLQuarter?.quarterly) {
+    return (
+      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
+        <View style={tw`flex-1`}>
+          <View style={tw`flex-row items-center justify-between p-4`}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <ArrowSquareLeft size={36} weight="fill" color={'#EA9215'} />
+            </TouchableOpacity>
+            <Text
+              style={[
+                tw`font-nokia-bold text-lg`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              Sabbath School
+            </Text>
+            <View style={tw`w-9`} />
+          </View>
+          <View
+            style={[
+              tw`mx-4 p-4 rounded-3 border`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#FEF7F0',
+                borderColor: '#EA9215',
+              },
+            ]}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-sm text-center`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              {language === 'en'
+                ? 'No saved lessons are available for this quarter yet.'
+                : 'ለዚህ ሩብ ዓመት የተቀመጡ ትምህርቶች ገና የሉም።'}
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const handleButtonPress = async (ssl, weekId) => {
     // Cache the quarter data when navigating to a lesson
     // The lesson data will be cached when SSLWeek loads
-    if (sslQuarter && ssl && weekId) {
+    if (displaySSLQuarter && ssl && weekId) {
       // Save quarter data - lesson data will be cached in SSLWeek component
       try {
-        await saveSSLLessonToCache(ssl, weekId, null, sslQuarter);
+        await saveSSLLessonToCache(
+          ssl,
+          weekId,
+          null,
+          displaySSLQuarter,
+          language,
+        );
       } catch (error) {
         console.error('Error caching SSL quarter data:', error);
       }
@@ -206,11 +355,11 @@ const SSLQuarter = ({route}) => {
   };
 
   const gradientColor = darkMode
-    ? sslQuarter.quarterly.color_primary_dark
-    : sslQuarter.quarterly.color_primary;
+    ? displaySSLQuarter.quarterly.color_primary_dark
+    : displaySSLQuarter.quarterly.color_primary;
   const quarterDateRange = formatSslDateRange(
-    sslQuarter?.quarterly?.start_date,
-    sslQuarter?.quarterly?.end_date,
+    displaySSLQuarter?.quarterly?.start_date,
+    displaySSLQuarter?.quarterly?.end_date,
   );
 
   return (
@@ -227,7 +376,7 @@ const SSLQuarter = ({route}) => {
         }>
         <View style={tw`flex-1 h-130`}>
           <ImageBackground
-            source={{uri: sslQuarter.quarterly.splash}}
+            source={{uri: displaySSLQuarter.quarterly.splash}}
             style={tw`flex-5 justify-between py-6 px-4`}>
             <LinearGradient
               colors={[gradientColor, `${gradientColor}30`]}
@@ -246,19 +395,19 @@ const SSLQuarter = ({route}) => {
             <View>
               <Text
                 style={tw`font-nokia-bold text-3xl text-primary-1 text-center`}>
-                {sslQuarter.quarterly.title}
+                {displaySSLQuarter.quarterly.title}
               </Text>
               <Text
                 style={tw`font-nokia-bold text-sm text-primary-3 text-center`}>
                 {language === 'en'
-                  ? quarterDateRange || sslQuarter.quarterly.human_date
-                  : sslQuarter.quarterly.human_date}
+                  ? quarterDateRange || displaySSLQuarter.quarterly.human_date
+                  : displaySSLQuarter.quarterly.human_date}
               </Text>
               <View style={tw`mt-4`}>
                 <Text
                   style={tw`font-nokia-bold text-sm text-primary-1`}
                   numberOfLines={3}>
-                  {sslQuarter.quarterly.description}{' '}
+                  {displaySSLQuarter.quarterly.description}{' '}
                 </Text>
                 <TouchableOpacity onPress={handleMorePress}>
                   <Text
@@ -310,7 +459,47 @@ const SSLQuarter = ({route}) => {
           </ImageBackground>
         </View>
         <SafeAreaView style={tw`flex`}>
-          {sslQuarter.lessons?.map((item, index) => (
+          {isUsingCache && (
+            <View
+              style={[
+                tw`mx-4 mt-4 mb-2 p-3 rounded-3 border flex-row items-center`,
+                {
+                  backgroundColor: darkMode ? '#374151' : '#FEF7F0',
+                  borderColor: '#EA9215',
+                },
+              ]}>
+              <CloudSlash
+                size={18}
+                color="#EA9215"
+                weight="bold"
+                style={tw`mr-2`}
+              />
+              <Text
+                style={[
+                  tw`font-nokia-bold text-sm flex-1`,
+                  darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                ]}>
+                {language === 'en'
+                  ? 'Offline mode: showing saved lessons only.'
+                  : 'ከመስመር ውጭ፦ የተቀመጡ ትምህርቶች ብቻ እየታዩ ነው።'}
+              </Text>
+            </View>
+          )}
+          {isCachingQuarter && !isUsingCache && (
+            <View style={tw`mx-4 mt-4 mb-2 flex-row items-center`}>
+              <ActivityIndicator size="small" color="#EA9215" style={tw`mr-2`} />
+              <Text
+                style={[
+                  tw`font-nokia-bold text-xs`,
+                  darkMode ? tw`text-primary-3` : tw`text-secondary-4`,
+                ]}>
+                {language === 'en'
+                  ? 'Saving this quarter for offline reading...'
+                  : 'ይህ ሩብ ዓመት ከመስመር ውጭ ለማንበብ እየተቀመጠ ነው...'}
+              </Text>
+            </View>
+          )}
+          {visibleLessons?.map((item, index) => (
             <TouchableOpacity
               key={item.id}
               style={tw`flex flex-row items-center gap-6 border-t border-secondary-3 w-full py-3 px-6`}
@@ -356,6 +545,19 @@ const SSLQuarter = ({route}) => {
               </View>
             </TouchableOpacity>
           ))}
+          {isUsingCache && visibleLessons.length === 0 && (
+            <View style={tw`mx-4 mt-4 p-4 rounded-3 border border-primary-6`}>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-sm text-center`,
+                  darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                ]}>
+                {language === 'en'
+                  ? 'No saved lessons are available for this quarter yet.'
+                  : 'ለዚህ ሩብ ዓመት የተቀመጡ ትምህርቶች ገና የሉም።'}
+              </Text>
+            </View>
+          )}
         </SafeAreaView>
       </ScrollView>
     </View>

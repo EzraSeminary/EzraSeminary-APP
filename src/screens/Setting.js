@@ -30,12 +30,15 @@ import {
   Sparkle,
   Folder,
   Heart,
+  TextT,
 } from 'phosphor-react-native';
 import {useGetSSLsQuery} from '../services/SabbathSchoolApi';
 import UserAvatar from '../components/UserAvatar';
 import CacheChecker from '../components/CacheChecker';
 import useReaderFontScale from '../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
+import ReaderFontFamilySelector from '../components/ReaderFontFamilySelector';
+import useReaderFontFamily from '../hooks/useReaderFontFamily';
 
 const Setting = ({navigation}) => {
   const dispatch = useDispatch();
@@ -50,6 +53,7 @@ const Setting = ({navigation}) => {
     increaseFontScale,
     decreaseFontScale,
   } = useReaderFontScale();
+  const {readerFont} = useReaderFontFamily();
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -385,7 +389,39 @@ const Setting = ({navigation}) => {
               title="Notification Settings"
               onPress={() => navigation.navigate('NotificationSettings')}
             />
+          </Animated.View>
 
+          {/* Reading Font Section */}
+          {/* <Animated.View
+            style={[
+              tw`mb-6 p-4 rounded-2xl border border-accent-6`,
+              {
+                backgroundColor: darkMode ? '#374151' : '#F9FAFB',
+                transform: [{scale: scaleAnim}],
+              },
+            ]}>
+            <Text
+              style={[
+                tw`font-nokia-bold text-lg text-secondary-6 mb-4`,
+                darkMode ? tw`text-primary-1` : null,
+              ]}>
+              Reading Font
+            </Text>
+            <SettingItem
+              icon={<TextT size={16} weight="fill" color={'#FFFFFF'} />}
+              title="Font Type"
+              hasArrow={false}
+              rightComponent={
+                <Text style={tw`font-nokia-bold text-accent-6 text-sm ml-2`}>
+                  {readerFont.label}
+                </Text>
+              }
+            />
+            <ReaderFontFamilySelector
+              darkMode={darkMode}
+              showTitle={false}
+              contentContainerStyle={tw`mb-3`}
+            />
             <SettingItem
               icon={<Pencil size={16} weight="fill" color={'#FFFFFF'} />}
               title="Reading Font Size"
@@ -393,8 +429,8 @@ const Setting = ({navigation}) => {
               rightComponent={
                 <View style={tw`flex-row items-center`}>
                   <TouchableOpacity
-                    onPress={() => void decreaseFontScale()}
-                    style={tw`bg-accent-6 px-2 py-1 rounded`}>
+                    onPress={decreaseFontScale}
+                    style={tw`bg-accent-6 px-3 py-2 rounded-full`}>
                     <Text style={tw`text-primary-1 font-nokia-bold text-sm`}>
                       A-
                     </Text>
@@ -403,8 +439,8 @@ const Setting = ({navigation}) => {
                     {readerFontScalePercentage}%
                   </Text>
                   <TouchableOpacity
-                    onPress={() => void increaseFontScale()}
-                    style={tw`bg-accent-6 px-2 py-1 rounded`}>
+                    onPress={increaseFontScale}
+                    style={tw`bg-accent-6 px-3 py-2 rounded-full`}>
                     <Text style={tw`text-primary-1 font-nokia-bold text-sm`}>
                       A+
                     </Text>
@@ -412,7 +448,7 @@ const Setting = ({navigation}) => {
                 </View>
               }
             />
-          </Animated.View>
+          </Animated.View> */}
 
           {/* App Information Section */}
           <Animated.View

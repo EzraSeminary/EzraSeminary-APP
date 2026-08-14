@@ -38,6 +38,7 @@ import {
   CaretDown,
   CloudSlash,
   Warning,
+  NotePencil,
 } from 'phosphor-react-native';
 import tw from './../../../tailwind';
 import LinearGradient from 'react-native-linear-gradient';
@@ -54,6 +55,7 @@ import {fetchQuarterVideoSections} from '../../utils/sslQuarterVideoFeed';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 import ReaderFontSizeControl from '../../components/ReaderFontSizeControl';
+import useReaderFontFamily from '../../hooks/useReaderFontFamily';
 
 const decodeHtmlEntities = text =>
   (text || '')
@@ -364,7 +366,7 @@ const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
 
   return (
     <Modal
-      animationType="slide"
+      animationType="fade"
       transparent={true}
       visible={isVisible}
       statusBarTranslucent
@@ -376,27 +378,48 @@ const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
         <View style={tw`flex-1 justify-center items-center px-4`}>
           <Pressable
             onPress={onClose}
-            style={tw`absolute inset-0 bg-secondary-9 bg-opacity-80`}
+            style={tw`absolute inset-0 bg-secondary-10 bg-opacity-70`}
           />
           <View
             style={{
               width: '100%',
               maxWidth: 520,
               maxHeight: '72%',
-              borderRadius: 20,
+              borderRadius: 28,
               borderWidth: 1,
-              borderColor: '#EA9215',
-              padding: 18,
-              backgroundColor: darkMode ? '#111827' : '#FFFFFF',
+              borderColor: darkMode ? '#374151' : '#FED7AA',
+              padding: 20,
+              backgroundColor: darkMode ? '#111827' : '#FFFDF8',
+              shadowColor: '#000000',
+              shadowOpacity: 0.25,
+              shadowRadius: 24,
+              shadowOffset: {width: 0, height: 12},
+              elevation: 16,
             }}>
-            <Text
-              style={[
-                tw`font-nokia-bold mb-3`,
-                darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                {fontSize: 18},
-              ]}>
-              Add Note
-            </Text>
+            <View style={tw`flex-row items-center mb-4`}>
+              <View
+                style={tw`w-11 h-11 rounded-full bg-accent-6 items-center justify-center mr-3`}>
+                <NotePencil size={22} color="#FFFFFF" weight="bold" />
+              </View>
+              <View style={tw`flex-1`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                    {fontSize: 21},
+                  ]}>
+                  {initialText ? 'Edit Note' : 'Add Note'}
+                </Text>
+                <Text
+                  style={[
+                    tw`font-nokia-bold mt-1`,
+                    darkMode ? tw`text-primary-4` : tw`text-secondary-4`,
+                    {fontSize: 13, lineHeight: 18},
+                  ]}>
+                  Keep a thought with this question.
+                </Text>
+              </View>
+            </View>
             <TextInput
               multiline
               value={noteText}
@@ -405,12 +428,12 @@ const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
               placeholderTextColor="#AAB0B4"
               style={{
                 minHeight: Platform.OS === 'android' ? 180 : 160,
-                borderRadius: 14,
+                borderRadius: 22,
                 borderWidth: 1,
-                borderColor: '#EA9215',
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                marginBottom: 16,
+                borderColor: darkMode ? '#374151' : '#FDBA74',
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                marginBottom: 18,
                 color: darkMode ? '#F8FAFC' : '#1F2937',
                 backgroundColor: darkMode ? '#1F2937' : '#FFFFFF',
                 fontFamily: 'Nokia Pure Headline Bold',
@@ -425,7 +448,7 @@ const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
             <View style={tw`flex-row justify-end gap-3`}>
               <TouchableOpacity
                 onPress={onClose}
-                style={tw`px-5 py-3 rounded-lg border border-accent-6`}>
+                style={tw`px-6 py-3 rounded-full border border-accent-6`}>
                 <Text
                   style={[
                     tw`font-nokia-bold`,
@@ -436,7 +459,7 @@ const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSave}
-                style={tw`px-5 py-3 rounded-lg bg-accent-6`}>
+                style={tw`px-7 py-3 rounded-full bg-accent-6`}>
                 <Text style={tw`font-nokia-bold text-primary-1`}>Save</Text>
               </TouchableOpacity>
             </View>
@@ -503,10 +526,11 @@ const SSLWeek = ({route}) => {
         weekId
       ) {
         try {
-          const cached = await getCachedSSLLesson(ssl, weekId);
+          const cached = await getCachedSSLLesson(ssl, weekId, language);
           if (cached) {
-            if (cached.lessonData) {
-              setCachedSSLWeek(cached.lessonData);
+            const cachedDay = cached.days?.[check] || cached.lessonData;
+            if (cachedDay) {
+              setCachedSSLWeek(cachedDay);
             }
             if (cached.quarterData) {
               setCachedSSLQuarter(cached.quarterData);
@@ -523,12 +547,12 @@ const SSLWeek = ({route}) => {
     };
 
     loadFromCache();
-  }, [ssl, weekId, weekError, quarterError]);
+  }, [ssl, weekId, language, check, weekError, quarterError]);
 
   // Cache SSL lesson when data is loaded
   useEffect(() => {
     if (SSLWeek && SSLQuarter && ssl && weekId) {
-      saveSSLLessonToCache(ssl, weekId, SSLWeek, SSLQuarter);
+      saveSSLLessonToCache(ssl, weekId, SSLWeek, SSLQuarter, language, check);
       // Clear cache flags when fresh data loads
       if (isUsingCache) {
         setIsUsingCache(false);
@@ -536,7 +560,7 @@ const SSLWeek = ({route}) => {
         setCachedSSLQuarter(null);
       }
     }
-  }, [SSLWeek, SSLQuarter, ssl, weekId, isUsingCache]);
+  }, [SSLWeek, SSLQuarter, ssl, weekId, language, check, isUsingCache]);
 
   // Use cached data if available and API data is not
   const displaySSLWeek = SSLWeek || cachedSSLWeek;
@@ -655,6 +679,7 @@ const SSLWeek = ({route}) => {
     decreaseFontScale,
     readerFontScalePercentage,
   } = useReaderFontScale();
+  const {readerFontStyle} = useReaderFontFamily();
   const [showFontSizePopup, setShowFontSizePopup] = useState(false);
   const handleReaderScrollBegin = useCallback(() => {
     setShowFontSizePopup(false);
@@ -1183,7 +1208,11 @@ const SSLWeek = ({route}) => {
   );
 
   // Show loading state while data is being fetched - but with timeout
-  if ((isQuarterLoading || isWeekLoading) && !loadingTimeout) {
+  if (
+    (isQuarterLoading || isWeekLoading) &&
+    !loadingTimeout &&
+    (!displaySSLQuarter || !displaySSLWeek)
+  ) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         {/* Compact Loading */}
@@ -1209,7 +1238,7 @@ const SSLWeek = ({route}) => {
   }
 
   // Show error state if there's an error
-  if (quarterError || weekError) {
+  if ((quarterError || weekError) && (!displaySSLQuarter || !displaySSLWeek)) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <ScrollView
@@ -1292,61 +1321,86 @@ const SSLWeek = ({route}) => {
   }
 
   const styles = StyleSheet.create({
-    text: tw`font-nokia-bold`,
+    text: {...tw`font-nokia-bold`, ...readerFontStyle},
     h3: darkMode
-      ? {...tw`font-nokia-bold text-primary-1`, fontSize: scaled(24)}
-      : {...tw`font-nokia-bold text-secondary-6`, fontSize: scaled(24)},
+      ? {
+          ...tw`font-nokia-bold text-primary-1`,
+          ...readerFontStyle,
+          fontSize: scaled(24),
+        }
+      : {
+          ...tw`font-nokia-bold text-secondary-6`,
+          ...readerFontStyle,
+          fontSize: scaled(24),
+        },
     p: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaled(17),
           lineHeight: scaled(26),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaled(17),
           lineHeight: scaled(26),
         },
     blockquote: darkMode
-      ? {...tw`text-primary-1 font-nokia-bold`, fontSize: scaled(20)}
-      : {...tw`text-secondary-6 font-nokia-bold`, fontSize: scaled(20)},
+      ? {
+          ...tw`text-primary-1 font-nokia-bold`,
+          ...readerFontStyle,
+          fontSize: scaled(20),
+        }
+      : {
+          ...tw`text-secondary-6 font-nokia-bold`,
+          ...readerFontStyle,
+          fontSize: scaled(20),
+        },
     ol: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaled(17),
           lineHeight: scaled(26),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaled(17),
           lineHeight: scaled(26),
         },
     ul: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaled(17),
           lineHeight: scaled(26),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold py-2`,
+          ...readerFontStyle,
           fontSize: scaled(17),
           lineHeight: scaled(26),
         },
     li: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold py-1`,
+          ...readerFontStyle,
           fontSize: scaled(17),
           lineHeight: scaled(26),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold py-1`,
+          ...readerFontStyle,
           fontSize: scaled(17),
           lineHeight: scaled(26),
         },
-    'blockquote.p': tw`font-nokia-bold text-4xl`,
+    'blockquote.p': {...tw`font-nokia-bold text-4xl`, ...readerFontStyle},
     em: tw`mt-4`,
     code: {
       ...tw`font-nokia-bold`,
+      ...readerFontStyle,
       color: '#EA9215',
       backgroundColor: darkMode ? '#333' : '#f5f5f5',
       fontSize: scaled(16),
@@ -1355,7 +1409,7 @@ const SSLWeek = ({route}) => {
       borderRadius: 4,
     },
     strong: {fontSize: scaled(20)},
-    a: tw`text-accent-6 underline`,
+    a: {...tw`text-accent-6 underline`, ...readerFontStyle},
     // Styles for table elements
     table: tw`border border-gray-300 my-4`,
     // tr: tw`border-b border-gray-300`,
@@ -1552,6 +1606,7 @@ const SSLWeek = ({route}) => {
   const gradientColor = '#000000';
   const dateStyle = {
     ...tw`font-nokia-bold text-primary-6`,
+    ...readerFontStyle,
     fontSize: scaled(18),
   };
   const extractNodeText = function extractNodeText(node) {
@@ -1716,9 +1771,15 @@ const SSLWeek = ({route}) => {
                 onDecrease={decreaseFontScale}
                 onIncrease={increaseFontScale}
                 percentage={readerFontScalePercentage}
+                popupPosition={{top: 112, right: 72}}
               />
-              <TouchableOpacity onPress={handleWatchYouTube}>
-                <YoutubeLogo size={36} weight="fill" color={'#EA9215'} />
+              <TouchableOpacity
+                onPress={handleWatchYouTube}
+                style={[
+                  tw`w-11 h-11 rounded-full items-center justify-center border border-accent-6`,
+                  darkMode ? tw`bg-secondary-8` : tw`bg-primary-1`,
+                ]}>
+                <YoutubeLogo size={22} weight="fill" color={'#EA9215'} />
               </TouchableOpacity>
             </View>
             <LinearGradient
@@ -1821,12 +1882,12 @@ const SSLWeek = ({route}) => {
             <View style={tw`flex flex-row justify-between`}>
               {check !== '01' && (
                 <TouchableOpacity
-                  style={tw`mb-2`}
+                  style={tw`mb-2 px-5 py-3 rounded-full border border-accent-6`}
                   onPress={onPreviousButtonClick}>
                   <Text
                     style={[
-                      tw`text-accent-6 font-nokia-bold border border-accent-6 px-4 py-1 rounded-4`,
-                      {fontSize: scaled(20)},
+                      tw`text-accent-6 font-nokia-bold`,
+                      {fontSize: scaled(17)},
                     ]}>
                     {language === 'en' ? 'Previous' : 'ተመለስ'}
                   </Text>
@@ -1834,12 +1895,15 @@ const SSLWeek = ({route}) => {
               )}
               {check !== '07' && (
                 <TouchableOpacity
-                  style={[tw`mb-2`, check === '01' && tw`self-end`]}
+                  style={[
+                    tw`mb-2 px-5 py-3 rounded-full bg-accent-6`,
+                    check === '01' && tw`self-end`,
+                  ]}
                   onPress={onNextButtonClick}>
                   <Text
                     style={[
-                      tw`text-accent-6 font-nokia-bold border border-accent-6 px-4 py-1 rounded-4`,
-                      {fontSize: scaled(20)},
+                      tw`text-primary-1 font-nokia-bold`,
+                      {fontSize: scaled(17)},
                     ]}>
                     {language === 'en' ? 'Next' : 'ቀጥል'}
                   </Text>

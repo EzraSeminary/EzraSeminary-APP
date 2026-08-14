@@ -45,7 +45,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera to take profile pictures.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library to select profile pictures and save images downloaded from the app.</string>
 	<key>UIAppFonts</key>
@@ -60,6 +60,10 @@
 		<string>NokiaPureHeadline_Lt.ttf</string>
 		<string>NOKIAPUREHEADLINE_RG.ttf</string>
 		<string>NokiaPureHeadline_XBd..ttf</string>
+		<string>Amhara_reduced_5105c5b37c.otf</string>
+		<string>Sur_Graphics_Extra_Bold_15c4e92309.ttf</string>
+		<string>Menbere_Variable_Font_wght_2c787a3cf0.ttf</string>
+		<string>Waldba_Wookianos_Regular_82dc20e729.ttf</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

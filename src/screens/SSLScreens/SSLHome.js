@@ -606,7 +606,7 @@ const SSLHome = ({onReload}) => {
           <View style={tw`flex flex-col`}>
             {visibleFilteredData.map((item, index) => (
               <View
-                key={item.id}
+                key={`${item.id || item.title || 'ssl'}-${index}`}
                 style={tw`flex flex-row gap-3 my-3 border border-accent-6 p-3 rounded-2`}>
                 {/* Image Container */}
                 <View style={tw`w-32 h-50`}>
@@ -685,10 +685,13 @@ const SSLHome = ({onReload}) => {
   }
 
   return (
-    <View style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
-      <SafeAreaView style={tw`flex mb-50`}>
+    <View style={[tw`flex-1`, darkMode ? tw`bg-secondary-9` : null]}>
+      <SafeAreaView style={tw`flex-1`}>
         <ScrollView
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: 168,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -822,7 +825,7 @@ const SSLHome = ({onReload}) => {
           <View style={tw`flex flex-col`}>
             {visibleFilteredData.map((item, index) => (
               <View
-                key={item.id}
+                key={`${item.id || item.title || 'ssl'}-${index}`}
                 style={tw`flex flex-row gap-3 my-3 border border-accent-6 p-3 rounded-2`}>
                 {/* Image Container */}
                 <View style={tw`w-32 h-48`}>

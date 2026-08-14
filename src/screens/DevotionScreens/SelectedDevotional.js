@@ -52,6 +52,7 @@ import {formatDevotionalForSharing} from '../../utils/textFormatter';
 import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 import ReaderFontSizeControl from '../../components/ReaderFontSizeControl';
+import useReaderFontFamily from '../../hooks/useReaderFontFamily';
 
 const getMainVerseText = devotional =>
   devotional?.mainVerse ||
@@ -106,6 +107,7 @@ const SelectedDevotional = ({route}) => {
     decreaseFontScale,
     readerFontScalePercentage,
   } = useReaderFontScale();
+  const {readerFontStyle} = useReaderFontFamily();
   const [showFontSizePopup, setShowFontSizePopup] = useState(false);
   const handleReaderScrollBegin = useMemo(
     () => () => {
@@ -114,8 +116,18 @@ const SelectedDevotional = ({route}) => {
     [],
   );
 
+  // API already returns only requested-year devotions, no need to filter.
+  const listForDisplay = devotionals;
+  const devotional = useMemo(
+    () =>
+      listForDisplay.find(item => item._id === devotionalId) ||
+      cachedDevotional ||
+      {},
+    [listForDisplay, devotionalId, cachedDevotional],
+  );
+
   const {data: likesData} = useGetDevotionLikesQuery(devotional?._id, {
-    skip: !currentUser || !devotional?._id,
+    skip: !devotional?._id,
   });
 
   const {data: commentsData} = useGetDevotionCommentsQuery(devotional?._id, {
@@ -239,16 +251,6 @@ const SelectedDevotional = ({route}) => {
     }
     setShowCommentsModal(true);
   };
-  // API already returns only 2018 devotions, no need to filter
-  const listForDisplay = devotionals;
-
-  const devotional = useMemo(
-    () =>
-      listForDisplay.find(item => item._id === devotionalId) ||
-      cachedDevotional ||
-      {},
-    [listForDisplay, devotionalId, cachedDevotional],
-  );
   const highlightCacheKey = useMemo(
     () => `devotional:${devotional._id || devotionalId}`,
     [devotional._id, devotionalId],
@@ -349,45 +351,53 @@ const SelectedDevotional = ({route}) => {
       ...(darkMode
         ? tw`text-primary-1 font-nokia-bold`
         : tw`text-secondary-6 font-nokia-bold`),
+      ...readerFontStyle,
       fontSize: scaleTextSize(14),
       lineHeight: scaleTextSize(20),
       marginVertical: 0,
     },
     a: {
       ...tw`text-accent-6 font-nokia-bold underline`,
+      ...readerFontStyle,
       fontSize: scaleTextSize(14),
       lineHeight: scaleTextSize(20),
     },
     h1: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(24),
           lineHeight: scaleTextSize(32),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(24),
           lineHeight: scaleTextSize(32),
         },
     h2: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(20),
           lineHeight: scaleTextSize(28),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(20),
           lineHeight: scaleTextSize(28),
         },
     h3: darkMode
       ? {
           ...tw`text-primary-1 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(18),
           lineHeight: scaleTextSize(26),
         }
       : {
           ...tw`text-secondary-6 font-nokia-bold`,
+          ...readerFontStyle,
           fontSize: scaleTextSize(18),
           lineHeight: scaleTextSize(26),
         },
@@ -395,6 +405,7 @@ const SelectedDevotional = ({route}) => {
       ...(darkMode
         ? tw`text-primary-1 font-nokia-bold`
         : tw`text-secondary-6 font-nokia-bold`),
+      ...readerFontStyle,
       fontSize: scaleTextSize(14),
       lineHeight: scaleTextSize(20),
       marginVertical: 0,
@@ -404,6 +415,7 @@ const SelectedDevotional = ({route}) => {
       ...(darkMode
         ? tw`text-primary-1 font-nokia-bold`
         : tw`text-secondary-6 font-nokia-bold`),
+      ...readerFontStyle,
       fontSize: scaleTextSize(14),
       lineHeight: scaleTextSize(20),
       marginVertical: 0,
@@ -413,6 +425,7 @@ const SelectedDevotional = ({route}) => {
       ...(darkMode
         ? tw`text-primary-1 font-nokia-bold`
         : tw`text-secondary-6 font-nokia-bold`),
+      ...readerFontStyle,
       fontSize: scaleTextSize(14),
       lineHeight: scaleTextSize(20),
       marginVertical: -5,
@@ -661,6 +674,7 @@ const SelectedDevotional = ({route}) => {
               onDecrease={decreaseFontScale}
               onIncrease={increaseFontScale}
               percentage={readerFontScalePercentage}
+              popupPosition={{top: 108, right: 24}}
             />
           </View>
           <View style={tw`flex flex-row mt-6 justify-between`}>
@@ -719,6 +733,7 @@ const SelectedDevotional = ({route}) => {
                     tw`font-nokia-bold text-secondary-6`,
                     darkMode ? tw`text-primary-1` : null,
                     {
+                      ...readerFontStyle,
                       fontSize: scaleTextSize(18),
                       lineHeight: scaleTextSize(26),
                     },
@@ -732,6 +747,7 @@ const SelectedDevotional = ({route}) => {
                         tw`font-nokia-bold text-accent-6`,
                         darkMode ? tw`text-accent-6` : null,
                         {
+                          ...readerFontStyle,
                           fontSize: scaleTextSize(18),
                           lineHeight: scaleTextSize(26),
                         },
@@ -777,6 +793,7 @@ const SelectedDevotional = ({route}) => {
                 style={[
                   tw`font-nokia-bold text-accent-6 text-center`,
                   {
+                    ...readerFontStyle,
                     fontSize: scaleTextSize(14),
                     lineHeight: scaleTextSize(20),
                   },
