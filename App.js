@@ -221,6 +221,7 @@ const App = () => {
     try {
       const data = notification?.data || {};
       const devotionId = data.devotionId || data.devotionalId;
+      const notificationType = data.type;
       const parsedYear = data.year ? Number(data.year) : undefined;
 
       if (!navigationRef.current?.isReady?.()) {
@@ -236,6 +237,20 @@ const App = () => {
             params: {
               devotionalId: String(devotionId),
               ...(Number.isFinite(parsedYear) ? {year: parsedYear} : {}),
+            },
+          },
+        });
+        return;
+      }
+
+      if (notificationType === 'sabbath-school' && data.ssl && data.weekId) {
+        navigationRef.current.navigate('MainTab', {
+          screen: 'SSL',
+          params: {
+            screen: 'SSLWeek',
+            params: {
+              ssl: String(data.ssl),
+              weekId: String(data.weekId),
             },
           },
         });

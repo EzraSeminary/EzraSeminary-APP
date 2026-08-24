@@ -739,8 +739,10 @@ const Home = () => {
     });
   }
 
+  const [randomFeaturedCourseId, setRandomFeaturedCourseId] = useState(null);
+
   // [COURSE FLOW] 4. Final display values
-  const findMostRecentCourse = courseList => {
+  const getFallbackCourse = courseList => {
     if (!Array.isArray(courseList) || courseList.length === 0) {
       return null;
     }
@@ -770,12 +772,34 @@ const Home = () => {
     return sortableCourses[sortableCourses.length - 1];
   };
 
-  const lastCourse = findMostRecentCourse(coursesToDisplay);
-  const courseToFeature = lastCourse;
+  useEffect(() => {
+    if (!Array.isArray(coursesToDisplay) || coursesToDisplay.length === 0) {
+      setRandomFeaturedCourseId(null);
+      return;
+    }
+
+    const availableCourses = coursesToDisplay.filter(course => course?._id);
+    if (availableCourses.length === 0) {
+      setRandomFeaturedCourseId(null);
+      return;
+    }
+
+    setRandomFeaturedCourseId(previousId => {
+      if (availableCourses.some(course => course._id === previousId)) {
+        return previousId;
+      }
+      const randomIndex = Math.floor(Math.random() * availableCourses.length);
+      return availableCourses[randomIndex]._id;
+    });
+  }, [coursesToDisplay]);
+
+  const courseToFeature =
+    coursesToDisplay?.find(course => course?._id === randomFeaturedCourseId) ||
+    getFallbackCourse(coursesToDisplay);
   if (__DEV__) {
     console.log('[Home] Course - Display:', {
-      lastCourse: lastCourse
-        ? {id: lastCourse._id, title: lastCourse.title}
+      featuredCourse: courseToFeature
+        ? {id: courseToFeature._id, title: courseToFeature.title}
         : null,
       coursesToDisplayCount: coursesToDisplay?.length ?? 0,
     });

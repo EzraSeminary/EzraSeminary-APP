@@ -568,27 +568,75 @@ const DevotionPlans = () => {
 
   const renderContent = () => {
     if (tab === 'find') {
+      const isFindLoading = loadingFind || (user && (loadingMy || loadingCompleted));
+      const hasAnyFindPlans =
+        displayFindPlans.length > 0 ||
+        displayMyPlans.length > 0 ||
+        displayCompletedPlans.length > 0;
       const showEmptyFindState =
-        !loadingFind &&
-        displayFindPlans.length === 0 &&
-        displayCompletedPlans.length === 0;
+        !isFindLoading && !hasAnyFindPlans;
+
+      if (isFindLoading) {
+        return renderPlanList({
+          plans: [],
+          emptyMessage: 'No devotion plans available',
+          isLoading: true,
+          loadingMessage: 'Loading Plans...',
+        });
+      }
+
+      if (showEmptyFindState) {
+        return renderPlanList({
+          plans: [],
+          emptyMessage: 'No devotion plans available',
+          isLoading: false,
+          loadingMessage: 'Loading Plans...',
+        });
+      }
 
       return (
         <>
-          {showEmptyFindState || loadingFind
-            ? renderPlanList({
-                plans: displayFindPlans,
-                emptyMessage: 'No new devotion plans available',
-                isLoading: loadingFind,
-                loadingMessage: 'Loading Plans...',
-              })
-            : displayFindPlans.map((item, index) => (
+          {displayFindPlans.length > 0 && (
+            <>
+              <View style={tw`mb-3`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-lg`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  New Plans
+                </Text>
+              </View>
+              {displayFindPlans.map((item, index) => (
                 <React.Fragment key={`${getPlanId(item) || 'find'}-${index}`}>
                   {renderPlanCard({
                     item,
                   })}
                 </React.Fragment>
               ))}
+            </>
+          )}
+          {displayMyPlans.length > 0 && (
+            <View style={tw`mt-2 mb-2`}>
+              <View style={tw`border-t border-accent-6 pt-4 mb-3`}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-lg`,
+                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                  ]}>
+                  Started Plans
+                </Text>
+              </View>
+              {displayMyPlans.map((item, index) => (
+                <React.Fragment key={`${getPlanId(item) || 'my'}-${index}`}>
+                  {renderPlanCard({
+                    item,
+                    withProgress: true,
+                  })}
+                </React.Fragment>
+              ))}
+            </View>
+          )}
           {displayCompletedPlans.length > 0 && (
             <View style={tw`mt-2 mb-2`}>
               <View style={tw`border-t border-accent-6 pt-4 mb-3`}>
@@ -598,13 +646,6 @@ const DevotionPlans = () => {
                     darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
                   ]}>
                   Finished Plans
-                </Text>
-                <Text
-                  style={[
-                    tw`font-nokia-bold text-sm mt-1`,
-                    darkMode ? tw`text-primary-3` : tw`text-secondary-5`,
-                  ]}>
-                  Plans you have already completed.
                 </Text>
               </View>
               {displayCompletedPlans.map((item, index) => (

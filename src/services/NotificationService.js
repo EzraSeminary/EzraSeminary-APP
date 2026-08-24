@@ -19,6 +19,11 @@ const FIRST_INSTALL_TEST_KEY = 'notifications_first_install_test_sent_v1';
 const DAILY_VERSE_CACHE_KEY = 'daily_verse_devotion_cache_v1';
 const DAILY_VERSE_NOTIFICATION_IDS_KEY = 'daily_verse_notification_ids_v1';
 const DAILY_VERSE_SCHEDULE_DAYS = 30;
+const SABBATH_SCHOOL_NOTIFICATION_IDS_KEY =
+  'sabbath_school_notification_ids_v1';
+const SABBATH_SCHOOL_SCHEDULE_WEEKS = 12;
+const SABBATH_SCHOOL_NOTIFICATION_HOUR = 20;
+const SABBATH_SCHOOL_NOTIFICATION_MINUTE = 0;
 
 const formatDateKey = date => {
   const year = date.getFullYear();
@@ -183,6 +188,15 @@ class NotificationService {
         id: 'general',
         name: 'General Notifications',
         description: 'General app notifications',
+        importance: AndroidImportance.HIGH,
+        sound: 'default',
+        vibration: true,
+      });
+
+      await notifee.createChannel({
+        id: 'sabbath-school',
+        name: 'Sabbath School',
+        description: 'Weekly Sabbath School lesson reminders',
         importance: AndroidImportance.HIGH,
         sound: 'default',
         vibration: true,
@@ -489,7 +503,7 @@ class NotificationService {
         return false;
       }
 
-      const devotionsByDate = await this.getDailyVerseMap(days);
+      const devotionsByDate = await this.getDailyVerseMap(days + 1);
       const dates = this.getTargetDates(days);
       const now = new Date();
       const notificationConfigs = [];
@@ -501,14 +515,18 @@ class NotificationService {
           return;
         }
 
-        const dateKey = formatDateKey(date);
-        const devotion = devotionsByDate[dateKey];
+        const notificationDateKey = formatDateKey(date);
+        const devotionDate = new Date(date);
+        devotionDate.setDate(date.getDate() + 1);
+        const devotionDateKey = formatDateKey(devotionDate);
+        const devotion = devotionsByDate[devotionDateKey];
         if (!devotion) {
           return;
         }
 
         notificationConfigs.push({
-          dateKey,
+          notificationDateKey,
+          devotionDateKey,
           notificationDate,
           devotion,
         });
@@ -529,15 +547,21 @@ class NotificationService {
       }
 
       const scheduledIds = [];
-      for (const {dateKey, notificationDate, devotion} of notificationConfigs) {
+      for (const {
+        notificationDateKey,
+        devotionDateKey,
+        notificationDate,
+        devotion,
+      } of notificationConfigs) {
         const notificationConfig = {
-          id: `daily-verse-${dateKey}`,
+          id: `daily-verse-${notificationDateKey}`,
           title: '📖 Daily Verse',
           body: this.getNotificationBody(devotion),
           subtitle: devotion.title || 'Daily Devotion',
           data: {
             type: 'daily-verse',
-            dateKey,
+            dateKey: devotionDateKey,
+            notificationDateKey,
             ...(devotion._id && {devotionId: String(devotion._id)}),
             ...(devotion.year && {year: String(devotion.year)}),
           },
@@ -643,6 +667,11 @@ class NotificationService {
         notificationDate.setDate(notificationDate.getDate() + 1);
       }
 
+      const devotionDate = new Date(notificationDate);
+      devotionDate.setDate(notificationDate.getDate() + 1);
+      const scheduledDevotion =
+        (await this.getDevotionForDate(devotionDate)) || devotion;
+
       console.log(
         'Scheduling notification for:',
         notificationDate.toLocaleString(),
@@ -662,12 +691,17 @@ class NotificationService {
       // Schedule notification
       const notificationConfig = {
         title: '📖 Daily Verse',
-        body: this.getNotificationBody(devotion),
-        subtitle: devotion.title || 'Daily Devotion',
+        body: this.getNotificationBody(scheduledDevotion),
+        subtitle: scheduledDevotion?.title || 'Daily Devotion',
         data: {
           type: 'daily-verse',
-          ...(devotion._id && {devotionId: String(devotion._id)}),
-          ...(devotion.year && {year: String(devotion.year)}),
+          dateKey: formatDateKey(devotionDate),
+          ...(scheduledDevotion?._id && {
+            devotionId: String(scheduledDevotion._id),
+          }),
+          ...(scheduledDevotion?.year && {
+            year: String(scheduledDevotion.year),
+          }),
         },
         android: {
           channelId: 'daily-verse',
@@ -880,6 +914,8 @@ class NotificationService {
         await this.scheduleDailyVerseNotification(devotion, defaultTime);
       }
 
+      await this.scheduleSabbathSchoolNotifications();
+
       if (isFreshInstall) {
         const alreadySentTest = await AsyncStorage.getItem(FIRST_INSTALL_TEST_KEY);
         if (!alreadySentTest && devotion) {
@@ -922,8 +958,51 @@ class NotificationService {
           console.log('Notifications rescheduled successfully');
         }
       }
+      await this.scheduleSabbathSchoolNotifications();
     } catch (error) {
       console.error('Error rescheduling notifications:', error);
+    }
+  }
+
+  async getDevotionForDate(date) {
+    try {
+      const dateKey = formatDateKey(date);
+      const dailyVerseMap = await this.getDailyVerseMap(
+        DAILY_VERSE_SCHEDULE_DAYS + 1,
+      );
+      if (dailyVerseMap[dateKey]) {
+        return dailyVerseMap[dateKey];
+      }
+
+      const {year, monthName: ethiopianMonth} = toEthDate(date);
+      const alternateMonthName = getAlternateMonthName(ethiopianMonth);
+      const baseUrl = await this.getApiBaseUrl();
+
+      const monthsToCheck = [ethiopianMonth, alternateMonthName].filter(Boolean);
+      for (const monthName of monthsToCheck) {
+        const response = await fetch(
+          `${baseUrl}devotion/year/${year}/month/${encodeURIComponent(monthName)}`,
+        );
+        if (!response.ok) {
+          console.warn('Failed to fetch devotions:', response.status, monthName);
+          continue;
+        }
+
+        const data = await response.json();
+        const devotions = normalizeDevotionsResponse(data);
+        const match = findDevotionForDate(devotions, date);
+        if (match) {
+          const cachedMap = await this.getCachedDailyVerseMap();
+          cachedMap[dateKey] = match;
+          await this.saveDailyVerseMap(cachedMap);
+          return match;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.warn('Error getting devotion for date:', error);
+      return null;
     }
   }
 
@@ -1021,34 +1100,228 @@ class NotificationService {
     }
   }
 
-  async scheduleWeeklyDevotionReminder() {
-    const hasPermission = await this.requestPermissions();
-    if (!hasPermission) return false;
+  getSabbathSchoolQuarterId(date) {
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
 
-    const notificationDate = new Date();
-    notificationDate.setHours(9, 0, 0, 0);
+    if (month >= 1 && month <= 3) {
+      return `${year}-01`;
+    }
+    if (month >= 4 && month <= 6) {
+      return `${year}-02`;
+    }
+    if (month >= 7 && month <= 9) {
+      return `${year}-03`;
+    }
+    return `${year}-04`;
+  }
 
-    // Schedule for next Sunday (0 = Sunday)
-    const daysUntilSunday = (7 - notificationDate.getDay()) % 7;
-    if (daysUntilSunday === 0 && notificationDate.getTime() <= Date.now()) {
-      notificationDate.setDate(notificationDate.getDate() + 7);
-    } else {
-      notificationDate.setDate(notificationDate.getDate() + daysUntilSunday);
+  parseSabbathSchoolDate(dateString) {
+    const [day, month, year] = String(dateString || '')
+      .split('/')
+      .map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  async fetchSabbathSchoolJson(path, preferredLanguage = 'am') {
+    const languages = [
+      preferredLanguage,
+      preferredLanguage === 'am' ? 'en' : 'am',
+    ];
+
+    for (const language of languages) {
+      try {
+        const response = await fetch(
+          `https://sabbath-school-stage.adventech.io/api/v2/${language}/${path}`,
+        );
+        if (!response.ok) {
+          continue;
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn('Failed to fetch Sabbath School data:', path, error);
+      }
     }
 
-    await notifee.displayNotification({
-      title: '🙏 Weekly Devotion Reminder - EzraApp',
-      body: "Start your week with spiritual reflection. Check out this week's devotional content!",
-      android: {
-        channelId: 'general',
-        importance: AndroidImportance.HIGH,
-        sound: 'default',
-        vibration: true,
-      },
-    });
+    return null;
+  }
 
-    console.log('Weekly reminder scheduled for:', notificationDate);
-    return true;
+  resolveSabbathSchoolLessonForDate(quarterData, date) {
+    if (!quarterData?.quarterly || !Array.isArray(quarterData?.lessons)) {
+      return null;
+    }
+
+    const quarterStartDate = this.parseSabbathSchoolDate(
+      quarterData.quarterly.start_date,
+    );
+    if (Number.isNaN(quarterStartDate.getTime())) {
+      return quarterData.lessons[0] || null;
+    }
+
+    const diffDays = Math.floor(
+      (date - quarterStartDate) / (1000 * 60 * 60 * 24),
+    );
+    const lessonIndex = Math.min(
+      Math.max(Math.floor(diffDays / 7), 0),
+      quarterData.lessons.length - 1,
+    );
+
+    return quarterData.lessons[lessonIndex] || null;
+  }
+
+  getUpcomingThursdayReminderDates(weeks = SABBATH_SCHOOL_SCHEDULE_WEEKS) {
+    const dates = [];
+    const now = new Date();
+    const firstDate = new Date();
+    firstDate.setHours(
+      SABBATH_SCHOOL_NOTIFICATION_HOUR,
+      SABBATH_SCHOOL_NOTIFICATION_MINUTE,
+      0,
+      0,
+    );
+
+    const thursday = 4;
+    const daysUntilThursday = (thursday - firstDate.getDay() + 7) % 7;
+    firstDate.setDate(firstDate.getDate() + daysUntilThursday);
+    if (firstDate.getTime() <= now.getTime()) {
+      firstDate.setDate(firstDate.getDate() + 7);
+    }
+
+    for (let index = 0; index < weeks; index += 1) {
+      const date = new Date(firstDate);
+      date.setDate(firstDate.getDate() + index * 7);
+      dates.push(date);
+    }
+
+    return dates;
+  }
+
+  async cancelSabbathSchoolNotifications() {
+    try {
+      const storedIdsString = await AsyncStorage.getItem(
+        SABBATH_SCHOOL_NOTIFICATION_IDS_KEY,
+      );
+      const storedIds = storedIdsString ? JSON.parse(storedIdsString) : [];
+      const idsToCancel = new Set(Array.isArray(storedIds) ? storedIds : []);
+
+      if (typeof notifee.getTriggerNotifications === 'function') {
+        const triggers = await notifee.getTriggerNotifications();
+        triggers.forEach(triggerNotification => {
+          const notification = triggerNotification?.notification;
+          if (
+            notification?.data?.type === 'sabbath-school' ||
+            String(notification?.id || '').startsWith('sabbath-school-')
+          ) {
+            idsToCancel.add(notification.id);
+          }
+        });
+      }
+
+      const ids = [...idsToCancel].filter(Boolean);
+      if (ids.length > 0) {
+        if (typeof notifee.cancelTriggerNotifications === 'function') {
+          await notifee.cancelTriggerNotifications(ids);
+        } else {
+          await Promise.all(ids.map(id => notifee.cancelNotification(id)));
+        }
+      }
+
+      await AsyncStorage.removeItem(SABBATH_SCHOOL_NOTIFICATION_IDS_KEY);
+    } catch (error) {
+      console.warn('Failed to cancel Sabbath School notifications:', error);
+    }
+  }
+
+  async scheduleSabbathSchoolNotifications() {
+    try {
+      let hasPermission = await this.checkPermissionStatus();
+      if (!hasPermission) {
+        hasPermission = await this.requestPermissions();
+      }
+      if (!hasPermission) {
+        return false;
+      }
+
+      const reminderDates = this.getUpcomingThursdayReminderDates();
+      const quarterCache = new Map();
+      const scheduledIds = [];
+
+      await this.cancelSabbathSchoolNotifications();
+
+      for (const notificationDate of reminderDates) {
+        const quarterId = this.getSabbathSchoolQuarterId(notificationDate);
+        if (!quarterCache.has(quarterId)) {
+          quarterCache.set(
+            quarterId,
+            await this.fetchSabbathSchoolJson(
+              `quarterlies/${quarterId}/index.json`,
+              'am',
+            ),
+          );
+        }
+
+        const quarterData = quarterCache.get(quarterId);
+        const lesson = this.resolveSabbathSchoolLessonForDate(
+          quarterData,
+          notificationDate,
+        );
+        if (!lesson?.id) {
+          continue;
+        }
+
+        const notificationDateKey = formatDateKey(notificationDate);
+        const notificationConfig = {
+          id: `sabbath-school-${notificationDateKey}`,
+          title: 'የዕለቱን የሰንበት ትምህርት ያጥኑ',
+          body: lesson.title || 'Sabbath School',
+          data: {
+            type: 'sabbath-school',
+            ssl: quarterId,
+            weekId: String(lesson.id),
+          },
+          android: {
+            channelId: 'sabbath-school',
+            pressAction: {
+              id: 'default',
+            },
+            importance: AndroidImportance.HIGH,
+            sound: 'default',
+            vibration: true,
+          },
+          ios: {
+            sound: 'default',
+            badge: true,
+            foregroundPresentationOptions: {
+              alert: true,
+              badge: true,
+              sound: true,
+            },
+            categoryId: 'sabbath-school',
+          },
+        };
+
+        const notificationId = await notifee.createTriggerNotification(
+          notificationConfig,
+          {
+            type: TriggerType.TIMESTAMP,
+            timestamp: notificationDate.getTime(),
+          },
+        );
+        scheduledIds.push(notificationId);
+      }
+
+      await AsyncStorage.setItem(
+        SABBATH_SCHOOL_NOTIFICATION_IDS_KEY,
+        JSON.stringify(scheduledIds),
+      );
+      console.log(
+        `Scheduled ${scheduledIds.length} Sabbath School notifications`,
+      );
+      return scheduledIds.length > 0;
+    } catch (error) {
+      console.warn('Error scheduling Sabbath School notifications:', error);
+      return false;
+    }
   }
 }
 
