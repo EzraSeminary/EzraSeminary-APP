@@ -8,32 +8,32 @@
 
 /* Begin PBXBuildFile section */
 		00E356F31AD99517003FC87E /* EzraAppTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* EzraAppTests.m */; };
+		0136994A766C4652B9E0A754 /* Sur_Graphics_Extra_Bold_15c4e92309.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F08BAEE56D8140D78694AC9C /* Sur_Graphics_Extra_Bold_15c4e92309.ttf */; };
 		0371880A74264BC986CC894C /* Lato-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 300F4DDEB03D4548972EFE42 /* Lato-Black.ttf */; };
 		038979B432ED4D2AAC0804CD /* Lato-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5401A7A231224EA487A092FC /* Lato-Bold.ttf */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		1A30EA65512A4BF4B80E1DF2 /* NokiaPureHeadline_Lt.ttf in Resources */ = {isa = PBXBuildFile; fileRef = DF1DCB86AF624CB290D759C7 /* NokiaPureHeadline_Lt.ttf */; };
+		278E0DD5971B4CFAA16AC295 /* Amhara_reduced_5105c5b37c.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9F49355FD68E411192A5A78A /* Amhara_reduced_5105c5b37c.otf */; };
+		308C5FD54BAE41748E285C0A /* Waldba_Wookianos_Regular_82dc20e729.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8C0D2267CC90468EBF62F789 /* Waldba_Wookianos_Regular_82dc20e729.ttf */; };
+		44E8C86C1083404EBCA869FE /* Menbere_Variable_Font_wght_2c787a3cf0.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 35250894653D4C30A8565C0F /* Menbere_Variable_Font_wght_2c787a3cf0.ttf */; };
 		48E9E47BAF564798A92222E4 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 06F6D518F43B415AB642E680 /* Lato-Regular.ttf */; };
 		50FFCAC7781F477C86189873 /* Lato-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4B9D6562D9BF4104A60044B0 /* Lato-Thin.ttf */; };
 		59A6FF2BE2A34661B0857B45 /* Nokia Pure Headline Ultra Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5B14BAA2271B43E1BC2EDC1A /* Nokia Pure Headline Ultra Light.ttf */; };
+		690F25255D4645F0BBFD5CAA /* Waldba_Wookianos_Regular_82dc20e729.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8C0D2267CC90468EBF62F789 /* Waldba_Wookianos_Regular_82dc20e729.ttf */; };
 		72F715A7FC98484AA3765D3A /* NokiaPureHeadline_XBd..ttf in Resources */ = {isa = PBXBuildFile; fileRef = 47FF4D2D94084BDF92DB2029 /* NokiaPureHeadline_XBd..ttf */; };
 		73BAE49308A8DCEA95B526B7 /* libPods-EzraApp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 311006C85562C42B615A0643 /* libPods-EzraApp.a */; };
+		7DB0B9F2CD4C433ABB8CE16C /* Menbere_Variable_Font_wght_2c787a3cf0.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 35250894653D4C30A8565C0F /* Menbere_Variable_Font_wght_2c787a3cf0.ttf */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		8827926CEE77F0D9F49F0731 /* libPods-EzraApp-EzraAppTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 490835990E820078C497271B /* libPods-EzraApp-EzraAppTests.a */; };
 		92675F6CA24247AA83CAC121 /* NOKIAPUREHEADLINE_RG.TTF in Resources */ = {isa = PBXBuildFile; fileRef = F426C3B6B6034D9892DF883C /* NOKIAPUREHEADLINE_RG.TTF */; };
 		9AA87D5081E143C3B326862A /* Nokia Pure Headline Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 98FB2A69063C49D2BEC774F8 /* Nokia Pure Headline Bold.ttf */; };
 		A54CA77F4FF530CD13B4D4C9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9CF604C9D68C5D90E1D14707 /* GoogleService-Info.plist */; };
 		B3DC24D639724D1F9BE48E94 /* Lato-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ECC0C17B081644DFBFB30E60 /* Lato-Light.ttf */; };
+		B4DACE5B307C45A3AE3279B3 /* Sur_Graphics_Extra_Bold_15c4e92309.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F08BAEE56D8140D78694AC9C /* Sur_Graphics_Extra_Bold_15c4e92309.ttf */; };
 		E301C493BDE65940428554F9 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 72C10B6DD7A649645F9EA03C /* PrivacyInfo.xcprivacy */; };
 		E900B29102BD4460A7833638 /* Amhara_reduced_5105c5b37c.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9F49355FD68E411192A5A78A /* Amhara_reduced_5105c5b37c.otf */; };
-		278E0DD5971B4CFAA16AC295 /* Amhara_reduced_5105c5b37c.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9F49355FD68E411192A5A78A /* Amhara_reduced_5105c5b37c.otf */; };
-		B4DACE5B307C45A3AE3279B3 /* Sur_Graphics_Extra_Bold_15c4e92309.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F08BAEE56D8140D78694AC9C /* Sur_Graphics_Extra_Bold_15c4e92309.ttf */; };
-		0136994A766C4652B9E0A754 /* Sur_Graphics_Extra_Bold_15c4e92309.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F08BAEE56D8140D78694AC9C /* Sur_Graphics_Extra_Bold_15c4e92309.ttf */; };
-		7DB0B9F2CD4C433ABB8CE16C /* Menbere_Variable_Font_wght_2c787a3cf0.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 35250894653D4C30A8565C0F /* Menbere_Variable_Font_wght_2c787a3cf0.ttf */; };
-		44E8C86C1083404EBCA869FE /* Menbere_Variable_Font_wght_2c787a3cf0.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 35250894653D4C30A8565C0F /* Menbere_Variable_Font_wght_2c787a3cf0.ttf */; };
-		308C5FD54BAE41748E285C0A /* Waldba_Wookianos_Regular_82dc20e729.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8C0D2267CC90468EBF62F789 /* Waldba_Wookianos_Regular_82dc20e729.ttf */; };
-		690F25255D4645F0BBFD5CAA /* Waldba_Wookianos_Regular_82dc20e729.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8C0D2267CC90468EBF62F789 /* Waldba_Wookianos_Regular_82dc20e729.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -60,6 +60,7 @@
 		300F4DDEB03D4548972EFE42 /* Lato-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lato-Black.ttf"; path = "../assets/fonts/Lato-Black.ttf"; sourceTree = "<group>"; };
 		311006C85562C42B615A0643 /* libPods-EzraApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-EzraApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		321561F72B91DB32003719E0 /* EzraApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = EzraApp.entitlements; path = EzraApp/EzraApp.entitlements; sourceTree = "<group>"; };
+		35250894653D4C30A8565C0F /* Menbere_Variable_Font_wght_2c787a3cf0.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Menbere_Variable_Font_wght_2c787a3cf0.ttf; path = "../assets/fonts/Font.et - Menbere - Aleme Tadesse/Menbere_Variable_Font_wght_2c787a3cf0.ttf"; sourceTree = "<group>"; };
 		37B0D0D29D8921B6427FD2EF /* Pods-EzraApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-EzraApp.release.xcconfig"; path = "Target Support Files/Pods-EzraApp/Pods-EzraApp.release.xcconfig"; sourceTree = "<group>"; };
 		47FF4D2D94084BDF92DB2029 /* NokiaPureHeadline_XBd..ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = NokiaPureHeadline_XBd..ttf; path = ../assets/fonts/NokiaPureHeadline_XBd..ttf; sourceTree = "<group>"; };
 		490835990E820078C497271B /* libPods-EzraApp-EzraAppTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-EzraApp-EzraAppTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -69,18 +70,17 @@
 		717046CEC281719D1A21718A /* Pods-EzraApp-EzraAppTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-EzraApp-EzraAppTests.debug.xcconfig"; path = "Target Support Files/Pods-EzraApp-EzraAppTests/Pods-EzraApp-EzraAppTests.debug.xcconfig"; sourceTree = "<group>"; };
 		72C10B6DD7A649645F9EA03C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = EzraApp/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = EzraApp/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		8C0D2267CC90468EBF62F789 /* Waldba_Wookianos_Regular_82dc20e729.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Waldba_Wookianos_Regular_82dc20e729.ttf; path = "../assets/fonts/Font.et - ዋልድባ - ውቂያኖስ - Abass Alamnehe/Waldba_Wookianos_Regular_82dc20e729.ttf"; sourceTree = "<group>"; };
 		98FB2A69063C49D2BEC774F8 /* Nokia Pure Headline Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Nokia Pure Headline Bold.ttf"; path = "../assets/fonts/Nokia Pure Headline Bold.ttf"; sourceTree = "<group>"; };
 		9CF604C9D68C5D90E1D14707 /* GoogleService-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		9F49355FD68E411192A5A78A /* Amhara_reduced_5105c5b37c.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Amhara_reduced_5105c5b37c.otf; path = ../assets/fonts/Amhara_reduced_5105c5b37c.otf; sourceTree = "<group>"; };
 		B5C9D6193093D6E4437DDFEE /* Pods-EzraApp-EzraAppTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-EzraApp-EzraAppTests.release.xcconfig"; path = "Target Support Files/Pods-EzraApp-EzraAppTests/Pods-EzraApp-EzraAppTests.release.xcconfig"; sourceTree = "<group>"; };
 		C2C3E1B776A2F27C9B41195F /* Pods-EzraApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-EzraApp.debug.xcconfig"; path = "Target Support Files/Pods-EzraApp/Pods-EzraApp.debug.xcconfig"; sourceTree = "<group>"; };
 		DF1DCB86AF624CB290D759C7 /* NokiaPureHeadline_Lt.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = NokiaPureHeadline_Lt.ttf; path = ../assets/fonts/NokiaPureHeadline_Lt.ttf; sourceTree = "<group>"; };
 		ECC0C17B081644DFBFB30E60 /* Lato-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lato-Light.ttf"; path = "../assets/fonts/Lato-Light.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F08BAEE56D8140D78694AC9C /* Sur_Graphics_Extra_Bold_15c4e92309.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Sur_Graphics_Extra_Bold_15c4e92309.ttf; path = ../assets/fonts/Sur_Graphics_Extra_Bold_15c4e92309.ttf; sourceTree = "<group>"; };
 		F426C3B6B6034D9892DF883C /* NOKIAPUREHEADLINE_RG.TTF */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = NOKIAPUREHEADLINE_RG.TTF; path = ../assets/fonts/NOKIAPUREHEADLINE_RG.TTF; sourceTree = "<group>"; };
-		9F49355FD68E411192A5A78A /* Amhara_reduced_5105c5b37c.otf */ = {isa = PBXFileReference; name = "Amhara_reduced_5105c5b37c.otf"; path = "../assets/fonts/Amhara_reduced_5105c5b37c.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		F08BAEE56D8140D78694AC9C /* Sur_Graphics_Extra_Bold_15c4e92309.ttf */ = {isa = PBXFileReference; name = "Sur_Graphics_Extra_Bold_15c4e92309.ttf"; path = "../assets/fonts/Sur_Graphics_Extra_Bold_15c4e92309.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		35250894653D4C30A8565C0F /* Menbere_Variable_Font_wght_2c787a3cf0.ttf */ = {isa = PBXFileReference; name = "Menbere_Variable_Font_wght_2c787a3cf0.ttf"; path = "../assets/fonts/Font.et - Menbere - Aleme Tadesse/Menbere_Variable_Font_wght_2c787a3cf0.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		8C0D2267CC90468EBF62F789 /* Waldba_Wookianos_Regular_82dc20e729.ttf */ = {isa = PBXFileReference; name = "Waldba_Wookianos_Regular_82dc20e729.ttf"; path = "../assets/fonts/Font.et - ዋልድባ - ውቂያኖስ - Abass Alamnehe/Waldba_Wookianos_Regular_82dc20e729.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -583,7 +583,7 @@
 				CODE_SIGN_ENTITLEMENTS = EzraApp/EzraApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				DEVELOPMENT_TEAM = U2QLLCHRNZ;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = EzraApp/Info.plist;
@@ -593,7 +593,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.5;
+				MARKETING_VERSION = 1.3.8;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -619,7 +619,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = EzraApp/EzraApp.entitlements;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				DEVELOPMENT_TEAM = U2QLLCHRNZ;
 				INFOPLIST_FILE = EzraApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Ezra Seminary";
@@ -628,7 +628,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.5;
+				MARKETING_VERSION = 1.3.8;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",

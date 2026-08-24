@@ -14,7 +14,9 @@ import {ArrowSquareLeft, Warning, XCircle} from 'phosphor-react-native';
 import DateConverter from './DateConverter';
 import tw from '../../../tailwind';
 import {useNavigation} from '@react-navigation/native';
+import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
 import {useSelector} from 'react-redux';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useGetInVerseOfQuarterQuery} from '../../services/InVerseapi';
 import LinearGradient from 'react-native-linear-gradient';
 import ErrorScreen from '../../components/ErrorScreen';
@@ -29,6 +31,8 @@ const InVerseQuarter = ({route}) => {
   } = useGetInVerseOfQuarterQuery(InVerseId);
 
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const darkMode = useSelector(state => state.ui.darkMode);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const textStyle = 'font-nokia-bold text-sm text-secondary-4';
@@ -77,9 +81,12 @@ const InVerseQuarter = ({route}) => {
     : InVerseQuarter.quarterly.color_primary;
 
   return (
-    <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
+    <View style={[tw`flex-1`, darkMode ? tw`bg-secondary-9` : null]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: tabBarHeight + insets.bottom + 24,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -93,6 +100,7 @@ const InVerseQuarter = ({route}) => {
             source={{uri: InVerseQuarter.quarterly.splash}}
             style={tw`flex-5 justify-between py-6 px-4`}>
             <LinearGradient
+              pointerEvents="none"
               colors={[gradientColor, `${gradientColor}30`]}
               style={tw`absolute inset-0`}
               start={{x: 0.5, y: 1}}

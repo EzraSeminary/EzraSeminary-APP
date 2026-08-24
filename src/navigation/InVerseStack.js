@@ -1,7 +1,7 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import InVerseQuarter from './../screens/InVerseScreens/InVerseQuarter';
-import InVerse from '../screens/InVerse';
+import InVerseHome from '../screens/InVerseScreens/InVerseHome';
 import InVerseWeek from '../screens/InVerseScreens/InVerseWeek';
 
 const Stack = createNativeStackNavigator();
@@ -11,7 +11,7 @@ const InVerseStack = () => {
     <Stack.Navigator initialRouteName="InVerseHome">
       <Stack.Screen
         name="InVerseHome"
-        component={InVerse}
+        component={InVerseHome}
         options={{headerShown: false}}
       />
       <Stack.Screen

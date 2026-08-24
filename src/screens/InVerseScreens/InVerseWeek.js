@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import {useSelector} from 'react-redux';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
 import DateConverter from './DateConverter';
 import {
   useGetInVerseOfDayQuery,
@@ -181,6 +182,7 @@ const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
 
 const InVerseWeek = ({route}) => {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const {InVerse, weekId} = route.params;
   const scrollRef = useRef();
   const navigation = useNavigation();
@@ -931,12 +933,17 @@ const InVerseWeek = ({route}) => {
   };
 
   return (
-    <View style={darkMode ? tw`bg-secondary-9 h-full` : null}>
+    <View style={[tw`flex-1`, darkMode ? tw`bg-secondary-9` : null]}>
       <AndroidStatusBarSpacer minHeight={4} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         ref={scrollRef}
         onScrollBeginDrag={handleReaderScrollBegin}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: tabBarHeight + insets.bottom + 24,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -971,6 +978,7 @@ const InVerseWeek = ({route}) => {
               />
             </View>
             <LinearGradient
+              pointerEvents="none"
               colors={[gradientColor, `${gradientColor}20`]}
               style={tw`absolute inset-0`}
               start={{x: 0.5, y: 1}}

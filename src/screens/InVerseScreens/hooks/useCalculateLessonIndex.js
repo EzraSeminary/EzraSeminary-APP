@@ -27,7 +27,7 @@ function useCalculateLessonIndex(currentDate) {
   } = useGetInVerseOfQuarterQuery(quarter);
 
   if (isLoading || error || !quarterDetails) {
-    return [null, null, year]; // Return nulls if data is not ready
+    return [quarter, null, year];
   }
 
   // Parse the start_date in DD/MM/YYYY format

@@ -24,6 +24,7 @@ import {
   useGetDevotionPlanByIdQuery,
   useGetDevotionPlanDevotionsQuery,
   useGetDevotionPlanProgressQuery,
+  useStartDevotionPlanMutation,
   useUpdateDevotionPlanProgressMutation,
   apiSlice,
 } from '../../redux/api-slices/apiSlice';
@@ -176,10 +177,11 @@ const PlanDevotionViewer = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const route = useRoute();
-  const {planId} = route.params || {};
+  const {planId, startOnOpen = false} = route.params || {};
 
   const [currentDevotionIndex, setCurrentDevotionIndex] = useState(0);
   const [completionModalVisible, setCompletionModalVisible] = useState(false);
+  const startAttemptedRef = useRef(false);
   const [floatingHighlightSheet, setFloatingHighlightSheet] = useState({
     visible: false,
   });
@@ -209,6 +211,36 @@ const PlanDevotionViewer = () => {
 
   const [updateProgress, {isLoading: updatingProgress}] =
     useUpdateDevotionPlanProgressMutation();
+  const [startDevotionPlan, {isLoading: startingPlan}] =
+    useStartDevotionPlanMutation();
+
+  useEffect(() => {
+    if (!startOnOpen || !planId || startAttemptedRef.current) {
+      return;
+    }
+
+    startAttemptedRef.current = true;
+
+    const startPlan = async () => {
+      try {
+        await startDevotionPlan(planId).unwrap();
+        dispatch(apiSlice.util.invalidateTags(['DevotionPlans']));
+        await refetchProgress();
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Failed to Start Plan',
+          text2:
+            error?.data?.message ||
+            error?.message ||
+            error?.error ||
+            'Please try again.',
+        });
+      }
+    };
+
+    startPlan();
+  }, [dispatch, planId, refetchProgress, startDevotionPlan, startOnOpen]);
 
   // Progress structure: { progress: { completed, total, percent }, userPlan: { itemsCompleted, ... } }
   const progress = progressData?.progress || {};
@@ -460,7 +492,7 @@ const PlanDevotionViewer = () => {
     );
   }
 
-  if (planLoading || devotionsLoading) {
+  if (planLoading || devotionsLoading || startingPlan) {
     return (
       <SafeAreaView
         style={darkMode ? tw`bg-secondary-9 flex-1` : tw`bg-primary-1 flex-1`}>
@@ -471,7 +503,7 @@ const PlanDevotionViewer = () => {
               tw`font-nokia-bold text-lg mt-4`,
               darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
             ]}>
-            Loading Plan...
+            {startingPlan ? 'Starting Plan...' : 'Loading Plan...'}
           </Text>
         </View>
       </SafeAreaView>

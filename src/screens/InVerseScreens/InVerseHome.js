@@ -1,4 +1,5 @@
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect, useRef} from 'react';
+import {skipToken} from '@reduxjs/toolkit/query';
 import {
   View,
   Text,
@@ -14,7 +15,9 @@ import {
 } from 'react-native';
 import tw from './../../../tailwind';
 import {useNavigation} from '@react-navigation/native';
+import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
 import {useSelector} from 'react-redux';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   useGetInVersesQuery,
   useGetInVerseOfDayQuery,
@@ -45,6 +48,20 @@ import {
   ensureOnlineOrNotify,
 } from '../../utils/refreshCacheManager';
 
+const isQueryNotStartedError = error =>
+  String(error?.message || error).includes('not been started yet');
+
+const safeRefetch = async queryRefetch => {
+  try {
+    return await queryRefetch();
+  } catch (error) {
+    if (isQueryNotStartedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+};
+
 const InVerseHome = ({onReload}) => {
   const currentDate = new Date().toISOString().slice(0, 10);
   const [quarter, week, year] = useCalculateLessonIndex(currentDate);
@@ -56,14 +73,16 @@ const InVerseHome = ({onReload}) => {
     error: lessonError,
     isLoading: lessonIsLoading,
     refetch: lessonRefetch,
-  } = useGetInVerseOfDayQuery({path: quarter, id: week});
+  } = useGetInVerseOfDayQuery(
+    quarter && week ? {path: quarter, id: week} : skipToken,
+  );
 
   const {
     data: quarterDetails,
     error: quarterError,
     isLoading: quarterIsLoading,
     refetch: quarterRefetch,
-  } = useGetInVerseOfQuarterQuery(quarter);
+  } = useGetInVerseOfQuarterQuery(quarter || skipToken);
 
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [networkError, setNetworkError] = useState(false);
@@ -73,17 +92,21 @@ const InVerseHome = ({onReload}) => {
   const [invalidateInVerseCache] = useInvalidateInVerseCacheMutation();
   const [cachedHomeData, setCachedHomeData] = useState(null);
   const [isUsingCache, setIsUsingCache] = useState(false);
+  const didMountLanguageRefresh = useRef(false);
 
   const lastDigitQuarter = parseInt(quarter?.slice(-1), 10);
   const {
     data: videoLink,
     error: videoError,
     isLoading: videoLoading,
-  } = useGetVideoLinkQuery({
-    year: year,
-    quarter: lastDigitQuarter,
-    lesson: week,
-  });
+  } = useGetVideoLinkQuery(
+    {
+      year: year,
+      quarter: lastDigitQuarter,
+      lesson: week,
+    },
+    {skip: !year || !lastDigitQuarter || !week},
+  );
 
   useEffect(() => {
     if (lessonDetails) {
@@ -169,11 +192,11 @@ const InVerseHome = ({onReload}) => {
 
       await clearInVerseRefreshCache();
       await invalidateInVerseCache();
-      await lessonRefetch();
-      await quarterRefetch();
-      await refetch();
+      await safeRefetch(lessonRefetch);
+      await safeRefetch(quarterRefetch);
+      await safeRefetch(refetch);
     } catch (err) {
-      console.error('InVerse refresh error:', err);
+      console.warn('InVerse refresh error:', err);
     } finally {
       setIsRefreshing(false);
     }
@@ -236,10 +259,16 @@ const InVerseHome = ({onReload}) => {
 
   // Refetch data when language changes
   useEffect(() => {
+    if (!didMountLanguageRefresh.current) {
+      didMountLanguageRefresh.current = true;
+      return;
+    }
     onRefresh();
   }, [language, onRefresh]);
 
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const darkMode = useSelector(state => state.ui.darkMode);
 
   const handleRetry = async () => {
@@ -258,14 +287,14 @@ const InVerseHome = ({onReload}) => {
       if (onReload) {
         await onReload();
       } else {
-        await refetch();
-        await lessonRefetch();
-        await quarterRefetch();
+        await safeRefetch(refetch);
+        await safeRefetch(lessonRefetch);
+        await safeRefetch(quarterRefetch);
       }
 
       console.log('InVerse cache invalidated and data refetched successfully');
     } catch (err) {
-      console.error('InVerse retry error:', err);
+      console.warn('InVerse retry error:', err);
     }
   };
 
@@ -282,21 +311,21 @@ const InVerseHome = ({onReload}) => {
       // First invalidate all InVerse caches to force fresh data
       await invalidateInVerseCache();
 
-      await lessonRefetch();
-      await quarterRefetch();
+      await safeRefetch(lessonRefetch);
+      await safeRefetch(quarterRefetch);
 
       console.log(
         'InVerse lesson cache invalidated and refetched successfully',
       );
     } catch (err) {
-      console.error('Lesson reload error:', err);
+      console.warn('Lesson reload error:', err);
     } finally {
       setReloadingLesson(false);
     }
   };
 
   if (quarterError) {
-    console.error(
+    console.warn(
       'Error initializing useGetInVerseOfQuarterQuery:',
       quarterError,
     );
@@ -452,7 +481,16 @@ const InVerseHome = ({onReload}) => {
     });
   };
 
-  if (lessonIsLoading || quarterIsLoading || videoLoading) {
+  const currentLessonUnavailable =
+    lessonError ||
+    quarterError ||
+    !displayLessonDetails ||
+    !displayQuarterDetails;
+
+  if (
+    (lessonIsLoading || quarterIsLoading || videoLoading) &&
+    !currentLessonUnavailable
+  ) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         <ActivityIndicator size="large" color="#EA9215" style={tw`mt-20`} />
@@ -463,11 +501,15 @@ const InVerseHome = ({onReload}) => {
     );
   }
 
-  if (lessonError) {
+  if (currentLessonUnavailable) {
     return (
-      <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
+      <SafeAreaView style={[tw`flex-1`, darkMode ? tw`bg-secondary-9` : null]}>
         <ScrollView
+          style={tw`flex-1`}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          alwaysBounceVertical
+          bounces
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -476,7 +518,10 @@ const InVerseHome = ({onReload}) => {
               tintColor="#EA9215"
             />
           }
-          contentContainerStyle={tw`flex-1`}>
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: tabBarHeight + insets.bottom + 24,
+          }}>
           {/* Enhanced Quarterly Update Card */}
           <View
             style={[
@@ -604,23 +649,19 @@ const InVerseHome = ({onReload}) => {
     );
   }
 
-  if (quarterError) {
-    return <Text> Error: {quarterError}</Text>;
-  }
-
-  if (!displayLessonDetails || !displayQuarterDetails) {
-    console.error('Missing lesson or quarter details:', {
-      lessonDetails: displayLessonDetails,
-      quarterDetails: displayQuarterDetails,
-    });
-    return <Text>Loading...</Text>;
-  }
-
   return (
-    <View style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
-      <SafeAreaView style={tw`flex mb-50`}>
+    <View style={[tw`flex-1`, darkMode ? tw`bg-secondary-9` : null]}>
+      <SafeAreaView style={tw`flex-1`}>
         <ScrollView
+          style={tw`flex-1`}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          alwaysBounceVertical
+          bounces
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: tabBarHeight + insets.bottom + 24,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -636,12 +677,13 @@ const InVerseHome = ({onReload}) => {
               }}
               style={tw`w-full h-44 justify-end`}>
               <LinearGradient
+                pointerEvents="none"
                 colors={[gradientColor, `${gradientColor}20`]}
                 style={tw`absolute inset-0`}
                 start={{x: 0.5, y: 1}}
                 end={{x: 0.5, y: 0.2}}
               />
-              <View style={[tw`absolute inset-0 rounded-lg`]}>
+              <View pointerEvents="box-none" style={[tw`absolute inset-0 rounded-lg`]}>
                 <View style={tw`flex absolute bottom-0 left-0 p-4`}>
                   <Text style={tw`font-nokia-bold text-primary-6`}>
                     {language === 'en'

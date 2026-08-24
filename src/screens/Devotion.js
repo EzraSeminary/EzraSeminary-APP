@@ -32,7 +32,6 @@ import {
   useGetDevotionsByYearAndMonthQuery,
   useGetDevotionPlansQuery,
   useGetMyDevotionPlansQuery,
-  useStartDevotionPlanMutation,
   useToggleDevotionLikeMutation,
   useGetDevotionLikesQuery,
   useTrackDevotionShareMutation,
@@ -232,9 +231,6 @@ const Devotion = () => {
       skip: !user, // Skip if user is not logged in
     },
   );
-
-  const [startDevotionPlan, {isLoading: isStartingPlan}] =
-    useStartDevotionPlanMutation();
 
   // State for start plan modal
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -1516,41 +1512,19 @@ const Devotion = () => {
         }}
         plan={selectedPlan}
         darkMode={darkMode}
-        isStarting={isStartingPlan}
+        isStarting={false}
         onStartPlan={async () => {
           if (!selectedPlan?._id) {
             return;
           }
 
-          try {
-            await startDevotionPlan(selectedPlan._id).unwrap();
-
-            Toast.show({
-              type: 'success',
-              text1: 'Plan Started! 🎉',
-              text2: 'Your devotion plan journey begins now.',
-            });
-
-            // Close modal and navigate to plan viewer
-            setShowStartPlanModal(false);
-            const planId = selectedPlan._id;
-            setSelectedPlan(null);
-
-            // Small delay to ensure state updates
-            setTimeout(() => {
-              navigation.navigate('Devotional', {
-                screen: 'PlanDevotionViewer',
-                params: {planId},
-              });
-            }, 300);
-          } catch (error) {
-            Toast.show({
-              type: 'error',
-              text1: 'Failed to Start Plan',
-              text2:
-                error?.data?.message || error?.message || 'Please try again.',
-            });
-          }
+          const planId = selectedPlan._id;
+          setShowStartPlanModal(false);
+          setSelectedPlan(null);
+          navigation.navigate('Devotional', {
+            screen: 'PlanDevotionViewer',
+            params: {planId, startOnOpen: true},
+          });
         }}
       />
     </View>

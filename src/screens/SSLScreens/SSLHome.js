@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect, useMemo} from 'react';
+import React, {useState, useCallback, useEffect, useMemo, useRef} from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,9 @@ import {
 } from 'react-native';
 import tw from './../../../tailwind';
 import {useNavigation} from '@react-navigation/native';
+import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
 import {useSelector} from 'react-redux';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   useGetSSLsQuery,
   useGetSSLOfDayQuery,
@@ -51,6 +53,20 @@ import {
 
 const SSL_PAGE_SIZE = 10;
 
+const isQueryNotStartedError = error =>
+  String(error?.message || error).includes('not been started yet');
+
+const safeRefetch = async queryRefetch => {
+  try {
+    return await queryRefetch();
+  } catch (error) {
+    if (isQueryNotStartedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+};
+
 const SSLHome = ({onReload}) => {
   const currentDate = new Date().toISOString().slice(0, 10);
   const [quarter, week, year] = useCalculateLessonIndex(currentDate);
@@ -64,6 +80,9 @@ const SSLHome = ({onReload}) => {
   const [invalidateSSLCache] = useInvalidateSSLCacheMutation();
   const [cachedHomeData, setCachedHomeData] = useState(null);
   const [isUsingCache, setIsUsingCache] = useState(false);
+  const didMountLanguageRefresh = useRef(false);
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const {data: ssl, error, isLoading, refetch} = useGetSSLsQuery();
 
   const {
@@ -141,7 +160,10 @@ const SSLHome = ({onReload}) => {
   }, [error, ssl, isUsingCache]);
 
   // Use cached data if available
-  const displaySSL = ssl && ssl.length > 0 ? ssl : cachedHomeData?.ssl || [];
+  const displaySSL = useMemo(
+    () => (ssl && ssl.length > 0 ? ssl : cachedHomeData?.ssl || []),
+    [ssl, cachedHomeData?.ssl],
+  );
   const displayLessonDetails =
     lessonDetails || cachedHomeData?.lessonDetails || null;
   const displayQuarterDetails =
@@ -164,13 +186,13 @@ const SSLHome = ({onReload}) => {
       // First invalidate all SSL caches to force fresh data
       await invalidateSSLCache();
 
-      await lessonRefetch();
-      await quarterRefetch();
-      await refetch();
+      await safeRefetch(lessonRefetch);
+      await safeRefetch(quarterRefetch);
+      await safeRefetch(refetch);
 
       console.log('SSL cache invalidated and data refetched successfully');
     } catch (err) {
-      console.error('SSL refresh error:', err);
+      console.warn('SSL refresh error:', err);
     } finally {
       setIsRefreshing(false);
     }
@@ -241,12 +263,12 @@ const SSLHome = ({onReload}) => {
       if (onReload) {
         await onReload();
       } else {
-        await refetch();
-        await lessonRefetch();
-        await quarterRefetch();
+        await safeRefetch(refetch);
+        await safeRefetch(lessonRefetch);
+        await safeRefetch(quarterRefetch);
       }
     } catch (err) {
-      console.error('SSL retry error:', err);
+      console.warn('SSL retry error:', err);
     }
   };
 
@@ -260,10 +282,10 @@ const SSLHome = ({onReload}) => {
     }
 
     try {
-      await lessonRefetch();
-      await quarterRefetch();
+      await safeRefetch(lessonRefetch);
+      await safeRefetch(quarterRefetch);
     } catch (err) {
-      console.error('Lesson reload error:', err);
+      console.warn('Lesson reload error:', err);
     } finally {
       setReloadingLesson(false);
     }
@@ -297,6 +319,10 @@ const SSLHome = ({onReload}) => {
   // Refetch data when language changes
   useEffect(() => {
     setVisibleLessonCount(SSL_PAGE_SIZE);
+    if (!didMountLanguageRefresh.current) {
+      didMountLanguageRefresh.current = true;
+      return;
+    }
     onRefresh();
   }, [language, onRefresh]);
 
@@ -688,9 +714,14 @@ const SSLHome = ({onReload}) => {
     <View style={[tw`flex-1`, darkMode ? tw`bg-secondary-9` : null]}>
       <SafeAreaView style={tw`flex-1`}>
         <ScrollView
+          style={tw`flex-1`}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          alwaysBounceVertical
+          bounces
           contentContainerStyle={{
-            paddingBottom: 168,
+            flexGrow: 1,
+            paddingBottom: tabBarHeight + insets.bottom + 24,
           }}
           refreshControl={
             <RefreshControl
@@ -707,12 +738,15 @@ const SSLHome = ({onReload}) => {
               }}
               style={tw`w-full h-44 justify-end`}>
               <LinearGradient
+                pointerEvents="none"
                 colors={[gradientColor, `${gradientColor}20`]}
                 style={tw`absolute inset-0`}
                 start={{x: 0.5, y: 1}}
                 end={{x: 0.5, y: 0.2}}
               />
-              <View style={[tw`absolute inset-0 rounded-lg`]}>
+              <View
+                pointerEvents="box-none"
+                style={[tw`absolute inset-0 rounded-lg`]}>
                 <View style={tw`flex absolute bottom-0 left-0 p-4`}>
                   <Text style={tw`font-nokia-bold text-primary-6`}>
                     {language === 'en'
