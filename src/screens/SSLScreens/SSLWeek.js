@@ -152,6 +152,7 @@ const resolveVerseContent = value => {
       'body',
       'am',
       'en',
+      'ti',
     ];
 
     for (const key of preferredKeys) {

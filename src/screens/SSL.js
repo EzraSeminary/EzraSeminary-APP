@@ -15,9 +15,34 @@ import InVerseHome from './InVerseScreens/InVerseHome'; // Import the InVerseHom
 import {Globe} from 'phosphor-react-native';
 import NetInfo from '@react-native-community/netinfo';
 import Toast from 'react-native-toast-message';
-import {saveHomeScreenToCache, getCachedHomeScreen} from '../utils/homeScreenCache';
+import {
+  saveHomeScreenToCache,
+  getCachedHomeScreen,
+} from '../utils/homeScreenCache';
 import networkManager from '../utils/networkManager';
 import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
+
+const SSL_LANGUAGE_OPTIONS = [
+  {
+    value: 'en',
+    label: 'English',
+    icon: 'A',
+  },
+  {
+    value: 'am',
+    label: 'አማርኛ',
+    icon: 'አ',
+  },
+  {
+    value: 'ti',
+    label: 'ትግርኛ',
+    icon: 'ት',
+  },
+];
+
+const getSSLLanguageLabel = value =>
+  SSL_LANGUAGE_OPTIONS.find(option => option.value === value)?.label ||
+  'አማርኛ';
 
 const SSL = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -57,9 +82,7 @@ const SSL = ({navigation}) => {
     Toast.show({
       type: 'success',
       text1: 'Language Changed',
-      text2: `Language changed to ${
-        selectedLanguage === 'am' ? 'Amharic' : 'English'
-      }`,
+      text2: `Language changed to ${getSSLLanguageLabel(selectedLanguage)}`,
     });
   };
 
@@ -214,87 +237,56 @@ const SSL = ({navigation}) => {
 
             {/* Language Options */}
             <View style={tw`gap-2 mb-6`}>
-              <TouchableOpacity
-                style={[
-                  tw`flex-row items-center p-4 rounded-xl border-2`,
-                  language === 'en'
-                    ? tw`bg-accent-6 bg-opacity-10 border-accent-6`
-                    : tw`border-gray-300`,
-                  darkMode && language !== 'en' ? tw`border-secondary-6` : null,
-                ]}
-                onPress={() => handleLanguageChange('en')}>
-                <View
-                  style={tw`w-8 h-8 rounded-full bg-primary-1 items-center justify-center mr-3`}>
-                  <Text style={tw`text-secondary-8 font-nokia-bold text-sm`}>
-                    A
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    tw`text-lg font-nokia-bold flex-1`,
-                    language === 'en'
-                      ? tw`text-accent-6`
-                      : darkMode
-                      ? tw`text-primary-1`
-                      : tw`text-secondary-8`,
-                  ]}>
-                  English
-                </Text>
-                <View
-                  style={[
-                    tw`w-5 h-5 rounded-full border-2`,
-                    language === 'en'
-                      ? tw`border-accent-6 bg-accent-6`
-                      : tw`border-gray-400`,
-                  ]}>
-                  {language === 'en' && (
-                    <View
-                      style={tw`w-2 h-2 bg-primary-1 rounded-full m-auto`}
-                    />
-                  )}
-                </View>
-              </TouchableOpacity>
+              {SSL_LANGUAGE_OPTIONS.map(option => {
+                const isSelected = language === option.value;
 
-              <TouchableOpacity
-                style={[
-                  tw`flex-row items-center p-4 rounded-xl border-2`,
-                  language === 'am'
-                    ? tw`bg-accent-6 bg-opacity-10 border-accent-6`
-                    : tw`border-gray-300`,
-                  darkMode && language !== 'am' ? tw`border-secondary-6` : null,
-                ]}
-                onPress={() => handleLanguageChange('am')}>
-                <View
-                  style={tw`w-8 h-8 rounded-full bg-primary-1 items-center justify-center mr-3`}>
-                  <Text style={tw`text-secondary-8 font-nokia-bold text-sm`}>
-                    አ
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    tw`text-lg font-nokia-bold flex-1`,
-                    language === 'am'
-                      ? tw`text-accent-6`
-                      : darkMode
-                      ? tw`text-primary-1`
-                      : tw`text-secondary-8`,
-                  ]}>
-                  አማርኛ
-                </Text>
-                <View
-                  style={[
-                    tw`w-5 h-5 rounded-full border-2`,
-                    language === 'am'
-                      ? tw`border-accent-6 bg-accent-6`
-                      : tw`border-gray-400`,
-                  ]}>
-                  {language === 'am' && (
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      tw`flex-row items-center p-4 rounded-xl border-2`,
+                      isSelected
+                        ? tw`bg-accent-6 bg-opacity-10 border-accent-6`
+                        : tw`border-gray-300`,
+                      darkMode && !isSelected
+                        ? tw`border-secondary-6`
+                        : null,
+                    ]}
+                    onPress={() => handleLanguageChange(option.value)}>
                     <View
-                      style={tw`w-2 h-2 bg-primary-1 rounded-full m-auto`}
-                    />
-                  )}
-                </View>
-              </TouchableOpacity>
+                      style={tw`w-8 h-8 rounded-full bg-primary-1 items-center justify-center mr-3`}>
+                      <Text
+                        style={tw`text-secondary-8 font-nokia-bold text-sm`}>
+                        {option.icon}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        tw`text-lg font-nokia-bold flex-1`,
+                        isSelected
+                          ? tw`text-accent-6`
+                          : darkMode
+                          ? tw`text-primary-1`
+                          : tw`text-secondary-8`,
+                      ]}>
+                      {option.label}
+                    </Text>
+                    <View
+                      style={[
+                        tw`w-5 h-5 rounded-full border-2`,
+                        isSelected
+                          ? tw`border-accent-6 bg-accent-6`
+                          : tw`border-gray-400`,
+                      ]}>
+                      {isSelected && (
+                        <View
+                          style={tw`w-2 h-2 bg-primary-1 rounded-full m-auto`}
+                        />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Cancel Button */}

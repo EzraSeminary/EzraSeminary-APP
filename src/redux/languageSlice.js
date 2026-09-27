@@ -4,12 +4,15 @@ const initialState = {
   language: 'am', // Default language is Amharic
 };
 
+const languages = ['am', 'en', 'ti'];
+
 const languageSlice = createSlice({
   name: 'language',
   initialState,
   reducers: {
     toggleLanguage: state => {
-      state.language = state.language === 'am' ? 'en' : 'am';
+      const currentIndex = languages.indexOf(state.language);
+      state.language = languages[(currentIndex + 1) % languages.length] || 'am';
     },
     setLanguage: (state, action) => {
       state.language = action.payload;

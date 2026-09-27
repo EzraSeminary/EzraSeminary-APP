@@ -59,7 +59,9 @@ const HomeCurrentSSL = () => {
       setLoadingTimeout(false);
     }
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
   }, [lessonIsLoading, quarterIsLoading]);
 

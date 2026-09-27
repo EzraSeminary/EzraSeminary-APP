@@ -1124,9 +1124,10 @@ class NotificationService {
   }
 
   async fetchSabbathSchoolJson(path, preferredLanguage = 'am') {
+    const fallbackLanguages = ['am', 'en', 'ti'];
     const languages = [
       preferredLanguage,
-      preferredLanguage === 'am' ? 'en' : 'am',
+      ...fallbackLanguages.filter(language => language !== preferredLanguage),
     ];
 
     for (const language of languages) {
