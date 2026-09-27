@@ -17,15 +17,20 @@ import Setting from '../screens/Setting';
 import {StatusBar} from 'react-native';
 import changeNavigationBarColor from 'react-native-navigation-bar-color';
 import {StackActions} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {
+  floatingTabBarIconStyle,
+  floatingTabBarItemStyle,
+  floatingTabBarLabelStyle,
+  getFloatingTabBarStyle,
+  getFloatingTabInactiveColor,
+} from './floatingTabBarStyles';
 
 const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
-
-  const tabBarStyle = {
-    backgroundColor: darkMode ? '#293239' : '#F3F3F3',
-  };
+  const insets = useSafeAreaInsets();
 
   StatusBar.setBackgroundColor(darkMode ? '#293239' : '#F1F1F1', true);
   StatusBar.setBarStyle(darkMode ? 'light-content' : 'dark-content', true);
@@ -53,8 +58,12 @@ const MainTabNavigator = () => {
         },
         headerShown: false,
         tabBarActiveTintColor: '#EA9215',
-        tabBarInactiveTintColor: darkMode ? '#D3D3D3' : '#3A4750',
-        tabBarStyle: tabBarStyle,
+        tabBarInactiveTintColor: getFloatingTabInactiveColor(darkMode),
+        tabBarStyle: getFloatingTabBarStyle(darkMode, insets),
+        tabBarItemStyle: floatingTabBarItemStyle,
+        tabBarLabelStyle: floatingTabBarLabelStyle,
+        tabBarIconStyle: floatingTabBarIconStyle,
+        tabBarHideOnKeyboard: true,
       })}>
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Course" component={CourseStack} />

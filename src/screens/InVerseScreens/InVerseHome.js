@@ -269,6 +269,7 @@ const InVerseHome = ({onReload}) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
+  const scrollBottomPadding = tabBarHeight + insets.bottom + 64;
   const darkMode = useSelector(state => state.ui.darkMode);
 
   const handleRetry = async () => {
@@ -520,7 +521,7 @@ const InVerseHome = ({onReload}) => {
           }
           contentContainerStyle={{
             flexGrow: 1,
-            paddingBottom: tabBarHeight + insets.bottom + 24,
+            paddingBottom: scrollBottomPadding,
           }}>
           {/* Enhanced Quarterly Update Card */}
           <View
@@ -660,7 +661,7 @@ const InVerseHome = ({onReload}) => {
           bounces
           contentContainerStyle={{
             flexGrow: 1,
-            paddingBottom: tabBarHeight + insets.bottom + 24,
+            paddingBottom: scrollBottomPadding,
           }}
           refreshControl={
             <RefreshControl

@@ -24,7 +24,11 @@ function RootComponent() {
   try {
     const App = require('./App').default;
     const ErrorBoundary = require('./src/components/ErrorBoundary').default;
-    return React.createElement(ErrorBoundary, null, React.createElement(App, null));
+    return React.createElement(
+      ErrorBoundary,
+      null,
+      React.createElement(App, null),
+    );
   } catch (e) {
     return React.createElement(
       View,
@@ -37,6 +41,15 @@ function RootComponent() {
 AppRegistry.registerComponent(appName, () => RootComponent);
 
 try {
+  const TrackPlayer = require('react-native-track-player').default;
+  TrackPlayer.registerPlaybackService(
+    () => require('./src/services/devotionalPlaybackService').default,
+  );
+} catch (error) {
+  console.warn('TrackPlayer service registration unavailable:', error?.message);
+}
+
+try {
   const {LogBox} = require('react-native');
   LogBox.ignoreLogs(['ViewPropTypes will be removed', 'Carousel.propTypes']);
 } catch (_) {}
@@ -47,7 +60,10 @@ if (typeof require !== 'undefined') {
     const messagingModule = require('@react-native-firebase/messaging');
     if (messagingModule?.default) {
       const messaging = messagingModule.default();
-      if (messaging && typeof messaging.setBackgroundMessageHandler === 'function') {
+      if (
+        messaging &&
+        typeof messaging.setBackgroundMessageHandler === 'function'
+      ) {
         messaging.setBackgroundMessageHandler(async remoteMessage => {
           try {
             const RemotePush = require('./src/services/RemotePush').default;
@@ -59,6 +75,9 @@ if (typeof require !== 'undefined') {
       }
     }
   } catch (error) {
-    console.warn('Firebase Messaging background handler not available:', error?.message);
+    console.warn(
+      'Firebase Messaging background handler not available:',
+      error?.message,
+    );
   }
 }

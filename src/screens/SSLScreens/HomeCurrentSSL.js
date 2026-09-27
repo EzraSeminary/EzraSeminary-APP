@@ -37,6 +37,19 @@ const HomeCurrentSSL = () => {
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const navigation = useNavigation();
   const [invalidateSSLCache] = useInvalidateSSLCacheMutation();
+  const {
+    data: lessonDetails,
+    error: lessonError,
+    isLoading: lessonIsLoading,
+    refetch: refetchLesson,
+  } = useGetSSLOfDayQuery({path: quarter, id: week}, {skip: !quarter || !week});
+  const {
+    data: quarterDetails,
+    error: quarterError,
+    isLoading: quarterIsLoading,
+    refetch: refetchQuarter,
+  } = useGetSSLOfQuarterQuery(quarter, {skip: !quarter});
+
   // Guard against infinite loading on home card
   useEffect(() => {
     let timeoutId;
@@ -49,18 +62,6 @@ const HomeCurrentSSL = () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [lessonIsLoading, quarterIsLoading]);
-  const {
-    data: lessonDetails,
-    error: lessonError,
-    isLoading: lessonIsLoading,
-    refetch: refetchLesson,
-  } = useGetSSLOfDayQuery({path: quarter, id: week});
-  const {
-    data: quarterDetails,
-    error: quarterError,
-    isLoading: quarterIsLoading,
-    refetch: refetchQuarter,
-  } = useGetSSLOfQuarterQuery(quarter);
 
   useEffect(() => {
     if (quarterDetails) {

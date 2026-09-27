@@ -9,7 +9,6 @@ import {
   RefreshControl,
   ActivityIndicator,
   Animated,
-  Platform,
 } from 'react-native';
 import React, {useState, useCallback, useEffect, useMemo, useRef} from 'react';
 import {useSelector} from 'react-redux';
@@ -71,6 +70,16 @@ import {
 import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
 import ReaderFontSizeControl from '../components/ReaderFontSizeControl';
 import useReaderFontFamily from '../hooks/useReaderFontFamily';
+import DevotionalAudioPlayer from '../components/DevotionalAudioPlayer';
+import {getDevotionalAudioUrl} from '../utils/devotionalAudio';
+import {
+  getDevotionOrderValue,
+  isSeriesDevotion,
+  selectSeriesDevotionForDate,
+} from '../utils/devotionalSeries';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../navigation/floatingTabBarStyles';
+import useCurrentDate from '../hooks/useCurrentDate';
 
 const toEthDate = date => {
   const ethDateTime = EthDateTime.fromEuropeanDate(date);
@@ -122,9 +131,10 @@ const Devotion = () => {
   const user = useSelector(state => state.auth.user);
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   // Get current Ethiopian date
-  const today = useMemo(() => new Date(), []);
+  const today = useCurrentDate();
   const {
     year: ethYear,
     month: ethMonth,
@@ -132,6 +142,10 @@ const Devotion = () => {
     monthName: currentEthiopianMonth,
   } = toEthDate(today);
   const yearToFetch = ethYear;
+  const scrollBottomPadding = useMemo(
+    () => getFloatingTabScenePadding(insets),
+    [insets],
+  );
   const alternateMonthName = useMemo(() => {
     if (currentEthiopianMonth === 'ሚያዚያ') {
       return 'ሚያዝያ';
@@ -337,37 +351,58 @@ const Devotion = () => {
   ]);
 
   // Use cached data if available
-  const displayDevotions =
-    discoverDevotions.length > 0
-      ? discoverDevotions
-      : cachedHomeData?.devotions || [];
-  const displayFeaturedDevotions =
-    featuredMonthDevotions.length > 0
-      ? featuredMonthDevotions
-      : displayDevotions;
-  const displayDevotionPlans =
-    devotionPlans.length > 0
-      ? devotionPlans
-      : cachedHomeData?.devotionPlans || [];
-  const displayMyDevotionPlans =
-    myDevotionPlans.length > 0
-      ? myDevotionPlans
-      : cachedHomeData?.myDevotionPlans || [];
-  const displayCompletedPlans =
-    completedPlans.length > 0
-      ? completedPlans
-      : cachedHomeData?.completedPlans || [];
+  const displayDevotions = useMemo(
+    () =>
+      discoverDevotions.length > 0
+        ? discoverDevotions
+        : cachedHomeData?.devotions || [],
+    [cachedHomeData?.devotions, discoverDevotions],
+  );
+  const displayFeaturedDevotions = useMemo(
+    () =>
+      featuredMonthDevotions.length > 0
+        ? featuredMonthDevotions
+        : displayDevotions,
+    [displayDevotions, featuredMonthDevotions],
+  );
+  const displayDevotionPlans = useMemo(
+    () =>
+      devotionPlans.length > 0
+        ? devotionPlans
+        : cachedHomeData?.devotionPlans || [],
+    [cachedHomeData?.devotionPlans, devotionPlans],
+  );
+  const displayMyDevotionPlans = useMemo(
+    () =>
+      myDevotionPlans.length > 0
+        ? myDevotionPlans
+        : cachedHomeData?.myDevotionPlans || [],
+    [cachedHomeData?.myDevotionPlans, myDevotionPlans],
+  );
+  const displayCompletedPlans = useMemo(
+    () =>
+      completedPlans.length > 0
+        ? completedPlans
+        : cachedHomeData?.completedPlans || [],
+    [cachedHomeData?.completedPlans, completedPlans],
+  );
 
   // Find today's devotion from the loaded data
   const devotionToDisplay = useMemo(() => {
-    const devotionsToUse = displayFeaturedDevotions;
+    const devotionsToUse =
+      displayDevotions.length > 0 ? displayDevotions : displayFeaturedDevotions;
     if (devotionsToUse.length === 0) {
       return null;
     }
 
+    const seriesDevotion = selectSeriesDevotionForDate(devotionsToUse, today);
+    if (seriesDevotion) {
+      return seriesDevotion;
+    }
+
     const normalizeMonth = month => normalizeEthiopianMonth(month);
     const todaysDevotion = findDevotionWithOffset(
-      devotionsToUse,
+      displayFeaturedDevotions,
       0,
       today,
       yearToFetch,
@@ -387,6 +422,7 @@ const Devotion = () => {
 
     return todaysDevotion || null;
   }, [
+    displayDevotions,
     displayFeaturedDevotions,
     currentEthiopianMonth,
     ethDay,
@@ -419,6 +455,13 @@ const Devotion = () => {
     () => extractHtmlBlocks(devotionToDisplay?.body || []),
     [devotionToDisplay?.body],
   );
+  const audioUrl = getDevotionalAudioUrl(devotionToDisplay);
+  const isSeriesEntry = isSeriesDevotion(devotionToDisplay);
+  const seriesDayNumber = getDevotionOrderValue(devotionToDisplay);
+  const dateBadgeTop = isSeriesEntry ? 'Day' : devotionToDisplay?.month;
+  const dateBadgeBottom = isSeriesEntry
+    ? seriesDayNumber || devotionToDisplay?.day || ''
+    : devotionToDisplay?.day;
 
   const {data: likesData, refetch: refetchLikes} = useGetDevotionLikesQuery(
     devotionToDisplay?._id,
@@ -435,12 +478,9 @@ const Devotion = () => {
   }, [user, devotionToDisplay?._id, refetchLikes]);
 
   const {data: commentsData, refetch: refetchComments} =
-    useGetDevotionCommentsQuery(
-    devotionToDisplay?._id,
-    {
+    useGetDevotionCommentsQuery(devotionToDisplay?._id, {
       skip: !devotionToDisplay?._id,
-    },
-  );
+    });
 
   const [toggleLike, {isLoading: isTogglingLike}] =
     useToggleDevotionLikeMutation();
@@ -958,7 +998,7 @@ const Devotion = () => {
           showsVerticalScrollIndicator={false}
           onScrollBeginDrag={handleReaderScrollBegin}
           contentContainerStyle={{
-            paddingBottom: Platform.OS === 'android' ? 112 : 32,
+            paddingBottom: scrollBottomPadding,
           }}
           refreshControl={
             <RefreshControl
@@ -1085,11 +1125,11 @@ const Devotion = () => {
               <View
                 style={tw`flex justify-center gap-[-1] bg-secondary-6 rounded-2 w-16 h-16`}>
                 <Text style={tw`font-nokia-bold text-primary-1 text-center`}>
-                  {devotionToDisplay.month}
+                  {dateBadgeTop}
                 </Text>
                 <Text
                   style={tw`font-nokia-bold text-primary-1 text-4xl leading-tight text-center`}>
-                  {devotionToDisplay.day}
+                  {dateBadgeBottom}
                 </Text>
               </View>
             </View>
@@ -1140,6 +1180,11 @@ const Devotion = () => {
               </>
             </HighlightableBlock>
           </View>
+          <DevotionalAudioPlayer
+            audioUrl={audioUrl}
+            darkMode={darkMode}
+            title={devotionToDisplay.title}
+          />
           <View style={tw`mt-8`}>
             <HighlightableHtmlBlocks
               blocks={devotionBodyBlocks}

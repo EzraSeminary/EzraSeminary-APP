@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect, useMemo} from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,8 @@ import {
   ETHIOPIAN_MONTHS,
   normalizeEthiopianMonth,
 } from '../../utils/ethiopianCalendar';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../../navigation/floatingTabBarStyles';
 
 // Helper function to get thumbnail URL for smaller images (reduces bandwidth)
 const getThumbnailUrl = imageUrl => {
@@ -83,6 +85,11 @@ const MonthDevotionCard = ({item, darkMode, onPress}) => {
 
 const AllDevotionals = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
+  const insets = useSafeAreaInsets();
+  const listBottomPadding = useMemo(
+    () => getFloatingTabScenePadding(insets),
+    [insets],
+  );
 
   const {data: availableYearsRaw = []} = useGetAvailableYearsQuery();
   const availableYears = Array.isArray(availableYearsRaw)
@@ -157,16 +164,21 @@ const AllDevotionals = ({navigation}) => {
   }, [getLatestHomeCacheDevotions, yearToFetch]);
 
   // Function to get devotions for a specific month from cached data
-  const getMonthDevotionsFromCache = month => {
-    if (!allDevotions || allDevotions.length === 0) return [];
-    return allDevotions
-      .filter(
-        devotion =>
-          normalizeEthiopianMonth(devotion.month) ===
-          normalizeEthiopianMonth(month),
-      )
-      .sort((a, b) => Number(a.day) - Number(b.day));
-  };
+  const getMonthDevotionsFromCache = useCallback(
+    month => {
+      if (!allDevotions || allDevotions.length === 0) {
+        return [];
+      }
+      return allDevotions
+        .filter(
+          devotion =>
+            normalizeEthiopianMonth(devotion.month) ===
+            normalizeEthiopianMonth(month),
+        )
+        .sort((a, b) => Number(a.day) - Number(b.day));
+    },
+    [allDevotions],
+  );
 
   // Function to load month data
   const loadMonthData = useCallback(
@@ -178,7 +190,7 @@ const AllDevotionals = ({navigation}) => {
 
       // Try to get from cached allDevotions first
       let cachedMonthData = getMonthDevotionsFromCache(month);
-      
+
       // If not found in allDevotions, try to reload from Home cache
       if (cachedMonthData.length === 0) {
         try {
@@ -238,10 +250,10 @@ const AllDevotionals = ({navigation}) => {
     },
     [
       loadedMonths,
-      allDevotions,
       yearToFetch,
       fetchMonthDevotions,
       getLatestHomeCacheDevotions,
+      getMonthDevotionsFromCache,
     ],
   );
 
@@ -305,7 +317,7 @@ const AllDevotionals = ({navigation}) => {
         keyExtractor={item => item._id || `${item.month}-${item.day}`}
         numColumns={2}
         columnWrapperStyle={tw`justify-between`}
-        contentContainerStyle={tw`mt-4`}
+        contentContainerStyle={[tw`mt-4`, {paddingBottom: listBottomPadding}]}
         renderItem={({item}) => (
           <MonthDevotionCard
             item={item}
@@ -408,7 +420,7 @@ const AllDevotionals = ({navigation}) => {
               </View>
             </>
           }
-          ListFooterComponent={<View style={tw`h-20`} />}
+          ListFooterComponent={<View style={{height: listBottomPadding}} />}
           removeClippedSubviews
           initialNumToRender={6}
           maxToRenderPerBatch={6}

@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useRef, useEffect} from 'react';
+import React, {useState, useCallback, useRef, useEffect, useMemo} from 'react';
 import {
   View,
   Text,
@@ -37,6 +37,8 @@ import {
 } from '../utils/homeScreenCache';
 import networkManager from '../utils/networkManager';
 import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../navigation/floatingTabBarStyles';
 
 // Tab Switcher Component - matching Devotion screen style
 const TabSwitcher = ({activeTab, setActiveTab, darkMode}) => (
@@ -125,6 +127,13 @@ const Course = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const navigation = useNavigation();
   const currentUser = useSelector(state => state.auth.user);
+  const insets = useSafeAreaInsets();
+  const scrollContentStyle = useMemo(
+    () => ({
+      paddingBottom: getFloatingTabScenePadding(insets),
+    }),
+    [insets],
+  );
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -361,7 +370,8 @@ const Course = () => {
   if (isLoading && courses.length === 0) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : tw`h-100%`}>
-        <ScrollView contentContainerStyle={tw`px-4 pt-4 pb-8`}>
+        <ScrollView
+          contentContainerStyle={[tw`px-4 pt-4`, scrollContentStyle]}>
           {[0, 1, 2, 3].map(item => (
             <View
               key={`course-skeleton-${item}`}
@@ -413,8 +423,8 @@ const Course = () => {
   // Render Explore content if explore tab is active
   if (activeTab === 'explore') {
     return (
-      <View style={darkMode ? tw`bg-secondary-9` : null}>
-        <SafeAreaView style={tw`flex mx-auto w-[92%]`}>
+      <View style={[tw`flex-1 bg-primary-1`, darkMode && tw`bg-secondary-9`]}>
+        <SafeAreaView style={tw`flex-1 mx-auto w-[92%]`}>
           <AndroidStatusBarSpacer minHeight={4} />
           <TabSwitcher
             activeTab={activeTab}
@@ -440,6 +450,7 @@ const Course = () => {
           showsVerticalScrollIndicator={false}
           onScroll={handleCourseScroll}
           scrollEventThrottle={16}
+          contentContainerStyle={scrollContentStyle}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}

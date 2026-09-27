@@ -53,6 +53,14 @@ import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 import ReaderFontSizeControl from '../../components/ReaderFontSizeControl';
 import useReaderFontFamily from '../../hooks/useReaderFontFamily';
+import DevotionalAudioPlayer from '../../components/DevotionalAudioPlayer';
+import {getDevotionalAudioUrl} from '../../utils/devotionalAudio';
+import {
+  getDevotionOrderValue,
+  isSeriesDevotion,
+} from '../../utils/devotionalSeries';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../../navigation/floatingTabBarStyles';
 
 const getMainVerseText = devotional =>
   devotional?.mainVerse ||
@@ -67,6 +75,11 @@ const SelectedDevotional = ({route}) => {
   const currentUser = useSelector(state => state.auth.user);
   const navigation = useNavigation();
   const {devotionalId, year: navigationYear} = route.params;
+  const insets = useSafeAreaInsets();
+  const scrollBottomPadding = useMemo(
+    () => getFloatingTabScenePadding(insets),
+    [insets],
+  );
 
   const today = new Date();
   const [currentEthiopianYear] = toEthiopian(
@@ -267,6 +280,13 @@ const SelectedDevotional = ({route}) => {
     () => extractHtmlBlocks(devotional.body || []),
     [devotional.body],
   );
+  const audioUrl = getDevotionalAudioUrl(devotional);
+  const isSeriesEntry = isSeriesDevotion(devotional);
+  const seriesDayNumber = getDevotionOrderValue(devotional);
+  const dateBadgeTop = isSeriesEntry ? 'Day' : devotional.month;
+  const dateBadgeBottom = isSeriesEntry
+    ? seriesDayNumber || devotional.day || ''
+    : devotional.day;
 
   // Load from cache when offline or API fails
   useEffect(() => {
@@ -661,6 +681,7 @@ const SelectedDevotional = ({route}) => {
           showsVerticalScrollIndicator={false}
           ref={scrollViewRef}
           onScrollBeginDrag={handleReaderScrollBegin}
+          contentContainerStyle={{paddingBottom: scrollBottomPadding}}
           removeClippedSubviews>
           <View
             style={tw`flex flex-row justify-between items-center mt-4 mb-4`}>
@@ -704,11 +725,11 @@ const SelectedDevotional = ({route}) => {
               <View
                 style={tw`flex justify-center gap-[-1] bg-secondary-6 rounded-2 w-16 h-16`}>
                 <Text style={tw`font-nokia-bold text-primary-1 text-center`}>
-                  {devotional.month}
+                  {dateBadgeTop}
                 </Text>
                 <Text
                   style={tw`font-nokia-bold text-primary-1 text-4xl leading-tight text-center`}>
-                  {devotional.day}
+                  {dateBadgeBottom}
                 </Text>
               </View>
             </View>
@@ -759,6 +780,11 @@ const SelectedDevotional = ({route}) => {
               </>
             </HighlightableBlock>
           </View>
+          <DevotionalAudioPlayer
+            audioUrl={audioUrl}
+            darkMode={darkMode}
+            title={devotional.title}
+          />
           <View style={tw`mt-8`}>
             <HighlightableHtmlBlocks
               blocks={devotionalBodyBlocks}

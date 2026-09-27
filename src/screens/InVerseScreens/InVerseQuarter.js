@@ -85,7 +85,7 @@ const InVerseQuarter = ({route}) => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: tabBarHeight + insets.bottom + 24,
+          paddingBottom: tabBarHeight + insets.bottom + 64,
         }}
         refreshControl={
           <RefreshControl

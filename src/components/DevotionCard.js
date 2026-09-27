@@ -1,6 +1,11 @@
 import React, {useState} from 'react';
 import {View, Text, TouchableOpacity, ImageBackground} from 'react-native';
-import {BookOpenText, Heart, ShareNetwork, ChatCircle} from 'phosphor-react-native';
+import {
+  BookOpenText,
+  Heart,
+  ShareNetwork,
+  ChatCircle,
+} from 'phosphor-react-native';
 import {useSelector} from 'react-redux';
 import {useCachedImage} from '../utils/imageCache';
 import tw from './../../tailwind';
@@ -14,6 +19,10 @@ import CommentsModal from './CommentsModal';
 import Toast from 'react-native-toast-message';
 import {handleShare as shareWithImage} from './handleShare';
 import {formatDevotionalForSharing} from '../utils/textFormatter';
+import {
+  getDevotionOrderValue,
+  isSeriesDevotion,
+} from '../utils/devotionalSeries';
 
 const getMainVerseText = devotion =>
   devotion?.mainVerse ||
@@ -118,10 +127,14 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
     }
 
     try {
-      const didShare = await shareWithImage(setIsSharing, devotion.image || '', {
-        message: formatDevotionalForSharing(devotion),
-        title: devotion.title || 'Daily Devotional',
-      });
+      const didShare = await shareWithImage(
+        setIsSharing,
+        devotion.image || '',
+        {
+          message: formatDevotionalForSharing(devotion),
+          title: devotion.title || 'Daily Devotional',
+        },
+      );
       if (!didShare) {
         return;
       }
@@ -163,6 +176,7 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
   };
   // Safety check: return null if devotion is missing
   const verseText = getMainVerseText(devotion);
+  const cachedImage = useCachedImage(devotion?.image || '');
   if (!devotion || !verseText || !devotion._id) {
     return null;
   }
@@ -198,7 +212,12 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
     verse = verseText;
   }
 
-  const cachedImage = useCachedImage(devotion.image || '');
+  const seriesDayNumber = getDevotionOrderValue(devotion) || devotion.day;
+  const devotionDateLabel = isSeriesDevotion(devotion)
+    ? seriesDayNumber
+      ? `Day ${seriesDayNumber}`
+      : 'Day'
+    : `${devotion.month} ${devotion.day}`;
 
   return (
     <ImageBackground
@@ -220,7 +239,7 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
             የዕለቱ ጥቅስ -
           </Text>
           <Text style={tw`text-accent-6 font-nokia-bold text-lg`}>
-            {devotion.month} {devotion.day}
+            {devotionDateLabel}
           </Text>
         </View>
         <TouchableOpacity

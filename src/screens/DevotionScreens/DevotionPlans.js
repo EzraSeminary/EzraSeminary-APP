@@ -38,7 +38,7 @@ const DevotionPlans = () => {
   const tabBarHeight = useBottomTabBarHeight();
   const [tab, setTab] = useState('find'); // 'find', 'my', 'completed'
   const [activeTab, setActiveTab] = useState('plan'); // 'devotional' or 'plan'
-  const listBottomPadding = tabBarHeight + Math.max(insets.bottom, 16) + 24;
+  const listBottomPadding = tabBarHeight + Math.max(insets.bottom, 16) + 64;
 
   const {
     data: findPlans = [],

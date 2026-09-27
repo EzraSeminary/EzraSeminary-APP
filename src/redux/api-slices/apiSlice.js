@@ -6,6 +6,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getApiBaseUrl} from '../../utils/apiBaseUrl';
 import {MOBILE_AUTH_PROVIDERS} from '../../config/authProviders';
+import {selectDevotionForPreviewDate} from '../../utils/devotionalSeries';
 
 const getStoredUser = async () => {
   try {
@@ -464,6 +465,128 @@ export const apiSlice = createApi({
       keepUnusedDataFor: 3600,
       providesTags: [{type: 'Devotions', id: 'years'}],
     }),
+    getAdminDevotions: builder.query({
+      queryFn: async (params = {}, api, extraOptions) => {
+        const query = {
+          ...(params.year ? {year: params.year} : {}),
+          limit: params.limit || 1000,
+          sort: params.sort || 'desc',
+        };
+        const adminResult = await dynamicBaseQuery(
+          {url: '/devotion/admin', params: query},
+          api,
+          extraOptions,
+        );
+        if (!adminResult.error) {
+          return {
+            data: normalizeDevotionsResponse(adminResult.data),
+          };
+        }
+        const publicResult = await dynamicBaseQuery(
+          {url: '/devotion/show', params: query},
+          api,
+          extraOptions,
+        );
+        if (publicResult.error) {
+          return publicResult;
+        }
+        return {data: normalizeDevotionsResponse(publicResult.data)};
+      },
+      providesTags: ['Devotions'],
+    }),
+    getAdminDevotionPreview: builder.query({
+      queryFn: async ({date, year} = {}, api, extraOptions) => {
+        const selectedDate = date ? new Date(date) : new Date();
+        const previewResult = await dynamicBaseQuery(
+          {
+            url: '/devotion/admin/preview',
+            params: {date: selectedDate.toISOString().slice(0, 10)},
+          },
+          api,
+          extraOptions,
+        );
+        if (!previewResult.error) {
+          return {data: previewResult.data?.devotion || previewResult.data};
+        }
+        const listResult = await dynamicBaseQuery(
+          {
+            url: '/devotion/show',
+            params: {
+              ...(year ? {year} : {}),
+              limit: 1000,
+              sort: 'asc',
+            },
+          },
+          api,
+          extraOptions,
+        );
+        if (listResult.error) {
+          return listResult;
+        }
+        const devotions = normalizeDevotionsResponse(listResult.data);
+        return {data: selectDevotionForPreviewDate(devotions, selectedDate)};
+      },
+      providesTags: (result, error, {date} = {}) => [
+        {type: 'Devotions', id: `admin-preview-${date || 'today'}`},
+      ],
+    }),
+    createDevotion: builder.mutation({
+      queryFn: async (formData, api, extraOptions) => {
+        const primaryResult = await dynamicBaseQuery(
+          {url: '/devotion/create', method: 'POST', body: formData},
+          api,
+          extraOptions,
+        );
+        if (!primaryResult.error) {
+          return primaryResult;
+        }
+        return dynamicBaseQuery(
+          {url: '/devotion', method: 'POST', body: formData},
+          api,
+          extraOptions,
+        );
+      },
+      invalidatesTags: ['Devotions'],
+    }),
+    updateDevotion: builder.mutation({
+      queryFn: async ({id, formData}, api, extraOptions) => {
+        const primaryResult = await dynamicBaseQuery(
+          {url: `/devotion/${id}`, method: 'PUT', body: formData},
+          api,
+          extraOptions,
+        );
+        if (!primaryResult.error) {
+          return primaryResult;
+        }
+        return dynamicBaseQuery(
+          {url: `/devotion/update/${id}`, method: 'PUT', body: formData},
+          api,
+          extraOptions,
+        );
+      },
+      invalidatesTags: (result, error, {id}) => [
+        {type: 'Devotions', id},
+        'Devotions',
+      ],
+    }),
+    deleteDevotion: builder.mutation({
+      queryFn: async (id, api, extraOptions) => {
+        const primaryResult = await dynamicBaseQuery(
+          {url: `/devotion/${id}`, method: 'DELETE'},
+          api,
+          extraOptions,
+        );
+        if (!primaryResult.error) {
+          return primaryResult;
+        }
+        return dynamicBaseQuery(
+          {url: `/devotion/delete/${id}`, method: 'DELETE'},
+          api,
+          extraOptions,
+        );
+      },
+      invalidatesTags: ['Devotions'],
+    }),
     // Explore/Supplements endpoints
     getExploreCategories: builder.query({
       query: () => '/explore/categories',
@@ -598,6 +721,11 @@ export const {
   useGetDevotionsByYearAndMonthQuery,
   useLazyGetDevotionsByYearAndMonthQuery,
   useGetAvailableYearsQuery,
+  useGetAdminDevotionsQuery,
+  useGetAdminDevotionPreviewQuery,
+  useCreateDevotionMutation,
+  useUpdateDevotionMutation,
+  useDeleteDevotionMutation,
   // Explore hooks
   useGetExploreCategoriesQuery,
   useGetExploreItemsQuery,

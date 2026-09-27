@@ -18,6 +18,7 @@ import tw from './../../tailwind';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {
   useGetDevotionsByYearAndMonthQuery,
+  useGetDevotionsQuery,
   useGetPublishedCoursesQuery,
   useGetDevotionPlansQuery,
   useGetMyDevotionPlansQuery,
@@ -54,6 +55,10 @@ import {
   ETHIOPIAN_MONTHS,
   normalizeEthiopianMonth,
 } from '../utils/ethiopianCalendar';
+import {selectSeriesDevotionForDate} from '../utils/devotionalSeries';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../navigation/floatingTabBarStyles';
+import useCurrentDate from '../hooks/useCurrentDate';
 
 const {width} = Dimensions.get('window');
 
@@ -111,14 +116,19 @@ const Home = () => {
   const sparkleAnim = useRef(new Animated.Value(0)).current;
 
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const darkMode = useSelector(state => state.ui.darkMode);
   const user = useSelector(state => state.auth.user);
   const persistedDevotions = useSelector(state => state.devotions);
   const persistedCourses = useSelector(state => state.courses);
+  const scrollContentStyle = useMemo(
+    () => ({paddingBottom: getFloatingTabScenePadding(insets)}),
+    [insets],
+  );
 
   // Get current Ethiopian date
-  const today = useMemo(() => new Date(), []);
+  const today = useCurrentDate();
   const {
     year: currentEthiopianYear,
     monthName: currentEthiopianMonth,
@@ -172,13 +182,28 @@ const Home = () => {
     primaryDevotionsError && alternateDevotionsError
       ? primaryDevotionsError
       : primaryDevotionsError || alternateDevotionsError;
+  const {
+    data: yearDevotions = [],
+    isFetching: isYearDevotionsFetching,
+    isLoading: isYearDevotionsLoading,
+    refetch: refetchYearDevotions,
+  } = useGetDevotionsQuery({
+    year: yearToFetch,
+    limit: 1000,
+    sort: 'desc',
+  });
   const refetchDevotions = useCallback(async () => {
-    const calls = [refetchPrimaryDevotions()];
+    const calls = [refetchPrimaryDevotions(), refetchYearDevotions()];
     if (alternateMonthName) {
       calls.push(refetchAlternateDevotions());
     }
     return Promise.all(calls);
-  }, [alternateMonthName, refetchPrimaryDevotions, refetchAlternateDevotions]);
+  }, [
+    alternateMonthName,
+    refetchPrimaryDevotions,
+    refetchAlternateDevotions,
+    refetchYearDevotions,
+  ]);
 
   const {
     data: courses = [],
@@ -600,24 +625,48 @@ const Home = () => {
       });
     }
 
-    if (devotionsToUse && devotionsToUse.length > 0) {
+    const yearDevotionsToUse =
+      Array.isArray(yearDevotions) && yearDevotions.length > 0
+        ? yearDevotions
+        : [];
+    const selectedDevotionsSource =
+      yearDevotionsToUse.length > 0 ? yearDevotionsToUse : devotionsToUse;
+
+    if (selectedDevotionsSource && selectedDevotionsSource.length > 0) {
+      const seriesDevotion = selectSeriesDevotionForDate(
+        selectedDevotionsSource,
+        today,
+      );
+      if (seriesDevotion) {
+        setSelectedDevotion(seriesDevotion);
+        if (__DEV__) {
+          console.log('[Home] Devotion - Selected series devotion:', {
+            id: seriesDevotion?._id,
+            month: seriesDevotion?.month,
+            day: seriesDevotion?.day,
+            seriesDay: seriesDevotion?.seriesDay || seriesDevotion?.seriesOrder,
+          });
+        }
+        return;
+      }
+
       const normalizeMonth = month => normalizeEthiopianMonth(month);
       const exactTodayDevotion = findDevotionWithOffset(
-        devotionsToUse,
+        selectedDevotionsSource,
         0,
         today,
         yearToFetch,
         normalizeMonth,
       );
       const minusOneDevotion = findDevotionWithOffset(
-        devotionsToUse,
+        selectedDevotionsSource,
         1,
         today,
         yearToFetch,
         normalizeMonth,
       );
       const minusTwoDevotion = findDevotionWithOffset(
-        devotionsToUse,
+        selectedDevotionsSource,
         2,
         today,
         yearToFetch,
@@ -625,15 +674,15 @@ const Home = () => {
       );
       const todaysDevotion =
         exactTodayDevotion || minusOneDevotion || minusTwoDevotion;
-      setSelectedDevotion(todaysDevotion || devotionsToUse[0] || null);
+      setSelectedDevotion(todaysDevotion || selectedDevotionsSource[0] || null);
       if (__DEV__) {
         console.log('[Home] Devotion - Selected devotion:', {
           isTodaysMatch: !!todaysDevotion,
-          selected: (todaysDevotion || devotionsToUse[0])
+          selected: (todaysDevotion || selectedDevotionsSource[0])
             ? {
-                id: (todaysDevotion || devotionsToUse[0])._id,
-                month: (todaysDevotion || devotionsToUse[0]).month,
-                day: (todaysDevotion || devotionsToUse[0]).day,
+                id: (todaysDevotion || selectedDevotionsSource[0])._id,
+                month: (todaysDevotion || selectedDevotionsSource[0]).month,
+                day: (todaysDevotion || selectedDevotionsSource[0]).day,
               }
             : null,
         });
@@ -646,6 +695,7 @@ const Home = () => {
     isOffline,
     persistedDevotions,
     cachedData.devotions,
+    yearDevotions,
     currentEthiopianMonth,
     today,
     yearToFetch,
@@ -1247,7 +1297,12 @@ const Home = () => {
   // No full-screen errors - always show Home layout with inline error cards per section
 
   const isDevotionSectionLoading =
-    !devotionToDisplay && (devotionsLoading || isLoading || isFetching);
+    !devotionToDisplay &&
+    (devotionsLoading ||
+      isYearDevotionsLoading ||
+      isYearDevotionsFetching ||
+      isLoading ||
+      isFetching);
   const isCourseSectionLoading =
     !courseToFeature && (courseIsFetching || isLoading || isFetching);
   const isSSLSectionLoading = !showDeferredSections;
@@ -1290,6 +1345,7 @@ const Home = () => {
       <SafeAreaView style={tw`flex mx-auto w-11/12`}>
         <ScrollView
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={scrollContentStyle}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}

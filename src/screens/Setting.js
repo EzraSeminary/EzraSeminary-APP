@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useMemo, useRef} from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ScrollView,
   Modal,
   Animated,
+  NativeModules,
 } from 'react-native';
 import tw from './../../tailwind';
 import {useSelector, useDispatch} from 'react-redux';
@@ -31,6 +32,7 @@ import {
   Folder,
   Heart,
   TextT,
+  BookOpenText,
 } from 'phosphor-react-native';
 import {useGetSSLsQuery} from '../services/SabbathSchoolApi';
 import UserAvatar from '../components/UserAvatar';
@@ -39,6 +41,8 @@ import useReaderFontScale from '../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
 import ReaderFontFamilySelector from '../components/ReaderFontFamilySelector';
 import useReaderFontFamily from '../hooks/useReaderFontFamily';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../navigation/floatingTabBarStyles';
 
 const Setting = ({navigation}) => {
   const dispatch = useDispatch();
@@ -48,12 +52,21 @@ const Setting = ({navigation}) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [showCacheChecker, setShowCacheChecker] = useState(false);
   const {refetch} = useGetSSLsQuery();
-  const {
-    readerFontScalePercentage,
-    increaseFontScale,
-    decreaseFontScale,
-  } = useReaderFontScale();
+  const {readerFontScalePercentage, increaseFontScale, decreaseFontScale} =
+    useReaderFontScale();
   const {readerFont} = useReaderFontFamily();
+  const appVersion = useMemo(
+    () => NativeModules.AppVersion?.versionName ?? 'Unknown',
+    [],
+  );
+  const insets = useSafeAreaInsets();
+  const scrollContentStyle = useMemo(
+    () => ({
+      ...tw`items-center px-4`,
+      paddingBottom: getFloatingTabScenePadding(insets),
+    }),
+    [insets],
+  );
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -177,7 +190,7 @@ const Setting = ({navigation}) => {
         darkMode && tw`bg-secondary-9`,
       ]}>
       <ScrollView
-        contentContainerStyle={tw`items-center px-4`}
+        contentContainerStyle={scrollContentStyle}
         showsVerticalScrollIndicator={false}>
         <AndroidStatusBarSpacer minHeight={4} />
         <Animated.View
@@ -341,6 +354,13 @@ const Setting = ({navigation}) => {
                   title="Explore/Supplements"
                   onPress={() => navigation.navigate('ExploreAdmin')}
                 />
+                <SettingItem
+                  icon={
+                    <BookOpenText size={16} weight="fill" color={'#FFFFFF'} />
+                  }
+                  title="Devotional Management"
+                  onPress={() => navigation.navigate('DevotionAdmin')}
+                />
               </Animated.View>
             )}
 
@@ -492,6 +512,31 @@ const Setting = ({navigation}) => {
               title="Cache Status"
               onPress={() => setShowCacheChecker(true)}
             />
+
+            <View
+              style={tw`mt-2 pt-4 border-t border-accent-6 border-opacity-20`}>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-sm text-center leading-5`,
+                  darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                ]}>
+                Prepared By YetnbitKal Ministry
+              </Text>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-sm text-center leading-5 mt-1`,
+                  darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
+                ]}>
+                Developed by AmenDevs
+              </Text>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-sm text-center leading-5 mt-2`,
+                  darkMode ? tw`text-primary-3` : tw`text-secondary-5`,
+                ]}>
+                Version {appVersion}
+              </Text>
+            </View>
           </Animated.View>
 
           {/* Support Section */}

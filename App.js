@@ -7,7 +7,10 @@ import {Provider, useSelector, useDispatch} from 'react-redux';
 import {PersistGate} from 'redux-persist/integration/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
-import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import ToastComponent from './src/components/ToastComponent';
 import SplashScreen from './src/components/SplashScreen';
 import {store, persistor} from './src/redux/store';
@@ -23,9 +26,16 @@ import CourseStack from './src/navigation/CourseStack';
 import HomeStack from './src/navigation/HomeStack';
 import DevotionalStack from './src/navigation/DevotionalStack';
 import SSLStack from './src/navigation/SSLStack';
+import {
+  floatingTabBarIconStyle,
+  floatingTabBarItemStyle,
+  floatingTabBarLabelStyle,
+  getFloatingTabBarStyle,
+  getFloatingTabInactiveColor,
+} from './src/navigation/floatingTabBarStyles';
 import {useGetCurrentUserQuery} from './src/redux/api-slices/apiSlice';
 import {login, updateUser} from './src/redux/authSlice';
-import {Login, Signup, Welcome, Setting, SSL} from './src/screens';
+import {Login, Signup, Welcome} from './src/screens';
 import SettingsStack from './src/navigation/SettingsStack';
 import {navigationRef} from './src/navigation/NavigationRef';
 import SelectedDevotional from './src/screens/DevotionScreens/SelectedDevotional';
@@ -42,6 +52,7 @@ const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
 
   const {data: userData, error: userError} = useGetCurrentUserQuery();
@@ -51,10 +62,6 @@ const MainTabNavigator = () => {
       dispatch(updateUser(userData));
     }
   }, [dispatch, userData]);
-
-  const tabBarStyle = {
-    backgroundColor: darkMode ? '#293239' : '#F3F3F3',
-  };
 
   if (userError) {
     // console.log(userError);
@@ -88,8 +95,12 @@ const MainTabNavigator = () => {
         },
         headerShown: false,
         tabBarActiveTintColor: '#EA9215',
-        tabBarInactiveTintColor: darkMode ? '#D3D3D3' : '#3A4750',
-        tabBarStyle: tabBarStyle,
+        tabBarInactiveTintColor: getFloatingTabInactiveColor(darkMode),
+        tabBarStyle: getFloatingTabBarStyle(darkMode, insets),
+        tabBarItemStyle: floatingTabBarItemStyle,
+        tabBarLabelStyle: floatingTabBarLabelStyle,
+        tabBarIconStyle: floatingTabBarIconStyle,
+        tabBarHideOnKeyboard: true,
       })}>
       <Tab.Screen
         name="Home"

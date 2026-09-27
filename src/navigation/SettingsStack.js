@@ -10,6 +10,8 @@ import ExploreAdmin from '../screens/AdminScreens/ExploreAdmin';
 import ExploreCategoryForm from '../screens/AdminScreens/ExploreCategoryForm';
 import ExploreCategoryItems from '../screens/AdminScreens/ExploreCategoryItems';
 import ExploreItemForm from '../screens/AdminScreens/ExploreItemForm';
+import DevotionAdmin from '../screens/AdminScreens/DevotionAdmin';
+import DevotionForm from '../screens/AdminScreens/DevotionForm';
 
 const Stack = createNativeStackNavigator();
 
@@ -64,6 +66,16 @@ const SettingsStack = () => {
       <Stack.Screen
         name="ExploreItemForm"
         component={ExploreItemForm}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="DevotionAdmin"
+        component={DevotionAdmin}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="DevotionForm"
+        component={DevotionForm}
         options={{headerShown: false}}
       />
     </Stack.Navigator>

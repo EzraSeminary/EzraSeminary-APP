@@ -1,3 +1,5 @@
+/* global jest */
+
 jest.mock('react-native', () => {
   const reactNative = jest.requireActual('react-native');
   Object.defineProperty(reactNative, 'StatusBar', {
@@ -48,10 +50,8 @@ jest.mock('react-native', () => {
   return reactNative;
 });
 
-jest.mock(
-  '@react-native-async-storage/async-storage',
-  () =>
-    require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
 jest.mock('react-native-toast-message', () => ({
@@ -175,17 +175,41 @@ jest.mock('react-native-track-player', () => ({
     stop: jest.fn(() => Promise.resolve()),
     reset: jest.fn(() => Promise.resolve()),
     seekTo: jest.fn(() => Promise.resolve()),
+    seekBy: jest.fn(() => Promise.resolve()),
+    load: jest.fn(() => Promise.resolve()),
+    updateOptions: jest.fn(() => Promise.resolve()),
+    registerPlaybackService: jest.fn(),
+    addEventListener: jest.fn(() => ({remove: jest.fn()})),
   },
   useTrackPlayerEvents: jest.fn(),
   usePlaybackState: jest.fn(() => ({state: 'stopped'})),
   useProgress: jest.fn(() => ({position: 0, duration: 0})),
-  Event: {},
+  Event: {
+    RemotePlay: 'remote-play',
+    RemotePause: 'remote-pause',
+    RemoteStop: 'remote-stop',
+    RemoteSeek: 'remote-seek',
+    RemoteJumpForward: 'remote-jump-forward',
+    RemoteJumpBackward: 'remote-jump-backward',
+  },
   State: {
     Playing: 'playing',
     Paused: 'paused',
     Stopped: 'stopped',
+    Loading: 'loading',
+    Buffering: 'buffering',
   },
-  Capability: {},
+  Capability: {
+    Play: 'play',
+    Pause: 'pause',
+    Stop: 'stop',
+    SeekTo: 'seek-to',
+    JumpForward: 'jump-forward',
+    JumpBackward: 'jump-backward',
+  },
+  AppKilledPlaybackBehavior: {
+    ContinuePlayback: 'continue-playback',
+  },
 }));
 
 jest.mock('react-native-share', () => ({

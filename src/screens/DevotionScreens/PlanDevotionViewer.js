@@ -39,6 +39,10 @@ import HighlightActionSheet from '../../components/HighlightActionSheet';
 import usePersistentHighlights from '../../hooks/usePersistentHighlights';
 import {extractHtmlBlocks} from '../../utils/htmlBlocks';
 import useReaderFontFamily from '../../hooks/useReaderFontFamily';
+import DevotionalAudioPlayer from '../../components/DevotionalAudioPlayer';
+import {getDevotionalAudioUrl} from '../../utils/devotionalAudio';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../../navigation/floatingTabBarStyles';
 
 // Completion Modal Component with Animation
 const CompletionModal = ({
@@ -178,6 +182,11 @@ const PlanDevotionViewer = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const {planId, startOnOpen = false} = route.params || {};
+  const insets = useSafeAreaInsets();
+  const scrollBottomPadding = useMemo(
+    () => getFloatingTabScenePadding(insets),
+    [insets],
+  );
 
   const [currentDevotionIndex, setCurrentDevotionIndex] = useState(0);
   const [completionModalVisible, setCompletionModalVisible] = useState(false);
@@ -332,6 +341,7 @@ const PlanDevotionViewer = () => {
     () => extractHtmlBlocks(currentDevotion?.body || []),
     [currentDevotion?.body],
   );
+  const audioUrl = getDevotionalAudioUrl(currentDevotion);
 
   // Call useCachedImage hook at the top level (before any early returns)
   const devotionImageUrl = currentDevotion?.image;
@@ -713,7 +723,10 @@ const PlanDevotionViewer = () => {
       darkMode ? tw`text-primary-1` : null,
       {...readerFontStyle, marginVertical: 0},
     ],
-    a: {...tw`text-accent-6 font-nokia-bold text-sm underline`, ...readerFontStyle},
+    a: {
+      ...tw`text-accent-6 font-nokia-bold text-sm underline`,
+      ...readerFontStyle,
+    },
     h1: [
       tw`text-secondary-6 font-nokia-bold text-2xl leading-snug`,
       darkMode ? tw`text-primary-1` : null,
@@ -751,7 +764,7 @@ const PlanDevotionViewer = () => {
       style={darkMode ? tw`bg-secondary-9 flex-1` : tw`bg-primary-1 flex-1`}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={tw`pb-6`}
+        contentContainerStyle={{paddingBottom: scrollBottomPadding}}
         removeClippedSubviews>
         <View style={tw`flex mx-auto w-11/12`}>
           {/* Header */}
@@ -876,6 +889,12 @@ const PlanDevotionViewer = () => {
                   </HighlightableBlock>
                 </View>
               )}
+
+              <DevotionalAudioPlayer
+                audioUrl={audioUrl}
+                darkMode={darkMode}
+                title={currentDevotion.title}
+              />
 
               {/* Body Paragraphs */}
               {currentDevotion.body && currentDevotion.body.length > 0 && (

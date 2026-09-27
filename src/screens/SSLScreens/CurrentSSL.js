@@ -31,7 +31,7 @@ const CurrentSSL = () => {
     error: quarterError,
     isLoading: quarterIsLoading,
     refetch: quarterRefetch,
-  } = useGetSSLOfQuarterQuery(quarter);
+  } = useGetSSLOfQuarterQuery(quarter, {skip: !quarter});
 
   const onRefresh = useCallback(async () => {
     try {

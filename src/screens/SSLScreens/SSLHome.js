@@ -83,6 +83,7 @@ const SSLHome = ({onReload}) => {
   const didMountLanguageRefresh = useRef(false);
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
+  const scrollBottomPadding = tabBarHeight + insets.bottom + 64;
   const {data: ssl, error, isLoading, refetch} = useGetSSLsQuery();
 
   const {
@@ -90,14 +91,14 @@ const SSLHome = ({onReload}) => {
     error: lessonError,
     isLoading: lessonIsLoading,
     refetch: lessonRefetch,
-  } = useGetSSLOfDayQuery({path: quarter, id: week});
+  } = useGetSSLOfDayQuery({path: quarter, id: week}, {skip: !quarter || !week});
 
   const {
     data: quarterDetails,
     error: quarterError,
     isLoading: quarterIsLoading,
     refetch: quarterRefetch,
-  } = useGetSSLOfQuarterQuery(quarter);
+  } = useGetSSLOfQuarterQuery(quarter, {skip: !quarter});
 
   const lastDigitQuarter = parseInt(quarter?.slice(-1), 10);
 
@@ -105,11 +106,14 @@ const SSLHome = ({onReload}) => {
     data: videoLink,
     error: videoError,
     isLoading: videoLoading,
-  } = useGetVideoLinkQuery({
-    year: year,
-    quarter: lastDigitQuarter,
-    lesson: week,
-  });
+  } = useGetVideoLinkQuery(
+    {
+      year: year,
+      quarter: lastDigitQuarter,
+      lesson: week,
+    },
+    {skip: !year || !lastDigitQuarter || !week},
+  );
 
   useEffect(() => {
     if (lessonDetails) {
@@ -555,6 +559,7 @@ const SSLHome = ({onReload}) => {
         )}
         <ScrollView
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{paddingBottom: scrollBottomPadding}}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -721,7 +726,7 @@ const SSLHome = ({onReload}) => {
           bounces
           contentContainerStyle={{
             flexGrow: 1,
-            paddingBottom: tabBarHeight + insets.bottom + 24,
+            paddingBottom: scrollBottomPadding,
           }}
           refreshControl={
             <RefreshControl

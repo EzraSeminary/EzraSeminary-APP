@@ -36,6 +36,32 @@ import RNFS from 'react-native-fs';
 import AndroidStatusBarSpacer from '../components/AndroidStatusBarSpacer';
 import {Platform, PermissionsAndroid} from 'react-native';
 import {useCachedImage} from '../utils/imageCache';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../navigation/floatingTabBarStyles';
+
+const fallbackExploreCards = [
+  {
+    key: 'courses',
+    title: 'Biblical Courses',
+    description: 'Study curated lessons and deeper Bible-based material.',
+    image: require('../assets/bible.png'),
+    accent: '#EA9215',
+  },
+  {
+    key: 'devotionals',
+    title: 'Daily Devotionals',
+    description: 'Open short daily readings for reflection and prayer.',
+    image: require('../assets/worship.jpeg'),
+    accent: '#EA9215',
+  },
+  {
+    key: 'ssls',
+    title: 'Sabbath School',
+    description: 'Browse quarterly Sabbath School lesson content.',
+    image: require('../assets/church.png'),
+    accent: '#EA9215',
+  },
+];
 
 const Explore = () => {
   const {
@@ -51,6 +77,11 @@ const Explore = () => {
   const navigation = useNavigation();
   const {width: screenWidth} = useWindowDimensions();
   const itemWidth = useMemo(() => screenWidth * 0.4, [screenWidth]);
+  const insets = useSafeAreaInsets();
+  const scrollContentStyle = useMemo(
+    () => ({paddingBottom: getFloatingTabScenePadding(insets)}),
+    [insets],
+  );
 
   // Expand all categories when data loads
   useEffect(() => {
@@ -153,14 +184,36 @@ const Explore = () => {
   }
 
   if (error) {
-    return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
+    return (
+      <View style={[tw`flex-1`, darkMode && tw`bg-secondary-9`]}>
+        <SafeAreaView style={tw`flex-1 w-full`}>
+          <AndroidStatusBarSpacer minHeight={4} />
+          <ScrollView
+            style={tw`flex-1`}
+            contentContainerStyle={[
+              scrollContentStyle,
+              {paddingBottom: getFloatingTabScenePadding(insets) + 160},
+            ]}
+            showsVerticalScrollIndicator={false}>
+            <ExploreFallbackHero darkMode={darkMode} />
+            <ExploreFallbackCards darkMode={darkMode} />
+            <ErrorScreen refetch={refetch} darkMode={darkMode} />
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+    );
   }
 
   return (
-    <View style={darkMode ? tw`bg-secondary-9` : null}>
-      <SafeAreaView style={tw`flex mx-auto w-[100%] h-100%`}>
+    <View style={[tw`flex-1`, darkMode && tw`bg-secondary-9`]}>
+      <SafeAreaView style={tw`flex-1 w-full`}>
         <AndroidStatusBarSpacer minHeight={4} />
         <ScrollView
+          style={tw`flex-1`}
+          contentContainerStyle={[
+            scrollContentStyle,
+            {paddingBottom: getFloatingTabScenePadding(insets) + 160},
+          ]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -175,50 +228,22 @@ const Explore = () => {
               opacity: fadeAnim,
               transform: [{translateY: slideAnim}],
             }}>
+            <ExploreFallbackHero darkMode={darkMode} />
             {/* Categories List */}
             {categories && categories.length > 0 ? (
-              categories.map((category, index) => (
-                  <CategorySection
-                    key={category._id}
-                    category={category}
-                    darkMode={darkMode}
-                    onItemPress={handleItemPress}
-                    isExpanded={expandedCategories.has(category._id)}
-                    onToggle={() => handleCategoryPress(category)}
-                    itemWidth={itemWidth}
-                  />
+              categories.map(category => (
+                <CategorySection
+                  key={category._id}
+                  category={category}
+                  darkMode={darkMode}
+                  onItemPress={handleItemPress}
+                  isExpanded={expandedCategories.has(category._id)}
+                  onToggle={() => handleCategoryPress(category)}
+                  itemWidth={itemWidth}
+                />
               ))
             ) : (
-              <Animated.View
-                style={[
-                  tw`items-center justify-center py-16 px-8`,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{translateY: slideAnim}],
-                  },
-                ]}>
-                <View
-                  style={[
-                    tw`w-24 h-24 rounded-full items-center justify-center mb-6`,
-                    {backgroundColor: darkMode ? '#374151' : '#F3F4F6'},
-                  ]}>
-                  <MagnifyingGlass size={40} color="#EA9215" weight="bold" />
-                </View>
-                <Text
-                  style={[
-                    tw`font-nokia-bold text-xl text-center mb-2`,
-                    darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-                  ]}>
-                  No categories found
-                </Text>
-                <Text
-                  style={[
-                    tw`font-nokia-bold text-base text-center opacity-70`,
-                    darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
-                  ]}>
-                  Check back later for new content
-                </Text>
-              </Animated.View>
+              <ExploreFallbackCards darkMode={darkMode} />
             )}
           </Animated.View>
         </ScrollView>
@@ -253,13 +278,12 @@ const CategorySection = ({
   const displayedItems = items ? items.slice(0, visibleItems) : [];
 
   return (
-    <View style={tw`mb-6`}>
-      {/* Category Header - No background, matching image style */}
+    <View style={tw`mb-5`}>
       <View
-        style={tw`flex-row justify-between items-center mb-3 border-b border-accent-6 py-2`}>
+        style={tw`flex-row justify-between items-center mb-2 border-b border-accent-6 pb-2`}>
         <Text
           style={[
-            tw`font-nokia-bold text-xl flex-1 `,
+            tw`font-nokia-bold text-lg flex-1`,
             darkMode ? tw`text-primary-1` : tw`text-secondary-8 `,
           ]}>
           {category.title}
@@ -312,8 +336,8 @@ const CategorySection = ({
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={item => item._id}
                 contentContainerStyle={{
-                  paddingHorizontal: 16,
-                  paddingBottom: 16,
+                  paddingHorizontal: 4,
+                  paddingBottom: 8,
                 }}
                 renderItem={({item}) => (
                   <ExploreItemCard
@@ -385,19 +409,19 @@ const ExploreItemCard = React.memo(({item, darkMode, onPress, itemWidth}) => {
     <TouchableOpacity
       onPress={onPress}
       style={[
-        tw`rounded-2xl overflow-hidden mr-3`,
+        tw`rounded-3xl overflow-hidden mr-3`,
         {
           width: itemWidth,
-          backgroundColor: darkMode ? '#374151' : '#FFFFFF',
-          shadowColor: darkMode ? '#000000' : '#EA9215',
-          shadowOffset: {width: 0, height: 4},
-          shadowOpacity: darkMode ? 0.3 : 0.15,
-          shadowRadius: 8,
-          elevation: 4,
+          backgroundColor: darkMode ? '#262C39' : '#FFFFFF',
+          shadowColor: '#000000',
+          shadowOffset: {width: 0, height: 6},
+          shadowOpacity: darkMode ? 0.28 : 0.12,
+          shadowRadius: 12,
+          elevation: 5,
         },
       ]}>
       {/* Image or Icon */}
-      <View style={tw`h-48 relative`}>
+      <View style={tw`h-40 relative`}>
         {item.imageUrl ? (
           <Image
             source={{uri: cachedImage}}
@@ -414,7 +438,7 @@ const ExploreItemCard = React.memo(({item, darkMode, onPress, itemWidth}) => {
           </View>
         )}
         <LinearGradient
-          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.8)']}
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.72)']}
           style={tw`absolute inset-0`}
         />
         {/* File Type Badge */}
@@ -432,10 +456,10 @@ const ExploreItemCard = React.memo(({item, darkMode, onPress, itemWidth}) => {
       </View>
 
       {/* Content */}
-      <View style={tw`p-4`}>
+      <View style={tw`px-3 py-3`}>
         <Text
           style={[
-            tw`font-nokia-bold text-lg mb-2`,
+            tw`font-nokia-bold text-base leading-5 mb-1`,
             darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
           ]}
           numberOfLines={2}>
@@ -444,7 +468,7 @@ const ExploreItemCard = React.memo(({item, darkMode, onPress, itemWidth}) => {
         {item.description && (
           <Text
             style={[
-              tw`font-nokia-bold text-sm opacity-70 mb-3`,
+              tw`font-nokia-bold text-xs leading-4 opacity-75`,
               darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
             ]}
             numberOfLines={2}>
@@ -455,5 +479,74 @@ const ExploreItemCard = React.memo(({item, darkMode, onPress, itemWidth}) => {
     </TouchableOpacity>
   );
 });
+
+const ExploreFallbackHero = ({darkMode}) => (
+  <View
+    style={[
+      tw`mb-5 px-4 py-4 rounded-3xl`,
+      {backgroundColor: darkMode ? '#262C39' : '#F8FAFC'},
+    ]}>
+    <Text
+      style={[
+        tw`font-nokia-bold text-2xl mb-1`,
+        darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+      ]}>
+      Explore
+    </Text>
+    <Text
+      style={[
+        tw`font-nokia-bold text-sm opacity-80`,
+        darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+      ]}>
+      Books, devotionals, and Sabbath School resources
+    </Text>
+  </View>
+);
+
+const ExploreFallbackCards = ({darkMode}) => (
+  <View style={tw`mb-6`}>
+    {fallbackExploreCards.map(card => (
+      <View
+        key={card.key}
+        style={[
+          tw`mb-4 rounded-3xl overflow-hidden`,
+          {
+            backgroundColor: darkMode ? '#262C39' : '#FFFFFF',
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: 6},
+            shadowOpacity: darkMode ? 0.24 : 0.12,
+            shadowRadius: 12,
+            elevation: 4,
+          },
+        ]}>
+        <Image source={card.image} style={tw`w-full h-44`} resizeMode="cover" />
+        <View style={tw`px-4 py-4`}>
+          <Text
+            style={[
+              tw`font-nokia-bold text-xl mb-2`,
+              darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+            ]}>
+            {card.title}
+          </Text>
+          <Text
+            style={[
+              tw`font-nokia-bold text-sm mb-4`,
+              darkMode ? tw`text-primary-3` : tw`text-secondary-6`,
+            ]}>
+            {card.description}
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={[
+              tw`self-start px-4 py-3 rounded-full`,
+              {backgroundColor: card.accent},
+            ]}>
+            <Text style={tw`font-nokia-bold text-white`}>Open Explore</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    ))}
+  </View>
+);
 
 export default Explore;
