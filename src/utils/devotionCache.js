@@ -1,7 +1,24 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {extractHtmlBlocks} from './htmlBlocks';
 
 const DEVOTION_CACHE_KEY = 'devotion_cache';
 const DEVOTION_CACHE_EXPIRY_DAYS = 30; // Cache expires after 30 days
+
+export const normalizeDevotionForHighlighting = devotion => {
+  if (!devotion) {
+    return devotion;
+  }
+
+  const bodyBlocks =
+    Array.isArray(devotion.bodyBlocks) && devotion.bodyBlocks.length > 0
+      ? devotion.bodyBlocks
+      : extractHtmlBlocks(devotion.body || []);
+
+  return {
+    ...devotion,
+    bodyBlocks,
+  };
+};
 
 /**
  * Save a devotion to cache
@@ -20,7 +37,7 @@ export const saveDevotionToCache = async devotion => {
 
     // Add or update the devotion in cache
     cache[devotion._id] = {
-      ...devotion,
+      ...normalizeDevotionForHighlighting(devotion),
       cachedAt: new Date().toISOString(),
     };
 
@@ -52,7 +69,7 @@ export const saveDevotionsToCache = async devotions => {
     devotions.forEach(devotion => {
       if (devotion && devotion._id) {
         cache[devotion._id] = {
-          ...devotion,
+          ...normalizeDevotionForHighlighting(devotion),
           cachedAt: new Date().toISOString(),
         };
       }
@@ -99,7 +116,7 @@ export const getCachedDevotion = async devotionId => {
       return null;
     }
 
-    return devotion;
+    return normalizeDevotionForHighlighting(devotion);
   } catch (error) {
     console.error('Error getting cached devotion:', error);
     return null;

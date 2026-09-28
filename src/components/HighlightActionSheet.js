@@ -18,6 +18,7 @@ const HighlightActionSheet = ({
   freeSelectionEnabled = false,
   useModal = true,
   allowBlockHighlight = true,
+  bottomOffset = 12,
 }) => {
   const ensureSelection = () => {
     if (selectedCount > 0) {
@@ -215,7 +216,7 @@ const HighlightActionSheet = ({
       statusBarTranslucent
       onRequestClose={onClose}>
       <View style={tw`flex-1 justify-end`} pointerEvents="box-none">
-        <View style={tw`mx-3 mb-3`}>
+        <View style={[tw`mx-3`, {marginBottom: bottomOffset}]}>
           {sheetContent}
         </View>
       </View>

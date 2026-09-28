@@ -56,6 +56,12 @@ import useReaderFontScale from '../../hooks/useReaderFontScale';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
 import ReaderFontSizeControl from '../../components/ReaderFontSizeControl';
 import useReaderFontFamily from '../../hooks/useReaderFontFamily';
+import {getFloatingTabScenePadding} from '../../navigation/floatingTabBarStyles';
+import {
+  findAmharicVerseReferences,
+  resolveAmharicVerseHtml,
+  splitAmharicVerseReferenceText,
+} from '../../utils/amharicBibleParser';
 
 const decodeHtmlEntities = text =>
   (text || '')
@@ -75,7 +81,12 @@ const stripInlineHtml = html =>
 
 const VERSE_LINK_REGEX = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
 const GENERIC_VERSE_REFERENCE_REGEX =
-  /(?:[1-4፩-፬]\s*)?[A-Za-z\u1200-\u137F]+(?:[.-][A-Za-z\u1200-\u137F]+)*(?:\s+[A-Za-z\u1200-\u137F]+(?:[.-][A-Za-z\u1200-\u137F]+)*)?\s+\d+:\d+(?:-\d+)?/g;
+  /(?:[1-4፩-፬]\s*)?[A-Za-z\u1200-\u135A]+(?:[.-][A-Za-z\u1200-\u135A]+)*(?:\s+[A-Za-z\u1200-\u135A]+(?:[.-][A-Za-z\u1200-\u135A]+)*)?\s*\d+[:፡]\d+(?:-\d+)?/g;
+const VERSE_REFERENCE_CONTINUATION_REGEX =
+  /([,;፣፤]\s*)(\d+(?:[:፡]\d+(?:-\d+)?|-?\d+)?)/g;
+const LEADING_VERSE_CONTINUATION_REGEX =
+  /^(\s*)(\d+(?:[:፡]\d+(?:-\d+)?|-?\d+)?)/;
+const TRAILING_VERSE_SEPARATOR_REGEX = /[,;፣፤]\s*$/;
 
 const readHtmlAttribute = (attributes, name) => {
   const pattern = new RegExp(
@@ -115,13 +126,229 @@ const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const normalizeVerseLookupKey = value =>
   String(value || '')
     .toLowerCase()
+    .replace(/፡/g, ':')
+    .replace(/(.+?)\s*(\d+):(\d+(?:-\d+)?)/g, '$1 $2:$3')
     .replace(/[“”"'/\\()[\]{}.,;፣፤፥፦፧።]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
 const extractVerseAddress = value => {
-  const match = String(value || '').match(/\d+:\d+(?:-\d+)?/);
+  const match = String(value || '')
+    .replace(/፡/g, ':')
+    .match(/\d+:\d+(?:-\d+)?/);
   return match?.[0] || '';
+};
+
+const normalizeVerseReferenceAddress = value =>
+  String(value || '')
+    .trim()
+    .replace(/^(?:እና|and)\s+/i, '')
+    .replace(/፡/g, ':')
+    .replace(/^(.+?)\s*(\d+):(\d+(?:-\d+)?)$/, '$1 $2:$3')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const splitLeadingVerseConnector = value => {
+  const match = String(value || '').match(/^((?:እና|and)\s+)(.+)$/i);
+  if (!match) {
+    return {
+      connector: '',
+      verseText: String(value || ''),
+    };
+  }
+
+  return {
+    connector: match[1],
+    verseText: match[2],
+  };
+};
+
+const parseVerseReferenceParts = value => {
+  const match = normalizeVerseReferenceAddress(value).match(
+    /^(.+?)\s+(\d+):(\d+(?:-\d+)?)$/,
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    book: match[1].trim(),
+    chapter: match[2],
+    verse: match[3],
+  };
+};
+
+const resolveContinuationVerseRef = (value, context) => {
+  const text = String(value || '').trim();
+  if (!text || !context?.book || !context?.chapter) {
+    return null;
+  }
+
+  const normalizedText = text.replace(/፡/g, ':');
+
+  if (/^\d+:\d+(?:-\d+)?$/.test(normalizedText)) {
+    return `${context.book} ${normalizedText}`;
+  }
+
+  if (/^\d+(?:-\d+)?$/.test(normalizedText)) {
+    return `${context.book} ${context.chapter}:${normalizedText}`;
+  }
+
+  return null;
+};
+
+const normalizeVerseReferenceSeparator = value =>
+  String(value || '').replace(/፣/g, ',');
+
+const continuationStartsNumberedBookReference = (input, continuationMatch) => {
+  if (!continuationMatch) {
+    return false;
+  }
+
+  const continuationEnd =
+    (continuationMatch.index ?? 0) + String(continuationMatch[0] || '').length;
+  const tail = String(input || '').slice(continuationEnd);
+
+  return /^\s*(?:ኛ\s*)?[\u1200-\u135A.]+(?:\s+[\u1200-\u135A.]+)*\s+[0-9፩-፺]+\s*[:፡]/.test(
+    tail,
+  );
+};
+
+const splitPlainTextVerseReferences = (text, regexes, context) => {
+  const input = String(text || '');
+  if (!input) {
+    return [];
+  }
+
+  const parts = [];
+  let consumed = 0;
+
+  while (consumed < input.length) {
+    if (consumed === 0 && context?.expectsContinuation) {
+      const leadingContinuation = input.match(LEADING_VERSE_CONTINUATION_REGEX);
+      const continuationText = leadingContinuation?.[2] || '';
+      const continuationRef = resolveContinuationVerseRef(
+        continuationText,
+        context,
+      );
+
+      if (
+        continuationRef &&
+        !continuationStartsNumberedBookReference(input, leadingContinuation)
+      ) {
+        const leadingWhitespace = leadingContinuation?.[1] || '';
+        if (leadingWhitespace) {
+          parts.push({text: leadingWhitespace});
+        }
+        parts.push({
+          text: continuationText,
+          verseRef: continuationRef,
+        });
+
+        const continuationParts = parseVerseReferenceParts(continuationRef);
+        if (continuationParts) {
+          context.book = continuationParts.book;
+          context.chapter = continuationParts.chapter;
+        }
+
+        context.expectsContinuation =
+          TRAILING_VERSE_SEPARATOR_REGEX.test(continuationText);
+        consumed = leadingContinuation[0].length;
+        continue;
+      }
+    }
+
+    context.expectsContinuation = false;
+    let earliestMatch = null;
+
+    regexes.forEach(regex => {
+      regex.lastIndex = consumed;
+      const match = regex.exec(input);
+      if (!match) {
+        return;
+      }
+
+      if (!earliestMatch || (match.index ?? 0) < (earliestMatch.index ?? 0)) {
+        earliestMatch = match;
+      }
+    });
+
+    VERSE_REFERENCE_CONTINUATION_REGEX.lastIndex = consumed;
+    const continuationMatch = VERSE_REFERENCE_CONTINUATION_REGEX.exec(input);
+    if (
+      continuationMatch &&
+      !continuationStartsNumberedBookReference(input, continuationMatch) &&
+      (!earliestMatch ||
+        (continuationMatch.index ?? 0) < (earliestMatch.index ?? 0))
+    ) {
+      earliestMatch = continuationMatch;
+    }
+
+    if (!earliestMatch) {
+      parts.push({text: input.slice(consumed)});
+      break;
+    }
+
+    const matchIndex = earliestMatch.index ?? 0;
+    if (matchIndex > consumed) {
+      parts.push({text: input.slice(consumed, matchIndex)});
+    }
+
+    if (earliestMatch.length > 2) {
+      const separator = normalizeVerseReferenceSeparator(
+        earliestMatch[1] || '',
+      );
+      const continuationText = earliestMatch[2] || '';
+      const continuationRef = resolveContinuationVerseRef(
+        continuationText,
+        context,
+      );
+
+      if (separator) {
+        parts.push({text: separator});
+      }
+      if (continuationRef) {
+        parts.push({
+          text: continuationText,
+          verseRef: continuationRef,
+        });
+        const continuationParts = parseVerseReferenceParts(continuationRef);
+        if (continuationParts) {
+          context.book = continuationParts.book;
+          context.chapter = continuationParts.chapter;
+        }
+      } else {
+        parts.push({text: continuationText});
+      }
+      context.expectsContinuation =
+        TRAILING_VERSE_SEPARATOR_REGEX.test(continuationText);
+    } else {
+      const verseText = earliestMatch[0];
+      const {connector, verseText: displayVerseText} =
+        splitLeadingVerseConnector(verseText);
+      const verseRef = normalizeVerseReferenceAddress(displayVerseText);
+      if (connector) {
+        parts.push({text: connector});
+      }
+      parts.push({
+        text: displayVerseText,
+        verseRef,
+      });
+
+      const parsed = parseVerseReferenceParts(verseRef);
+      if (parsed) {
+        context.book = parsed.book;
+        context.chapter = parsed.chapter;
+      }
+      context.expectsContinuation =
+        TRAILING_VERSE_SEPARATOR_REGEX.test(verseText);
+    }
+
+    consumed = matchIndex + earliestMatch[0].length;
+  }
+
+  return parts.filter(part => part.text);
 };
 
 const normalizeVerseContent = value =>
@@ -166,57 +393,38 @@ const resolveVerseContent = value => {
   return '';
 };
 
-const splitTextByVersePattern = (text, versePattern) => {
+const splitTextByVersePattern = (text, versePattern, context = {}) => {
   const input = String(text || '');
 
   if (!input) {
     return [];
   }
 
+  const amharicContext = {...context};
+  const amharicParts = splitAmharicVerseReferenceText(input, amharicContext);
+  if (amharicParts.some(part => part.verseRef)) {
+    Object.assign(context, amharicContext);
+    return amharicParts;
+  }
+
   const regexes = [];
+  const amharicReferences = findAmharicVerseReferences(input);
+  if (amharicReferences.length) {
+    regexes.push(
+      new RegExp(
+        amharicReferences
+          .map(reference => escapeRegex(reference.text))
+          .sort((first, second) => second.length - first.length)
+          .join('|'),
+        'g',
+      ),
+    );
+  }
   if (versePattern) {
     regexes.push(new RegExp(versePattern.source, versePattern.flags));
   }
   regexes.push(new RegExp(GENERIC_VERSE_REFERENCE_REGEX.source, 'g'));
-
-  const parts = [];
-  let consumed = 0;
-
-  while (consumed < input.length) {
-    let earliestMatch = null;
-
-    regexes.forEach(regex => {
-      regex.lastIndex = consumed;
-      const match = regex.exec(input);
-      if (!match) {
-        return;
-      }
-
-      if (!earliestMatch || (match.index ?? 0) < (earliestMatch.index ?? 0)) {
-        earliestMatch = match;
-      }
-    });
-
-    if (!earliestMatch) {
-      parts.push({text: input.slice(consumed)});
-      break;
-    }
-
-    const verseText = earliestMatch[0];
-    const matchIndex = earliestMatch.index ?? 0;
-
-    if (matchIndex > consumed) {
-      parts.push({text: input.slice(consumed, matchIndex)});
-    }
-
-    parts.push({
-      text: verseText,
-      verseRef: verseText,
-    });
-    consumed = matchIndex + verseText.length;
-  }
-
-  return parts.filter(part => part.text);
+  return splitPlainTextVerseReferences(input, regexes, context);
 };
 
 const parseParagraphDisplayParts = html => {
@@ -228,6 +436,7 @@ const parseParagraphDisplayParts = html => {
   let cursor = 0;
   let match;
 
+  VERSE_LINK_REGEX.lastIndex = 0;
   while ((match = VERSE_LINK_REGEX.exec(innerHtml)) !== null) {
     const [fullMatch, attributes = '', anchorHtml = ''] = match;
     const matchStart = match.index;
@@ -286,7 +495,7 @@ const blockHasVerseReferences = html => {
   return displayParts.some(part =>
     new RegExp(GENERIC_VERSE_REFERENCE_REGEX.source, 'g').test(
       String(part?.text || ''),
-    ),
+    ) || findAmharicVerseReferences(part?.text || '').length > 0,
   );
 };
 
@@ -473,6 +682,10 @@ const NoteModal = ({isVisible, onClose, onSave, initialText, darkMode}) => {
 
 const SSLWeek = ({route}) => {
   const insets = useSafeAreaInsets();
+  const scrollBottomPadding = useMemo(
+    () => getFloatingTabScenePadding(insets) + 24,
+    [insets],
+  );
   const {ssl, weekId, lessonData, quarterData, videoLink} = route.params;
   const scrollRef = useRef();
   const navigation = useNavigation();
@@ -625,6 +838,36 @@ const SSLWeek = ({route}) => {
           ...block,
           text: normalizedText || block.text,
           displayParts,
+        });
+        return;
+      }
+
+      if (
+        String(block?.html || '')
+          .trim()
+          .toLowerCase()
+          .startsWith('<p') &&
+        blockHasVerseReferences(block?.html)
+      ) {
+        if (currentHighlightableBlocks.length > 0) {
+          segments.push({
+            id: `highlight-group-${segments.length}`,
+            type: 'highlightable',
+            blocks: currentHighlightableBlocks,
+          });
+          currentHighlightableBlocks = [];
+        }
+
+        const displayParts = parseParagraphDisplayParts(block.html);
+        const normalizedText = displayParts.map(part => part.text).join('');
+        segments.push({
+          id: `verse-block-${block.id}`,
+          type: 'verse-paragraph',
+          block: {
+            ...block,
+            text: normalizedText || block.text,
+            displayParts,
+          },
         });
         return;
       }
@@ -869,6 +1112,14 @@ const SSLWeek = ({route}) => {
       const verses = weekData?.bible?.[0]?.verses || {};
       const verseKeys = Object.keys(verses);
 
+      const localVerse = resolveAmharicVerseHtml(verseKey);
+      if (localVerse?.html) {
+        setSelectedVerseKey(localVerse.key);
+        setSelectedVerseContent(localVerse.html);
+        setIsModalOpen(true);
+        return;
+      }
+
       if (!verseKeys.length) {
         console.error(`Verse key "${verseKey}" not found`);
         return;
@@ -991,8 +1242,31 @@ const SSLWeek = ({route}) => {
       delete displayTextStyle.marginHorizontal;
       delete displayTextStyle.margin;
 
+      const verseContext = {};
       const interactiveSegments = parts.flatMap((part, partIndex) => {
         if (part?.verseRef) {
+          const localContext = {...verseContext};
+          const localSegments = splitAmharicVerseReferenceText(
+            part?.text || '',
+            localContext,
+          );
+          if (localSegments.some(segment => segment.verseRef)) {
+            Object.assign(verseContext, localContext);
+            return localSegments.map((segment, segmentIndex) => ({
+              key: `${block.id}-${partIndex}-${segmentIndex}`,
+              text: segment.text,
+              verseRef: segment.verseRef || null,
+            }));
+          }
+
+          const parsed = parseVerseReferenceParts(part.verseRef);
+          if (parsed) {
+            verseContext.book = parsed.book;
+            verseContext.chapter = parsed.chapter;
+          }
+          verseContext.expectsContinuation =
+            TRAILING_VERSE_SEPARATOR_REGEX.test(String(part.text || ''));
+
           return [
             {
               key: `${block.id}-${partIndex}`,
@@ -1005,6 +1279,7 @@ const SSLWeek = ({route}) => {
         return splitTextByVersePattern(
           part?.text || '',
           verseReferencePattern,
+          verseContext,
         ).map((item, itemIndex) => ({
           key: `${block.id}-${partIndex}-${itemIndex}`,
           text: item.text,
@@ -1490,10 +1765,28 @@ const SSLWeek = ({route}) => {
                   {
                     fontSize: scaled(26),
                     lineHeight: scaled(32),
-                    textDecorationLine: 'underline',
                   },
                 ]}>
-                {memoryText.reference}
+                {splitTextByVersePattern(
+                  memoryText.reference,
+                  verseReferencePattern,
+                  {},
+                ).map((part, partIndex) => (
+                  <Text
+                    key={`memory-reference-${index}-${partIndex}`}
+                    onPress={
+                      part.verseRef
+                        ? () => handleVerseClick(part.verseRef)
+                        : undefined
+                    }
+                    style={
+                      part.verseRef
+                        ? {textDecorationLine: 'underline'}
+                        : null
+                    }>
+                    {part.text}
+                  </Text>
+                ))}
               </Text>
             ) : null}
           </View>
@@ -1656,6 +1949,15 @@ const SSLWeek = ({route}) => {
     };
   };
   const modifiedContent = selectedVerseContent;
+  const verseModalTitleMatch = String(modifiedContent || '').match(
+    /<h2[^>]*>([\s\S]*?)<\/h2>/i,
+  );
+  const verseModalTitle = verseModalTitleMatch
+    ? stripHtmlTags(verseModalTitleMatch[1])
+    : selectedVerseKey;
+  const verseModalBody = verseModalTitleMatch
+    ? String(modifiedContent || '').replace(verseModalTitleMatch[0], '')
+    : modifiedContent;
   const directVideoEntries = directVideoMeta
     ? [
         {
@@ -1733,7 +2035,7 @@ const SSLWeek = ({route}) => {
         ref={scrollRef}
         onScrollBeginDrag={handleReaderScrollBegin}
         contentContainerStyle={{
-          paddingBottom: Platform.OS === 'android' ? 96 : 24,
+          paddingBottom: scrollBottomPadding,
         }}
         refreshControl={
           <RefreshControl
@@ -1862,6 +2164,22 @@ const SSLWeek = ({route}) => {
                 );
               }
 
+              if (segment.type === 'verse-paragraph') {
+                return (
+                  <View
+                    key={segment.id}
+                    style={[
+                      tw`rounded-4 px-2 py-1`,
+                      {marginBottom: interQuestionSpacing},
+                    ]}>
+                    {renderHighlightableParagraph({
+                      block: segment.block,
+                      textStyle: styles.p,
+                    })}
+                  </View>
+                );
+              }
+
               return (
                 <View
                   key={segment.id}
@@ -1928,21 +2246,34 @@ const SSLWeek = ({route}) => {
           ]}>
           <View
             style={[
-              tw`w-full max-w-lg rounded-2xl border border-accent-8 p-5`,
-              {backgroundColor: darkMode ? '#111827' : '#FFFFFF'},
+              tw`w-full max-w-lg rounded-2xl border border-accent-8 px-5 pb-5 pt-7`,
+              {
+                backgroundColor: darkMode ? '#111827' : '#FFFFFF',
+                maxHeight: verseModalMaxHeight,
+              },
             ]}>
+            {verseModalTitle ? (
+              <Text
+                style={{
+                  fontFamily: 'Nokia Pure Headline Bold',
+                  color: '#EA9215',
+                  fontSize: scaled(24),
+                  lineHeight: scaled(38),
+                  paddingTop: scaled(4),
+                  paddingBottom: scaled(8),
+                  includeFontPadding: true,
+                }}>
+                {verseModalTitle}
+              </Text>
+            ) : null}
             <ScrollView
-              contentContainerStyle={tw`p-0`}
+              contentContainerStyle={tw`pt-2 pb-1`}
               showsVerticalScrollIndicator={false}
               style={{
-                maxHeight:
-                  windowHeight -
-                  Math.max(insets.top, 40) -
-                  Math.max(insets.bottom, 24) -
-                  160,
+                maxHeight: verseModalMaxHeight - scaled(104),
               }}>
               <HtmlContent
-                html={`<div>${modifiedContent}</div>`}
+                html={`<div>${verseModalBody}</div>`}
                 baseStyle={{
                   fontFamily: 'Nokia Pure Headline Bold',
                   color: darkMode ? '#F8FAFC' : '#1F2937',
@@ -1978,9 +2309,9 @@ const SSLWeek = ({route}) => {
                     fontFamily: 'Nokia Pure Headline Bold',
                     color: '#EA9215',
                     fontSize: scaled(24),
-                    marginTop: 0,
+                    marginTop: 4,
                     marginBottom: 12,
-                    paddingTop: 0,
+                    paddingTop: 4,
                   },
                   sup: {
                     fontFamily: 'Nokia Pure Headline Bold',

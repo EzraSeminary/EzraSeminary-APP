@@ -32,6 +32,7 @@ import {useCachedImage} from '../../utils/imageCache';
 import {
   saveDevotionToCache,
   saveDevotionsToCache,
+  normalizeDevotionForHighlighting,
 } from '../../utils/devotionCache';
 import HighlightableBlock from '../../components/HighlightableBlock';
 import HighlightableHtmlBlocks from '../../components/HighlightableHtmlBlocks';
@@ -338,8 +339,12 @@ const PlanDevotionViewer = () => {
     setInlineHighlight,
   } = usePersistentHighlights(planHighlightKey);
   const currentDevotionBlocks = useMemo(
-    () => extractHtmlBlocks(currentDevotion?.body || []),
-    [currentDevotion?.body],
+    () =>
+      Array.isArray(currentDevotion?.bodyBlocks) &&
+      currentDevotion.bodyBlocks.length > 0
+        ? currentDevotion.bodyBlocks
+        : extractHtmlBlocks(currentDevotion?.body || []),
+    [currentDevotion?.body, currentDevotion?.bodyBlocks],
   );
   const audioUrl = getDevotionalAudioUrl(currentDevotion);
 
@@ -350,14 +355,16 @@ const PlanDevotionViewer = () => {
   // Cache devotions when they're loaded
   useEffect(() => {
     if (sortedDevotions && sortedDevotions.length > 0) {
-      saveDevotionsToCache(sortedDevotions);
+      saveDevotionsToCache(
+        sortedDevotions.map(normalizeDevotionForHighlighting),
+      );
     }
   }, [sortedDevotions]);
 
   // Cache current devotion when it changes
   useEffect(() => {
     if (currentDevotion && currentDevotion._id) {
-      saveDevotionToCache(currentDevotion);
+      saveDevotionToCache(normalizeDevotionForHighlighting(currentDevotion));
     }
   }, [currentDevotion]);
 
@@ -877,6 +884,7 @@ const PlanDevotionViewer = () => {
                     activeColorId={highlights['verse-card']}
                     onSelectColor={setHighlight}
                     onClearHighlight={clearHighlight}
+                    highlightSheetBottomOffset={scrollBottomPadding}
                     style={tw`rounded-4 p-1`}>
                     <Text
                       selectable
@@ -928,6 +936,7 @@ const PlanDevotionViewer = () => {
                     activeColorId={highlights['prayer-card']}
                     onSelectColor={setHighlight}
                     onClearHighlight={clearHighlight}
+                    highlightSheetBottomOffset={scrollBottomPadding}
                     style={tw`rounded-4 p-1`}>
                     <Text
                       style={[
@@ -1036,7 +1045,10 @@ const PlanDevotionViewer = () => {
           style={{position: 'absolute', top: 0, right: 0, bottom: 0, left: 0}}>
           <View
             pointerEvents="box-none"
-            style={[tw`absolute left-3 right-3`, {bottom: 16}]}>
+            style={[
+              tw`absolute left-3 right-3`,
+              {bottom: scrollBottomPadding},
+            ]}>
             <HighlightActionSheet
               visible={Boolean(floatingHighlightSheet?.visible)}
               useModal={false}

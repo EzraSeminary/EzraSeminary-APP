@@ -17,6 +17,7 @@ const HighlightableBlock = ({
   style,
   children,
   disabled = false,
+  highlightSheetBottomOffset,
 }) => {
   const [showSingleSheet, setShowSingleSheet] = useState(false);
   const highlightColors = getHighlightColors(activeColorId, darkMode);
@@ -88,6 +89,7 @@ const HighlightableBlock = ({
             }
             setShowSingleSheet(false);
           }}
+          bottomOffset={highlightSheetBottomOffset}
         />
       )}
     </>

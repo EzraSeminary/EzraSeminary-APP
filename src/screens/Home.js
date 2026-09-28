@@ -19,6 +19,7 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {
   useGetDevotionsByYearAndMonthQuery,
   useGetDevotionsQuery,
+  useGetAdminDevotionPreviewQuery,
   useGetPublishedCoursesQuery,
   useGetDevotionPlansQuery,
   useGetMyDevotionPlansQuery,
@@ -56,6 +57,7 @@ import {
   normalizeEthiopianMonth,
 } from '../utils/ethiopianCalendar';
 import {selectSeriesDevotionForDate} from '../utils/devotionalSeries';
+import {normalizeDevotionForHighlighting} from '../utils/devotionCache';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {getFloatingTabScenePadding} from '../navigation/floatingTabBarStyles';
 import useCurrentDate from '../hooks/useCurrentDate';
@@ -70,6 +72,13 @@ const toEthDate = date => {
     day: ethDateTime.date,
     monthName: normalizeEthiopianMonth(ETHIOPIAN_MONTHS[ethDateTime.month]),
   };
+};
+
+const formatLocalDateKey = date => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const findDevotionWithOffset = (
@@ -135,6 +144,15 @@ const Home = () => {
   } = toEthDate(today);
   // Always fetch current Ethiopian year data for Home screen
   const yearToFetch = currentEthiopianYear;
+  const todayDateKey = useMemo(() => formatLocalDateKey(today), [today]);
+  const {
+    data: previewDevotion,
+    isFetching: isPreviewDevotionFetching,
+    refetch: refetchPreviewDevotion,
+  } = useGetAdminDevotionPreviewQuery(
+    {date: todayDateKey, year: yearToFetch},
+    {skip: !todayDateKey || !yearToFetch},
+  );
   const alternateMonthName = useMemo(() => {
     if (currentEthiopianMonth === 'ሚያዚያ') return 'ሚያዝያ';
     if (currentEthiopianMonth === 'ሚያዝያ') return 'ሚያዚያ';
@@ -175,7 +193,9 @@ const Home = () => {
     );
   }, [primaryMonthDevotions, alternateMonthDevotions]);
   const isFetching =
-    isPrimaryDevotionsFetching || isAlternateDevotionsFetching;
+    isPrimaryDevotionsFetching ||
+    isAlternateDevotionsFetching ||
+    isPreviewDevotionFetching;
   const devotionsLoading =
     isPrimaryDevotionsLoading || isAlternateDevotionsLoading;
   const devotionsError =
@@ -193,7 +213,11 @@ const Home = () => {
     sort: 'desc',
   });
   const refetchDevotions = useCallback(async () => {
-    const calls = [refetchPrimaryDevotions(), refetchYearDevotions()];
+    const calls = [
+      refetchPrimaryDevotions(),
+      refetchYearDevotions(),
+      refetchPreviewDevotion(),
+    ];
     if (alternateMonthName) {
       calls.push(refetchAlternateDevotions());
     }
@@ -203,6 +227,7 @@ const Home = () => {
     refetchPrimaryDevotions,
     refetchAlternateDevotions,
     refetchYearDevotions,
+    refetchPreviewDevotion,
   ]);
 
   const {
@@ -532,16 +557,28 @@ const Home = () => {
         };
         // Compact the data to reduce storage size
         const compact = data =>
-          (data || []).map(d => ({
-            _id: d._id,
-            title: d.title,
-            month: d.month,
-            day: d.day,
-            image: d.image,
-            verse: d.verse,
-            chapter: d.chapter,
-            year: d.year,
-          }));
+          (data || []).map(devotion => {
+            const d = normalizeDevotionForHighlighting(devotion);
+            return {
+              _id: d._id,
+              title: d.title,
+              month: d.month,
+              day: d.day,
+              image: d.image,
+              verse: d.verse,
+              chapter: d.chapter,
+              prayer: d.prayer,
+              year: d.year,
+              body: d.body,
+              bodyBlocks: d.bodyBlocks,
+              isSeries: d.isSeries,
+              seriesDay: d.seriesDay,
+              seriesOrder: d.seriesOrder,
+              seriesTitle: d.seriesTitle,
+              seriesName: d.seriesName,
+              seriesId: d.seriesId,
+            };
+          });
 
         const minimized = {
           devotions: compact(devotionsData),
@@ -633,23 +670,6 @@ const Home = () => {
       yearDevotionsToUse.length > 0 ? yearDevotionsToUse : devotionsToUse;
 
     if (selectedDevotionsSource && selectedDevotionsSource.length > 0) {
-      const seriesDevotion = selectSeriesDevotionForDate(
-        selectedDevotionsSource,
-        today,
-      );
-      if (seriesDevotion) {
-        setSelectedDevotion(seriesDevotion);
-        if (__DEV__) {
-          console.log('[Home] Devotion - Selected series devotion:', {
-            id: seriesDevotion?._id,
-            month: seriesDevotion?.month,
-            day: seriesDevotion?.day,
-            seriesDay: seriesDevotion?.seriesDay || seriesDevotion?.seriesOrder,
-          });
-        }
-        return;
-      }
-
       const normalizeMonth = month => normalizeEthiopianMonth(month);
       const exactTodayDevotion = findDevotionWithOffset(
         selectedDevotionsSource,
@@ -674,19 +694,63 @@ const Home = () => {
       );
       const todaysDevotion =
         exactTodayDevotion || minusOneDevotion || minusTwoDevotion;
-      setSelectedDevotion(todaysDevotion || selectedDevotionsSource[0] || null);
+      if (todaysDevotion) {
+        setSelectedDevotion(todaysDevotion);
+        if (__DEV__) {
+          console.log('[Home] Devotion - Selected dated devotion:', {
+            id: todaysDevotion._id,
+            month: todaysDevotion.month,
+            day: todaysDevotion.day,
+          });
+        }
+        return;
+      }
+
+      if (previewDevotion?._id) {
+        setSelectedDevotion(previewDevotion);
+        if (__DEV__) {
+          console.log('[Home] Devotion - Selected preview devotion:', {
+            id: previewDevotion?._id,
+            month: previewDevotion?.month,
+            day: previewDevotion?.day,
+            date: todayDateKey,
+          });
+        }
+        return;
+      }
+
+      const seriesDevotion = selectSeriesDevotionForDate(
+        selectedDevotionsSource,
+        today,
+      );
+      if (seriesDevotion) {
+        setSelectedDevotion(seriesDevotion);
+        if (__DEV__) {
+          console.log('[Home] Devotion - Selected series devotion:', {
+            id: seriesDevotion?._id,
+            month: seriesDevotion?.month,
+            day: seriesDevotion?.day,
+            seriesDay: seriesDevotion?.seriesDay || seriesDevotion?.seriesOrder,
+          });
+        }
+        return;
+      }
+
+      setSelectedDevotion(selectedDevotionsSource[0] || null);
       if (__DEV__) {
         console.log('[Home] Devotion - Selected devotion:', {
-          isTodaysMatch: !!todaysDevotion,
-          selected: (todaysDevotion || selectedDevotionsSource[0])
+          isTodaysMatch: false,
+          selected: selectedDevotionsSource[0]
             ? {
-                id: (todaysDevotion || selectedDevotionsSource[0])._id,
-                month: (todaysDevotion || selectedDevotionsSource[0]).month,
-                day: (todaysDevotion || selectedDevotionsSource[0]).day,
+                id: selectedDevotionsSource[0]._id,
+                month: selectedDevotionsSource[0].month,
+                day: selectedDevotionsSource[0].day,
               }
             : null,
         });
       }
+    } else if (previewDevotion?._id) {
+      setSelectedDevotion(previewDevotion);
     } else {
       setSelectedDevotion(null);
     }
@@ -696,8 +760,10 @@ const Home = () => {
     persistedDevotions,
     cachedData.devotions,
     yearDevotions,
+    previewDevotion,
     currentEthiopianMonth,
     today,
+    todayDateKey,
     yearToFetch,
   ]);
 
@@ -768,7 +834,7 @@ const Home = () => {
       coursesToDisplay.length > 0
     ) {
       saveHomeScreenToCache('Home', {
-        devotions: devotionsToDisplay,
+        devotions: devotionsToDisplay.map(normalizeDevotionForHighlighting),
         courses: coursesToDisplay,
         lastCacheTime: new Date().toISOString(),
       });

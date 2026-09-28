@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {Platform, Text, TextInput, View} from 'react-native';
+import {AppState, Platform, Text, TextInput, View} from 'react-native';
 import HTMLView from 'react-native-htmlview';
 import {getHighlightColors} from '../utils/highlightPalette';
 import HighlightActionSheet from './HighlightActionSheet';
@@ -205,6 +205,7 @@ const HighlightableHtmlBlocksBase = ({
   const inputRef = useRef(null);
   const containerOffsetYRef = useRef(0);
   const blockLayoutsRef = useRef({});
+  const ignoreSelectionUntilRef = useRef(0);
 
   const blockRanges = useMemo(() => buildBlockRanges(blocks), [blocks]);
 
@@ -259,11 +260,28 @@ const HighlightableHtmlBlocksBase = ({
     isInputFocused || selection.start !== selection.end;
 
   const clearSelection = useCallback(() => {
+    ignoreSelectionUntilRef.current = Date.now() + 350;
     setSelection({start: 0, end: 0});
     setIsInputFocused(false);
     inputRef.current?.blur?.();
     setInputResetKey(previous => previous + 1);
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') {
+      return undefined;
+    }
+
+    const subscription = AppState.addEventListener('change', nextState => {
+      if (nextState !== 'active') {
+        clearSelection();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [clearSelection]);
 
   const applyInlineHighlight = useCallback(
     async colorId => {
@@ -480,10 +498,14 @@ const HighlightableHtmlBlocksBase = ({
         multiline
         value={content}
         editable={selectionSurfaceEditable}
+        selection={selection}
         onChangeText={() => {}}
         onFocus={() => setIsInputFocused(true)}
         onBlur={() => setIsInputFocused(false)}
         onSelectionChange={({nativeEvent}) => {
+          if (Date.now() < ignoreSelectionUntilRef.current) {
+            return;
+          }
           setSelection(nativeEvent.selection);
         }}
         onContentSizeChange={({nativeEvent}) => {
@@ -492,7 +514,9 @@ const HighlightableHtmlBlocksBase = ({
           );
         }}
         selectionColor={SELECTION_COLOR}
+        cursorColor="transparent"
         showSoftInputOnFocus={false}
+        caretHidden={Platform.OS === 'android'}
         contextMenuHidden={false}
         scrollEnabled={false}
         autoCorrect={false}

@@ -44,6 +44,7 @@ import HighlightActionSheet from '../../components/HighlightActionSheet';
 import {
   saveDevotionToCache,
   getCachedDevotion,
+  normalizeDevotionForHighlighting,
 } from '../../utils/devotionCache';
 import {toEthiopian} from 'ethiopian-date';
 import usePersistentHighlights from '../../hooks/usePersistentHighlights';
@@ -277,8 +278,11 @@ const SelectedDevotional = ({route}) => {
     clearInlineHighlights,
   } = usePersistentHighlights(highlightCacheKey);
   const devotionalBodyBlocks = useMemo(
-    () => extractHtmlBlocks(devotional.body || []),
-    [devotional.body],
+    () =>
+      Array.isArray(devotional.bodyBlocks) && devotional.bodyBlocks.length > 0
+        ? devotional.bodyBlocks
+        : extractHtmlBlocks(devotional.body || []),
+    [devotional.body, devotional.bodyBlocks],
   );
   const audioUrl = getDevotionalAudioUrl(devotional);
   const isSeriesEntry = isSeriesDevotion(devotional);
@@ -299,7 +303,7 @@ const SelectedDevotional = ({route}) => {
         try {
           const cached = await getCachedDevotion(devotionalId);
           if (cached) {
-            setCachedDevotional(cached);
+            setCachedDevotional(normalizeDevotionForHighlighting(cached));
             setIsUsingCache(true);
             console.log('📦 Using cached devotional data (offline/error)');
           }
@@ -319,7 +323,7 @@ const SelectedDevotional = ({route}) => {
   // Cache devotion when it's loaded
   useEffect(() => {
     if (devotional && devotional._id && !isUsingCache) {
-      saveDevotionToCache(devotional);
+      saveDevotionToCache(normalizeDevotionForHighlighting(devotional));
     }
   }, [devotional, isUsingCache]);
 
@@ -746,6 +750,7 @@ const SelectedDevotional = ({route}) => {
               activeColorId={highlights['verse-card']}
               onSelectColor={setHighlight}
               onClearHighlight={clearHighlight}
+              highlightSheetBottomOffset={scrollBottomPadding}
               style={tw`rounded-4 p-1`}>
               <>
                 <Text
@@ -814,6 +819,7 @@ const SelectedDevotional = ({route}) => {
               activeColorId={highlights['prayer-card']}
               onSelectColor={setHighlight}
               onClearHighlight={clearHighlight}
+              highlightSheetBottomOffset={scrollBottomPadding}
               style={tw`rounded-4 p-1`}>
               <Text
                 style={[
@@ -977,7 +983,10 @@ const SelectedDevotional = ({route}) => {
         <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
           <View
             pointerEvents="box-none"
-            style={[tw`absolute left-3 right-3`, {bottom: 16}]}>
+            style={[
+              tw`absolute left-3 right-3`,
+              {bottom: scrollBottomPadding},
+            ]}>
             <HighlightActionSheet
               visible={Boolean(floatingHighlightSheet?.visible)}
               useModal={false}

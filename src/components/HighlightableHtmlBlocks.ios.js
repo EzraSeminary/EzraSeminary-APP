@@ -5,7 +5,7 @@ const HighlightableHtmlBlocks = props => (
   <HighlightableHtmlBlocksBase
     {...props}
     displayPointerEvents="none"
-    keepDisplayVisibleDuringSelection={false}
+    keepDisplayVisibleDuringSelection={true}
   />
 );
 

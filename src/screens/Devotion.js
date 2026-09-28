@@ -77,6 +77,7 @@ import {
   isSeriesDevotion,
   selectSeriesDevotionForDate,
 } from '../utils/devotionalSeries';
+import {normalizeDevotionForHighlighting} from '../utils/devotionCache';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {getFloatingTabScenePadding} from '../navigation/floatingTabBarStyles';
 import useCurrentDate from '../hooks/useCurrentDate';
@@ -296,10 +297,12 @@ const Devotion = () => {
       const homeData = {
         devotions:
           discoverDevotions.length > 0
-            ? discoverDevotions
-            : featuredMonthDevotions,
+            ? discoverDevotions.map(normalizeDevotionForHighlighting)
+            : featuredMonthDevotions.map(normalizeDevotionForHighlighting),
         devotionPlans,
-        devotionToDisplay: devotionToDisplay || null,
+        devotionToDisplay: devotionToDisplay
+          ? normalizeDevotionForHighlighting(devotionToDisplay)
+          : null,
         myDevotionPlans: myDevotionPlans || [],
         completedPlans: completedPlans || [],
       };
@@ -395,19 +398,50 @@ const Devotion = () => {
       return null;
     }
 
-    const seriesDevotion = selectSeriesDevotionForDate(devotionsToUse, today);
-    if (seriesDevotion) {
-      return seriesDevotion;
-    }
-
     const normalizeMonth = month => normalizeEthiopianMonth(month);
-    const todaysDevotion = findDevotionWithOffset(
-      displayFeaturedDevotions,
+    const datedDevotions = [...displayFeaturedDevotions, ...devotionsToUse].filter(
+      (item, index, source) => {
+        const key =
+          item?._id ||
+          `${item?.year || 'legacy'}-${item?.month || ''}-${
+            item?.day || ''
+          }-${item?.title || ''}`;
+        return (
+          index ===
+          source.findIndex(other => {
+            const otherKey =
+              other?._id ||
+              `${other?.year || 'legacy'}-${other?.month || ''}-${
+                other?.day || ''
+              }-${other?.title || ''}`;
+            return otherKey === key;
+          })
+        );
+      },
+    );
+    const exactTodayDevotion = findDevotionWithOffset(
+      datedDevotions,
       0,
       today,
       yearToFetch,
       normalizeMonth,
     );
+    const minusOneDevotion = findDevotionWithOffset(
+      datedDevotions,
+      1,
+      today,
+      yearToFetch,
+      normalizeMonth,
+    );
+    const minusTwoDevotion = findDevotionWithOffset(
+      datedDevotions,
+      2,
+      today,
+      yearToFetch,
+      normalizeMonth,
+    );
+    const todaysDevotion =
+      exactTodayDevotion || minusOneDevotion || minusTwoDevotion;
 
     // Log whether we found today's devotion or using fallback
     if (todaysDevotion) {
@@ -420,7 +454,16 @@ const Devotion = () => {
       );
     }
 
-    return todaysDevotion || null;
+    if (todaysDevotion) {
+      return todaysDevotion;
+    }
+
+    const seriesDevotion = selectSeriesDevotionForDate(devotionsToUse, today);
+    if (seriesDevotion) {
+      return seriesDevotion;
+    }
+
+    return null;
   }, [
     displayDevotions,
     displayFeaturedDevotions,
@@ -452,8 +495,12 @@ const Devotion = () => {
     clearInlineHighlights,
   } = usePersistentHighlights(devotionHighlightKey);
   const devotionBodyBlocks = useMemo(
-    () => extractHtmlBlocks(devotionToDisplay?.body || []),
-    [devotionToDisplay?.body],
+    () =>
+      Array.isArray(devotionToDisplay?.bodyBlocks) &&
+      devotionToDisplay.bodyBlocks.length > 0
+        ? devotionToDisplay.bodyBlocks
+        : extractHtmlBlocks(devotionToDisplay?.body || []),
+    [devotionToDisplay?.body, devotionToDisplay?.bodyBlocks],
   );
   const audioUrl = getDevotionalAudioUrl(devotionToDisplay);
   const isSeriesEntry = isSeriesDevotion(devotionToDisplay);
@@ -1146,6 +1193,7 @@ const Devotion = () => {
               activeColorId={highlights['verse-card']}
               onSelectColor={setHighlight}
               onClearHighlight={clearHighlight}
+              highlightSheetBottomOffset={scrollBottomPadding}
               style={tw`rounded-4 p-1`}>
               <>
                 <Text
@@ -1214,6 +1262,7 @@ const Devotion = () => {
               activeColorId={highlights['prayer-card']}
               onSelectColor={setHighlight}
               onClearHighlight={clearHighlight}
+              highlightSheetBottomOffset={scrollBottomPadding}
               style={tw`rounded-4 p-1`}>
               <Text
                 style={[
@@ -1504,7 +1553,10 @@ const Devotion = () => {
         <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
           <View
             pointerEvents="box-none"
-            style={[tw`absolute left-3 right-3`, {bottom: 16}]}>
+            style={[
+              tw`absolute left-3 right-3`,
+              {bottom: scrollBottomPadding},
+            ]}>
             <HighlightActionSheet
               visible={Boolean(floatingHighlightSheet?.visible)}
               useModal={false}

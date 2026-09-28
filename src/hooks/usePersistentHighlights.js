@@ -44,40 +44,67 @@ const usePersistentHighlights = cacheKey => {
   });
   const [isLoaded, setIsLoaded] = useState(false);
   const stateRef = useRef(state);
+  const cacheKeyRef = useRef(cacheKey);
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
   useEffect(() => {
+    cacheKeyRef.current = cacheKey;
+  }, [cacheKey]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const loadHighlights = async () => {
+      const requestedCacheKey = cacheKey;
+
       try {
-        const saved = await AsyncStorage.getItem(createStorageKey(cacheKey));
+        const saved = await AsyncStorage.getItem(
+          createStorageKey(requestedCacheKey),
+        );
         const parsed = saved ? JSON.parse(saved) : {};
 
-        if (isMounted) {
-          setState(normalizeHighlightState(parsed));
+        if (isMounted && cacheKeyRef.current === requestedCacheKey) {
+          const nextState = normalizeHighlightState(parsed);
+          stateRef.current = nextState;
+          setState(nextState);
         }
       } catch (error) {
         console.error('Error loading highlights:', error);
-        if (isMounted) {
-          setState({
+        if (isMounted && cacheKeyRef.current === requestedCacheKey) {
+          const emptyState = {
             blockHighlights: {},
             inlineHighlights: {},
-          });
+          };
+          stateRef.current = emptyState;
+          setState(emptyState);
         }
       } finally {
-        if (isMounted) {
+        if (isMounted && cacheKeyRef.current === requestedCacheKey) {
           setIsLoaded(true);
         }
       }
     };
 
     if (cacheKey) {
+      const emptyState = {
+        blockHighlights: {},
+        inlineHighlights: {},
+      };
+      stateRef.current = emptyState;
+      setState(emptyState);
       setIsLoaded(false);
       loadHighlights();
+    } else {
+      const emptyState = {
+        blockHighlights: {},
+        inlineHighlights: {},
+      };
+      stateRef.current = emptyState;
+      setState(emptyState);
+      setIsLoaded(true);
     }
 
     return () => {
@@ -87,6 +114,10 @@ const usePersistentHighlights = cacheKey => {
 
   const persist = useCallback(
     async nextStateOrUpdater => {
+      if (!cacheKey) {
+        return;
+      }
+
       const currentState = stateRef.current;
       const nextState =
         typeof nextStateOrUpdater === 'function'
