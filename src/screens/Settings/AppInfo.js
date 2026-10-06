@@ -11,9 +11,11 @@ import tw from './../../../tailwind';
 import {useSelector} from 'react-redux';
 import {ArrowSquareLeft} from 'phosphor-react-native';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
+import {getAppVersion} from '../../utils/appVersion';
 
 const AppInfo = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
+  const appVersion = getAppVersion();
   const styles = StyleSheet.create({
     container: tw`flex-1 items-center w-92% mx-auto pb-8`,
     title: tw`font-nokia-bold text-2xl text-accent-6 my-2 border-b border-accent-6`,
@@ -104,7 +106,7 @@ const AppInfo = ({navigation}) => {
               tw`font-nokia-bold text-accent-5 text-xs text-center`,
               darkMode && tw`text-primary-3`,
             ]}>
-            Version 1.1
+            Version {appVersion}
           </Text>
           <TouchableOpacity
             style={tw`border border-accent-6 rounded-full mt-4 px-4 py-1`}

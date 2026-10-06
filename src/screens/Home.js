@@ -23,6 +23,7 @@ import {
   useGetPublishedCoursesQuery,
   useGetDevotionPlansQuery,
   useGetMyDevotionPlansQuery,
+  useGetLiveStreamQuery,
   apiSlice,
 } from '../redux/api-slices/apiSlice';
 import networkManager from '../utils/networkManager';
@@ -34,6 +35,8 @@ import CourseCard from '../components/CourseCard';
 import Header from '../components/Header';
 import DevotionPlanSquareCard from '../components/DevotionPlanSquareCard';
 import StartDevotionPlanModal from '../components/StartDevotionPlanModal';
+import LiveStreamCard from '../components/LiveStreamCard';
+import HomeSermonsSection from '../components/HomeSermonsSection';
 import {setDevotions} from '../redux/devotionsSlice';
 import {setCourses} from '../redux/courseSlice';
 import {scheduleVerseOfTheDayNotification} from '../utils/notifications';
@@ -153,6 +156,13 @@ const Home = () => {
     {date: todayDateKey, year: yearToFetch},
     {skip: !todayDateKey || !yearToFetch},
   );
+  const {
+    data: liveStream,
+    isLoading: liveStreamLoading,
+    isFetching: liveStreamFetching,
+    error: liveStreamError,
+    refetch: refetchLiveStream,
+  } = useGetLiveStreamQuery();
   const alternateMonthName = useMemo(() => {
     if (currentEthiopianMonth === 'ሚያዚያ') return 'ሚያዝያ';
     if (currentEthiopianMonth === 'ሚያዝያ') return 'ሚያዚያ';
@@ -1432,6 +1442,16 @@ const Home = () => {
               isRefreshing={isBackgroundRefreshing}
             />
 
+            <LiveStreamCard
+              liveStream={liveStream}
+              isLoading={
+                liveStreamLoading || (liveStreamFetching && !liveStream)
+              }
+              error={liveStreamError}
+              onRetry={refetchLiveStream}
+              darkMode={darkMode}
+            />
+
             {/* Enhanced Welcome Section */}
             {user && (
               <Animated.View
@@ -1880,6 +1900,8 @@ const Home = () => {
                 </Text>
               </View>
             )}
+
+            <HomeSermonsSection darkMode={darkMode} navigation={navigation} />
 
             {/* Previous devotions removed for faster startup */}
           </Animated.View>

@@ -13,11 +13,18 @@ import {XCircle} from 'phosphor-react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {useNavigation} from '@react-navigation/native';
 import {useSelector} from 'react-redux';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../../navigation/floatingTabBarStyles';
 
 const SlideSample1 = ({route}) => {
   const {chapterTitle, courseDescription, chapterId, CId} = route.params;
   const navigation = useNavigation();
   const darkMode = useSelector(state => state.ui.darkMode);
+  const insets = useSafeAreaInsets();
+  const bottomControlPadding = Math.max(
+    getFloatingTabScenePadding(insets) - 40,
+    24,
+  );
   const handleOpenCourse = () => {
     navigation.navigate('SlideSample2', {
       courseId: CId,
@@ -45,7 +52,11 @@ const SlideSample1 = ({route}) => {
             darkMode ? tw`bg-secondary-9 bg-opacity-85` : null,
           ]}
         />
-        <View style={tw`flex-grow justify-between pt-8 px-2`}>
+        <View
+          style={[
+            tw`flex-grow justify-between pt-8 px-2`,
+            {paddingBottom: bottomControlPadding},
+          ]}>
           <View>
             <View style={tw`flex flex-row items-center justify-between`}>
               <View style={tw`flex flex-row items-center gap-3`}>

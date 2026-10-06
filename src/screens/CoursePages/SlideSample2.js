@@ -54,6 +54,8 @@ import {
   saveProgressForLaterSync,
   syncPendingCourseProgressForCourse,
 } from '../../utils/courseProgress';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../../navigation/floatingTabBarStyles';
 
 const INTERACTIVE_ELEMENT_TYPES = [
   'quiz',
@@ -80,6 +82,11 @@ const SlideSample2 = ({route}) => {
   const [cachedCourseData, setCachedCourseData] = useState(null);
   const [menuVisible, setMenuVisible] = React.useState(false);
   const darkMode = useSelector(state => state.ui.darkMode);
+  const insets = useSafeAreaInsets();
+  const bottomControlPadding = Math.max(
+    getFloatingTabScenePadding(insets) - 40,
+    24,
+  );
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -518,7 +525,10 @@ const SlideSample2 = ({route}) => {
                 updateActiveElementFromOffset(event.nativeEvent.contentOffset.y)
               }
               scrollEventThrottle={16}
-              contentContainerStyle={tw`flex-grow justify-center pt-8 px-2`}
+              contentContainerStyle={[
+                tw`flex-grow justify-center pt-8 px-2`,
+                {paddingBottom: 16},
+              ]}
               showsVerticalScrollIndicator={false}>
               {data.map((slides, index) => {
                 if (index === activeIndex) {
@@ -711,7 +721,11 @@ const SlideSample2 = ({route}) => {
             </ScrollView>
           </View>
           <View style={tw`border-b border-accent-6 mt-2`} />
-          <View style={tw`flex-none`}>
+          <View
+            style={[
+              tw`flex-none`,
+              {paddingBottom: bottomControlPadding},
+            ]}>
             <View style={tw`flex-row justify-between px-4 my-2`}>
               {!onFirstSlide && (
                 <TouchableOpacity

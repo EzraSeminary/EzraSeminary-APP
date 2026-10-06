@@ -1,13 +1,5 @@
 import React, {useState} from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ImageBackground,
-  Modal,
-  ScrollView,
-  Pressable,
-} from 'react-native';
+import {View, Text, TouchableOpacity, ImageBackground} from 'react-native';
 import {
   BookOpenText,
   Heart,
@@ -31,11 +23,6 @@ import {
   getDevotionOrderValue,
   isSeriesDevotion,
 } from '../utils/devotionalSeries';
-import HTMLView from 'react-native-htmlview';
-import {
-  resolveAmharicVerseHtml,
-  splitAmharicVerseReferenceText,
-} from '../utils/amharicBibleParser';
 
 const getMainVerseText = devotion =>
   devotion?.mainVerse ||
@@ -54,9 +41,6 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
     devotion.commentsCount || 0,
   );
   const [isSharing, setIsSharing] = useState(false);
-  const [selectedVerseContent, setSelectedVerseContent] = useState('');
-  const [selectedVerseKey, setSelectedVerseKey] = useState('');
-  const [isVerseModalOpen, setIsVerseModalOpen] = useState(false);
 
   const {data: likesData, refetch: refetchLikes} = useGetDevotionLikesQuery(
     devotion._id,
@@ -228,26 +212,6 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
     verse = verseText;
   }
 
-  const referencePartsContext = {};
-  const parsedReferenceParts = splitAmharicVerseReferenceText(
-    reference,
-    referencePartsContext,
-  );
-  const referenceParts = parsedReferenceParts.length
-    ? parsedReferenceParts
-    : [{text: reference}];
-
-  const handleVersePress = verseRef => {
-    const localVerse = resolveAmharicVerseHtml(verseRef);
-    if (!localVerse?.html) {
-      return;
-    }
-
-    setSelectedVerseKey(localVerse.key);
-    setSelectedVerseContent(localVerse.html);
-    setIsVerseModalOpen(true);
-  };
-
   const seriesDayNumber = getDevotionOrderValue(devotion) || devotion.day;
   const devotionDateLabel = isSeriesDevotion(devotion)
     ? seriesDayNumber
@@ -304,18 +268,7 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
               tw`font-nokia-bold text-accent-6 text-lg leading-tight`,
               darkMode ? tw`text-accent-6` : null,
             ]}>
-            {referenceParts.map((part, partIndex) => (
-              <Text
-                key={`home-reference-${partIndex}`}
-                onPress={
-                  part.verseRef ? () => handleVersePress(part.verseRef) : null
-                }
-                style={
-                  part.verseRef ? {textDecorationLine: 'underline'} : null
-                }>
-                {part.text}
-              </Text>
-            ))}
+            {reference}
           </Text>
         </View>
       </View>
@@ -365,59 +318,6 @@ const DevotionCard = ({devotion, darkMode, navigation}) => {
         devotionId={devotion._id}
         darkMode={darkMode}
       />
-
-      <Modal
-        visible={isVerseModalOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsVerseModalOpen(false)}>
-        <Pressable
-          style={tw`flex-1 bg-black bg-opacity-60 justify-center px-5`}
-          onPress={() => setIsVerseModalOpen(false)}>
-          <Pressable
-            style={[
-              tw`rounded-4 p-4 max-h-[70%]`,
-              darkMode ? tw`bg-secondary-8` : tw`bg-primary-1`,
-            ]}
-            onPress={() => undefined}>
-            <View style={tw`flex-row items-center justify-between mb-3`}>
-              <Text
-                style={[
-                  tw`font-nokia-bold text-lg flex-1 pr-3`,
-                  darkMode ? tw`text-primary-1` : tw`text-secondary-6`,
-                ]}>
-                {selectedVerseKey}
-              </Text>
-              <TouchableOpacity
-                style={tw`px-3 py-1 rounded-full bg-accent-6`}
-                onPress={() => setIsVerseModalOpen(false)}>
-                <Text style={tw`font-nokia-bold text-primary-1`}>ዝጋ</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView>
-              <HTMLView
-                value={selectedVerseContent}
-                stylesheet={{
-                  h2: {
-                    display: 'none',
-                  },
-                  p: {
-                    color: darkMode ? '#F8FAFC' : '#1F2937',
-                    fontSize: 18,
-                    lineHeight: 30,
-                    fontFamily: 'NokiaKokiaBold',
-                  },
-                  sup: {
-                    color: '#EA9215',
-                    fontSize: 13,
-                    fontFamily: 'NokiaKokiaBold',
-                  },
-                }}
-              />
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </ImageBackground>
   );
 };

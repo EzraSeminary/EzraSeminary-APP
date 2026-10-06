@@ -7,9 +7,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect, useMemo} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from './../../../tailwind';
 import {useGetCourseByIdQuery} from './../../services/api';
@@ -31,6 +30,8 @@ import {syncPendingCourseProgressForCourse} from '../../utils/courseProgress';
 import {updateUser} from '../../redux/authSlice';
 import Toast from 'react-native-toast-message';
 import AndroidStatusBarSpacer from '../../components/AndroidStatusBarSpacer';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../../navigation/floatingTabBarStyles';
 
 const CourseContent = ({route}) => {
   const {courseId} = route.params;
@@ -39,6 +40,13 @@ const CourseContent = ({route}) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const darkMode = useSelector(state => state.ui.darkMode);
   const currentUser = useSelector(state => state.auth.user);
+  const insets = useSafeAreaInsets();
+  const scrollContentStyle = useMemo(
+    () => ({
+      paddingBottom: getFloatingTabScenePadding(insets),
+    }),
+    [insets],
+  );
 
   // console.log(currentUser);
 
@@ -261,9 +269,7 @@ const CourseContent = ({route}) => {
         <AndroidStatusBarSpacer minHeight={4} />
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingBottom: Platform.OS === 'android' ? 120 : 32,
-          }}
+          contentContainerStyle={scrollContentStyle}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}

@@ -11,6 +11,7 @@
 		0136994A766C4652B9E0A754 /* Sur_Graphics_Extra_Bold_15c4e92309.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F08BAEE56D8140D78694AC9C /* Sur_Graphics_Extra_Bold_15c4e92309.ttf */; };
 		0371880A74264BC986CC894C /* Lato-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 300F4DDEB03D4548972EFE42 /* Lato-Black.ttf */; };
 		038979B432ED4D2AAC0804CD /* Lato-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5401A7A231224EA487A092FC /* Lato-Bold.ttf */; };
+		0BDA3F651F314834A015D001 /* AppVersionModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 0BDA3F641F314834A015D001 /* AppVersionModule.m */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
@@ -51,6 +52,7 @@
 		00E356F11AD99517003FC87E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00E356F21AD99517003FC87E /* EzraAppTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EzraAppTests.m; sourceTree = "<group>"; };
 		06F6D518F43B415AB642E680 /* Lato-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lato-Regular.ttf"; path = "../assets/fonts/Lato-Regular.ttf"; sourceTree = "<group>"; };
+		0BDA3F641F314834A015D001 /* AppVersionModule.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppVersionModule.m; path = EzraApp/AppVersionModule.m; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* EzraApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EzraApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = EzraApp/AppDelegate.h; sourceTree = "<group>"; };
 		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = EzraApp/AppDelegate.mm; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 				321561F72B91DB32003719E0 /* EzraApp.entitlements */,
 				13B07FAF1A68108700A75B9A /* AppDelegate.h */,
 				13B07FB01A68108700A75B9A /* AppDelegate.mm */,
+				0BDA3F641F314834A015D001 /* AppVersionModule.m */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
@@ -508,6 +511,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
+				0BDA3F651F314834A015D001 /* AppVersionModule.m in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -583,7 +587,7 @@
 				CODE_SIGN_ENTITLEMENTS = EzraApp/EzraApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_TEAM = U2QLLCHRNZ;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = EzraApp/Info.plist;
@@ -593,7 +597,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.8;
+				MARKETING_VERSION = 1.4;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -619,7 +623,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = EzraApp/EzraApp.entitlements;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_TEAM = U2QLLCHRNZ;
 				INFOPLIST_FILE = EzraApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Ezra Seminary";
@@ -628,7 +632,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.8;
+				MARKETING_VERSION = 1.4;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",

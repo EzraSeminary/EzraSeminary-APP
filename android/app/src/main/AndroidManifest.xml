@@ -15,6 +15,31 @@
 <uses-permission android:name="android.permission.VIBRATE" />
 <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <queries>
+        <package android:name="com.google.android.youtube" />
+        <package android:name="com.zhiliaoapp.musically" />
+        <package android:name="com.facebook.katana" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="youtube" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="vnd.youtube" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tiktok" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="snssdk1233" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="fb" />
+        </intent>
+    </queries>
     
     <!-- Explicitly remove media permissions that might be added by dependencies -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />

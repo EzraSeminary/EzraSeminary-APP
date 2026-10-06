@@ -102,6 +102,8 @@ export const apiSlice = createApi({
     'DevotionComments',
     'ExploreCategories',
     'ExploreItems',
+    'Sermons',
+    'LiveStream',
   ],
   endpoints: builder => ({
     login: builder.mutation({
@@ -237,6 +239,32 @@ export const apiSlice = createApi({
         return [];
       },
       providesTags: ['Courses'],
+    }),
+    getSermons: builder.query({
+      query: () => '/sermons',
+      transformResponse: response => {
+        if (Array.isArray(response)) {
+          return response;
+        }
+        if (Array.isArray(response?.items)) {
+          return response.items;
+        }
+        if (Array.isArray(response?.sermons)) {
+          return response.sermons;
+        }
+        if (Array.isArray(response?.data)) {
+          return response.data;
+        }
+        return [];
+      },
+      providesTags: ['Sermons'],
+      keepUnusedDataFor: 600,
+    }),
+    getLiveStream: builder.query({
+      query: () => '/live-stream',
+      transformResponse: response => response?.data || response || null,
+      providesTags: ['LiveStream'],
+      keepUnusedDataFor: 60,
     }),
     getCourseById: builder.query({
       query: id => `course/get/${id}`,
@@ -699,6 +727,8 @@ export const {
   useGetDevotionsQuery,
   useGetCoursesQuery,
   useGetPublishedCoursesQuery,
+  useGetSermonsQuery,
+  useGetLiveStreamQuery,
   useGetCourseByIdQuery,
   useGetCurrentUserQuery,
   useUpdateUserStatusMutation,

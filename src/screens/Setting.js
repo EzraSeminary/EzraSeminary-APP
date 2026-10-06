@@ -10,7 +10,6 @@ import {
   ScrollView,
   Modal,
   Animated,
-  NativeModules,
 } from 'react-native';
 import tw from './../../tailwind';
 import {useSelector, useDispatch} from 'react-redux';
@@ -33,6 +32,7 @@ import {
   Heart,
   TextT,
   BookOpenText,
+  MicrophoneStage,
 } from 'phosphor-react-native';
 import {useGetSSLsQuery} from '../services/SabbathSchoolApi';
 import UserAvatar from '../components/UserAvatar';
@@ -43,6 +43,7 @@ import ReaderFontFamilySelector from '../components/ReaderFontFamilySelector';
 import useReaderFontFamily from '../hooks/useReaderFontFamily';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {getFloatingTabScenePadding} from '../navigation/floatingTabBarStyles';
+import {getAppVersion} from '../utils/appVersion';
 
 const SSL_LANGUAGE_OPTIONS = [
   {
@@ -80,10 +81,7 @@ const Setting = ({navigation}) => {
   const {readerFontScalePercentage, increaseFontScale, decreaseFontScale} =
     useReaderFontScale();
   const {readerFont} = useReaderFontFamily();
-  const appVersion = useMemo(
-    () => NativeModules.AppVersion?.versionName ?? 'Unknown',
-    [],
-  );
+  const appVersion = useMemo(() => getAppVersion(), []);
   const insets = useSafeAreaInsets();
   const scrollContentStyle = useMemo(
     () => ({
@@ -434,6 +432,14 @@ const Setting = ({navigation}) => {
               title="Notification Settings"
               onPress={() => navigation.navigate('NotificationSettings')}
             />
+
+            <SettingItem
+              icon={
+                <MicrophoneStage size={16} weight="fill" color={'#FFFFFF'} />
+              }
+              title="Sermons"
+              onPress={() => navigation.navigate('Sermons')}
+            />
           </Animated.View>
 
           {/* Reading Font Section */}
@@ -681,9 +687,7 @@ const Setting = ({navigation}) => {
                         style={[
                           tw`text-lg font-nokia-bold`,
                           isSelected ? tw`text-white` : tw`text-secondary-6`,
-                          darkMode && !isSelected
-                            ? tw`text-primary-1`
-                            : null,
+                          darkMode && !isSelected ? tw`text-primary-1` : null,
                         ]}>
                         {option.label}
                       </Text>
@@ -693,9 +697,7 @@ const Setting = ({navigation}) => {
                           isSelected
                             ? tw`text-primary-1 opacity-90`
                             : tw`text-secondary-4`,
-                          darkMode && !isSelected
-                            ? tw`text-primary-3`
-                            : null,
+                          darkMode && !isSelected ? tw`text-primary-3` : null,
                         ]}>
                         {option.nativeLabel}
                       </Text>

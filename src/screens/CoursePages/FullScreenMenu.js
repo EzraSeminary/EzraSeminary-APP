@@ -18,6 +18,8 @@ import {ActivityIndicator} from 'react-native';
 import {useSelector} from 'react-redux';
 import ErrorScreen from '../../components/ErrorScreen';
 import {getCachedCourseById, saveCourseToCache} from '../../utils/courseCache';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../../navigation/floatingTabBarStyles';
 const {width, height} = Dimensions.get('window');
 
 const FullScreenMenu = ({
@@ -38,6 +40,11 @@ const FullScreenMenu = ({
   } = useGetCourseByIdQuery(courseId);
   const [cachedCourseData, setCachedCourseData] = useState(null);
   const darkMode = useSelector(state => state.ui.darkMode);
+  const insets = useSafeAreaInsets();
+  const bottomControlPadding = Math.max(
+    getFloatingTabScenePadding(insets) - 40,
+    24,
+  );
 
   useEffect(() => {
     const loadCachedCourse = async () => {
@@ -168,7 +175,11 @@ const FullScreenMenu = ({
           );
         })}
       </ScrollView>
-      <View style={tw`mt-4 mb-8`}>
+      <View
+        style={[
+          tw`mt-4`,
+          {paddingBottom: bottomControlPadding},
+        ]}>
         <TouchableOpacity
           style={tw`bg-accent-6 px-4 py-2 rounded-full w-36 mx-auto`}
           onPress={() => {

@@ -19,9 +19,12 @@ import {
 } from 'phosphor-react-native';
 import tw from './../../../tailwind';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getFloatingTabScenePadding} from '../../navigation/floatingTabBarStyles';
 
 const DisplayCourse = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const {width} = Dimensions.get('window');
   const imageStyle = {
     width: width - 40,
@@ -37,7 +40,11 @@ const DisplayCourse = () => {
 
   return (
     <SafeAreaView style={tw`flex-1 mx-auto w-[92%]`}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: getFloatingTabScenePadding(insets),
+        }}>
         <View style={tw`flex flex-row justify-between my-4 text-secondary-6`}>
           <List size={32} weight="bold" style={tw`text-secondary-6`} />
           <Text style={tw`font-nokia-bold text-lg text-secondary-6`}>
