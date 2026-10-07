@@ -7,14 +7,17 @@ import TrackPlayer, {
   useProgress,
 } from 'react-native-track-player';
 import {
+  FastForward,
+  Gauge,
   Pause,
   Play,
-  SkipBack,
-  SkipForward,
+  Rewind,
   SpeakerHigh,
 } from 'phosphor-react-native';
 import tw from './../../tailwind';
 import {loadDevotionalTrack} from '../services/devotionalTrackPlayer';
+
+const PLAYBACK_SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
 const formatTime = seconds => {
   const safeSeconds = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
@@ -36,6 +39,7 @@ const DevotionalAudioPlayer = ({
   const [isPreparing, setIsPreparing] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [localPosition, setLocalPosition] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const playerState = playbackState?.state;
   const isPlaying = playerState === State.Playing;
   const isLoading =
@@ -53,6 +57,7 @@ const DevotionalAudioPlayer = ({
     setIsPreparing(false);
     setIsSeeking(false);
     setLocalPosition(0);
+    setPlaybackSpeed(1);
   }, [artwork, audioUrl, id, title]);
 
   if (!audioUrl) {
@@ -69,6 +74,7 @@ const DevotionalAudioPlayer = ({
       if (!isReady) {
         setIsPreparing(true);
         await loadDevotionalTrack({id, url: audioUrl, title, artwork});
+        await TrackPlayer.setRate(playbackSpeed);
         setIsReady(true);
       }
       await TrackPlayer.play();
@@ -91,6 +97,20 @@ const DevotionalAudioPlayer = ({
     );
     await TrackPlayer.seekTo(nextPosition);
     setLocalPosition(nextPosition);
+  };
+
+  const changePlaybackSpeed = async speed => {
+    setPlaybackSpeed(speed);
+
+    if (!isReady) {
+      return;
+    }
+
+    try {
+      await TrackPlayer.setRate(speed);
+    } catch (error) {
+      console.warn('Failed to change audio speed:', error?.message || error);
+    }
   };
 
   return (
@@ -149,12 +169,16 @@ const DevotionalAudioPlayer = ({
       <View style={tw`flex-row items-center justify-center mt-1`}>
         <TouchableOpacity
           onPress={() => seekBy(-15)}
-          style={tw`w-10 h-10 rounded-full items-center justify-center`}>
-          <SkipBack size={24} color="#EA9215" weight="fill" />
+          disabled={!isReady}
+          style={tw`w-16 h-12 rounded-full items-center justify-center`}>
+          <Rewind size={22} color="#EA9215" weight="fill" />
+          <Text style={tw`font-nokia-bold text-accent-6 text-xs mt-0.5`}>
+            -15s
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={togglePlayback}
-          style={tw`w-12 h-12 rounded-full bg-accent-6 items-center justify-center mx-5`}>
+          style={tw`w-12 h-12 rounded-full bg-accent-6 items-center justify-center mx-4`}>
           {isLoading && !isPlaying ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : isPlaying ? (
@@ -165,9 +189,54 @@ const DevotionalAudioPlayer = ({
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => seekBy(15)}
-          style={tw`w-10 h-10 rounded-full items-center justify-center`}>
-          <SkipForward size={24} color="#EA9215" weight="fill" />
+          disabled={!isReady}
+          style={tw`w-16 h-12 rounded-full items-center justify-center`}>
+          <FastForward size={22} color="#EA9215" weight="fill" />
+          <Text style={tw`font-nokia-bold text-accent-6 text-xs mt-0.5`}>
+            +15s
+          </Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={tw`flex-row items-center mt-3`}>
+        <Gauge size={17} color="#EA9215" weight="bold" />
+        <Text
+          style={[
+            tw`font-nokia-bold text-xs ml-1 mr-2`,
+            darkMode ? tw`text-primary-2` : tw`text-secondary-7`,
+          ]}>
+          Speed
+        </Text>
+        <View style={tw`flex-1 flex-row justify-between`}>
+          {PLAYBACK_SPEEDS.map(speed => {
+            const isActive = playbackSpeed === speed;
+            return (
+              <TouchableOpacity
+                key={speed}
+                onPress={() => changePlaybackSpeed(speed)}
+                style={[
+                  tw`px-2 py-1 rounded-full border`,
+                  isActive
+                    ? tw`bg-accent-6 border-accent-6`
+                    : darkMode
+                    ? tw`border-secondary-6`
+                    : tw`border-primary-7`,
+                ]}>
+                <Text
+                  style={[
+                    tw`font-nokia-bold text-xs`,
+                    isActive
+                      ? tw`text-primary-1`
+                      : darkMode
+                      ? tw`text-primary-2`
+                      : tw`text-secondary-7`,
+                  ]}>
+                  {speed}x
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
     </View>
   );

@@ -1,16 +1,25 @@
-import React, {useMemo} from 'react';
+import React, {useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Image,
+  Modal,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import {MicrophoneStage} from 'phosphor-react-native';
+import {MicrophoneStage, Play, X} from 'phosphor-react-native';
 import tw from './../../tailwind';
-import {useGetSermonsQuery} from '../redux/api-slices/apiSlice';
-import {getYouTubeThumbnailUrl} from '../utils/mediaLinks';
+import {
+  useGetLiveStreamQuery,
+  useGetSermonsQuery,
+} from '../redux/api-slices/apiSlice';
+import {
+  getYouTubeThumbnailUrl,
+  getYouTubeVideoId,
+} from '../utils/mediaLinks';
+import YouTubeEmbed from './YouTubeEmbed';
+import {normalizeLiveStreamArchives} from '../utils/liveStreamArchives';
 
 const getVideoUrl = sermon =>
   sermon?.videoUrl ||
@@ -21,24 +30,41 @@ const getVideoUrl = sermon =>
   '';
 
 const HomeSermonsSection = ({darkMode, navigation}) => {
+  const [selectedSermon, setSelectedSermon] = useState(null);
   const {data: sermons = [], isLoading, error, refetch} = useGetSermonsQuery();
+  const {data: liveStream} = useGetLiveStreamQuery();
+
+  const liveStreamArchives = useMemo(() => {
+    const sermonVideoIds = new Set(
+      sermons
+        .map(sermon => getYouTubeVideoId(getVideoUrl(sermon)))
+        .filter(Boolean),
+    );
+
+    return normalizeLiveStreamArchives(liveStream).filter(archive => {
+      const archiveVideoId = getYouTubeVideoId(getVideoUrl(archive));
+      return !archiveVideoId || !sermonVideoIds.has(archiveVideoId);
+    });
+  }, [liveStream, sermons]);
 
   const videoSermons = useMemo(
     () =>
-      sermons.filter(
-        sermon =>
-          (sermon?.mediaType === 'video' || getVideoUrl(sermon)) &&
-          getVideoUrl(sermon),
-      ),
-    [sermons],
+      [
+        ...liveStreamArchives,
+        ...sermons.filter(
+          sermon =>
+            (sermon?.mediaType === 'video' || getVideoUrl(sermon)) &&
+            getVideoUrl(sermon),
+        ),
+      ],
+    [liveStreamArchives, sermons],
   );
 
   const featuredSermon = useMemo(() => {
     if (!videoSermons.length) {
       return null;
     }
-    const index = new Date().getDate() % videoSermons.length;
-    return videoSermons[index];
+    return videoSermons[0];
   }, [videoSermons]);
 
   const otherSermons = useMemo(
@@ -111,9 +137,10 @@ const HomeSermonsSection = ({darkMode, navigation}) => {
     featuredVideoUrl,
     'hqdefault',
   );
+  const selectedVideoUrl = getVideoUrl(selectedSermon);
 
   return (
-    <View style={tw`mb-4`}>
+    <View style={tw`my-4`}>
       <View style={tw`flex-row items-center justify-between mb-3`}>
         <View style={tw`flex-row items-center flex-1`}>
           <MicrophoneStage size={24} color="#EA9215" weight="bold" />
@@ -136,7 +163,7 @@ const HomeSermonsSection = ({darkMode, navigation}) => {
 
       <TouchableOpacity
         activeOpacity={0.9}
-        onPress={() => navigation.navigate('Sermons')}
+        onPress={() => setSelectedSermon(featuredSermon)}
         style={[
           tw`rounded-2xl overflow-hidden mb-4 border`,
           darkMode
@@ -148,6 +175,10 @@ const HomeSermonsSection = ({darkMode, navigation}) => {
           resizeMode="cover"
           style={tw`w-full h-52 bg-secondary-7`}
         />
+        <View
+          style={tw`absolute top-20 self-center w-14 h-14 rounded-full bg-accent-6 items-center justify-center`}>
+          <Play size={28} color="#FFFFFF" weight="fill" />
+        </View>
         <View style={tw`p-4`}>
           <Text
             style={[
@@ -180,7 +211,7 @@ const HomeSermonsSection = ({darkMode, navigation}) => {
               <TouchableOpacity
                 key={sermon?._id || index}
                 activeOpacity={0.9}
-                onPress={() => navigation.navigate('Sermons')}
+                onPress={() => setSelectedSermon(sermon)}
                 style={[
                   tw`w-32 mr-3 rounded-2xl overflow-hidden border`,
                   darkMode
@@ -192,6 +223,10 @@ const HomeSermonsSection = ({darkMode, navigation}) => {
                   resizeMode="cover"
                   style={tw`w-32 h-32 bg-secondary-7`}
                 />
+                <View
+                  style={tw`absolute top-11 left-11 w-10 h-10 rounded-full bg-accent-6 items-center justify-center`}>
+                  <Play size={20} color="#FFFFFF" weight="fill" />
+                </View>
                 <View style={tw`p-2`}>
                   <Text
                     style={[
@@ -207,6 +242,47 @@ const HomeSermonsSection = ({darkMode, navigation}) => {
           })}
         </ScrollView>
       )}
+
+      <Modal
+        visible={!!selectedSermon}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedSermon(null)}>
+        <View
+          style={[
+            tw`flex-1 justify-center px-4`,
+            {backgroundColor: 'rgba(0, 0, 0, 0.82)'},
+          ]}>
+          <View
+            style={[
+              tw`rounded-2xl p-4`,
+              darkMode ? tw`bg-secondary-9` : tw`bg-primary-1`,
+            ]}>
+            <View style={tw`flex-row items-center justify-between mb-3`}>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-lg flex-1 mr-3`,
+                  darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+                ]}
+                numberOfLines={2}>
+                {selectedSermon?.title || 'Sermon video'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setSelectedSermon(null)}
+                style={tw`w-10 h-10 rounded-full bg-accent-6 items-center justify-center`}>
+                <X size={22} color="#FFFFFF" weight="bold" />
+              </TouchableOpacity>
+            </View>
+            <YouTubeEmbed
+              url={selectedVideoUrl}
+              darkMode={darkMode}
+              height={230}
+              autoPlay
+              mute={false}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

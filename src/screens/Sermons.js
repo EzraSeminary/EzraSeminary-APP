@@ -12,15 +12,26 @@ import {
 import {useSelector} from 'react-redux';
 import {
   ArrowLeft,
+  Broadcast,
+  Cards,
   Calendar,
   MicrophoneStage,
+  Stack,
   VideoCamera,
 } from 'phosphor-react-native';
 import tw from './../../tailwind';
 import DevotionalAudioPlayer from '../components/DevotionalAudioPlayer';
 import YouTubeEmbed from '../components/YouTubeEmbed';
-import {useGetSermonsQuery} from '../redux/api-slices/apiSlice';
-import {getYouTubeThumbnailUrl, openPlatformUrl} from '../utils/mediaLinks';
+import {
+  useGetLiveStreamQuery,
+  useGetSermonsQuery,
+} from '../redux/api-slices/apiSlice';
+import {
+  getYouTubeThumbnailUrl,
+  getYouTubeVideoId,
+  openPlatformUrl,
+} from '../utils/mediaLinks';
+import {normalizeLiveStreamArchives} from '../utils/liveStreamArchives';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {getFloatingTabScenePadding} from '../navigation/floatingTabBarStyles';
 
@@ -191,11 +202,71 @@ const SermonCard = ({sermon, activeTab, darkMode}) => {
   );
 };
 
+const PreviousLiveStreamsSection = ({
+  archives,
+  activeTab,
+  darkMode,
+  showAll,
+  onToggleShowAll,
+}) => {
+  if (!archives.length) {
+    return null;
+  }
+
+  const visibleArchives = showAll ? archives : archives.slice(0, 1);
+  const hiddenCount = Math.max(archives.length - 1, 0);
+
+  return (
+    <View style={tw`mb-2`}>
+      <View style={tw`flex-row items-center justify-between mb-3`}>
+        <View style={tw`flex-row items-center flex-1`}>
+          <View
+            style={tw`w-9 h-9 rounded-full bg-accent-6 items-center justify-center mr-2`}>
+            <Broadcast size={20} color="#FFFFFF" weight="fill" />
+          </View>
+          <View style={tw`flex-1`}>
+            <Text style={tw`font-nokia-bold text-accent-6 text-xs`}>
+              Previous live streams
+            </Text>
+            <Text
+              style={[
+                tw`font-nokia-bold text-lg`,
+                darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
+              ]}>
+              Latest Recording
+            </Text>
+          </View>
+        </View>
+
+        {hiddenCount > 0 && (
+          <TouchableOpacity
+            onPress={onToggleShowAll}
+            style={tw`px-4 py-2 rounded-full bg-accent-6`}>
+            <Text style={tw`font-nokia-bold text-primary-1 text-xs`}>
+              {showAll ? 'Show Less' : `Show More (${hiddenCount})`}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {visibleArchives.map(archive => (
+        <SermonCard
+          key={archive?._id || getVideoUrl(archive)}
+          sermon={archive}
+          activeTab={activeTab}
+          darkMode={darkMode}
+        />
+      ))}
+    </View>
+  );
+};
+
 const Sermons = ({navigation}) => {
   const darkMode = useSelector(state => state.ui.darkMode);
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState('video');
   const [libraryMode, setLibraryMode] = useState('standalone');
+  const [showAllLiveArchives, setShowAllLiveArchives] = useState(false);
   const {
     data: sermons = [],
     isLoading,
@@ -203,6 +274,20 @@ const Sermons = ({navigation}) => {
     error,
     refetch,
   } = useGetSermonsQuery();
+  const {data: liveStream} = useGetLiveStreamQuery();
+
+  const liveStreamArchives = useMemo(() => {
+    const sermonVideoIds = new Set(
+      sermons
+        .map(sermon => getYouTubeVideoId(getVideoUrl(sermon)))
+        .filter(Boolean),
+    );
+
+    return normalizeLiveStreamArchives(liveStream).filter(archive => {
+      const archiveVideoId = getYouTubeVideoId(getVideoUrl(archive));
+      return !archiveVideoId || !sermonVideoIds.has(archiveVideoId);
+    });
+  }, [liveStream, sermons]);
 
   const mediaFilteredSermons = useMemo(() => {
     return sermons.filter(sermon => {
@@ -224,6 +309,13 @@ const Sermons = ({navigation}) => {
   );
 
   const listData = libraryMode === 'series' ? seriesGroups : standaloneSermons;
+  const shouldShowLiveArchives =
+    activeTab === 'video' &&
+    libraryMode === 'standalone' &&
+    liveStreamArchives.length > 0;
+  const standaloneCount =
+    standaloneSermons.length +
+    (activeTab === 'video' ? liveStreamArchives.length : 0);
 
   const renderEmpty = useCallback(() => {
     if (isLoading) {
@@ -361,7 +453,7 @@ const Sermons = ({navigation}) => {
 
         <View
           style={[
-            tw`flex-row rounded-full p-1 mb-4`,
+            tw`flex-row rounded-full p-1 mb-3`,
             darkMode ? tw`bg-secondary-8` : tw`bg-primary-6`,
           ]}>
           {[
@@ -398,40 +490,72 @@ const Sermons = ({navigation}) => {
           })}
         </View>
 
-        <View
-          style={[
-            tw`flex-row rounded-full p-1 mb-4`,
-            darkMode ? tw`bg-secondary-8` : tw`bg-primary-6`,
-          ]}>
+        <View style={tw`flex-row mb-4`}>
           {[
-            {key: 'standalone', label: 'Standalone'},
-            {key: 'series', label: 'Series'},
-          ].map(item => {
-            const isActive = libraryMode === item.key;
+            {
+              key: 'standalone',
+              label: 'Standalone',
+              count: standaloneCount,
+              Icon: Cards,
+            },
+            {
+              key: 'series',
+              label: 'Series',
+              count: seriesGroups.length,
+              Icon: Stack,
+            },
+          ].map(({key, label, count, Icon}) => {
+            const isActive = libraryMode === key;
             return (
               <TouchableOpacity
-                key={item.key}
-                onPress={() => setLibraryMode(item.key)}
+                key={key}
+                onPress={() => setLibraryMode(key)}
                 style={[
-                  tw`flex-1 items-center justify-center py-3 rounded-full`,
-                  isActive ? tw`bg-accent-6` : null,
+                  tw`flex-1 px-3 py-2 rounded-2xl border flex-row items-center justify-center`,
+                  key === 'standalone' ? tw`mr-3` : null,
+                  isActive
+                    ? tw`bg-accent-6 border-accent-6`
+                    : darkMode
+                    ? tw`bg-secondary-8 border-secondary-6`
+                    : tw`bg-primary-3 border-primary-7`,
                 ]}>
+                <Icon
+                  size={17}
+                  color={isActive ? '#FFFFFF' : '#EA9215'}
+                  weight="bold"
+                />
                 <Text
                   style={[
-                    tw`font-nokia-bold text-sm`,
+                    tw`font-nokia-bold text-sm mx-2`,
                     isActive
                       ? tw`text-primary-1`
                       : darkMode
                       ? tw`text-primary-2`
                       : tw`text-secondary-7`,
                   ]}>
-                  {item.label}
+                  {label}
                 </Text>
+                <View
+                  style={[
+                    tw`min-w-6 h-6 px-2 rounded-full items-center justify-center`,
+                    isActive
+                      ? tw`bg-primary-1`
+                      : darkMode
+                      ? tw`bg-secondary-7`
+                      : tw`bg-primary-6`,
+                  ]}>
+                  <Text
+                    style={[
+                      tw`font-nokia-bold text-xs`,
+                      isActive ? tw`text-accent-6` : tw`text-secondary-7`,
+                    ]}>
+                    {count}
+                  </Text>
+                </View>
               </TouchableOpacity>
             );
           })}
         </View>
-
         <FlatList
           data={listData}
           keyExtractor={(item, index) =>
@@ -448,7 +572,20 @@ const Sermons = ({navigation}) => {
                   />
                 )
           }
-          ListEmptyComponent={renderEmpty}
+          ListHeaderComponent={
+            shouldShowLiveArchives ? (
+              <PreviousLiveStreamsSection
+                archives={liveStreamArchives}
+                activeTab={activeTab}
+                darkMode={darkMode}
+                showAll={showAllLiveArchives}
+                onToggleShowAll={() =>
+                  setShowAllLiveArchives(previous => !previous)
+                }
+              />
+            ) : null
+          }
+          ListEmptyComponent={shouldShowLiveArchives ? null : renderEmpty}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingBottom: getFloatingTabScenePadding(insets),

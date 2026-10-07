@@ -162,7 +162,11 @@ const Home = () => {
     isFetching: liveStreamFetching,
     error: liveStreamError,
     refetch: refetchLiveStream,
-  } = useGetLiveStreamQuery();
+  } = useGetLiveStreamQuery(undefined, {
+    pollingInterval: 60000,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
   const alternateMonthName = useMemo(() => {
     if (currentEthiopianMonth === 'ሚያዚያ') return 'ሚያዝያ';
     if (currentEthiopianMonth === 'ሚያዝያ') return 'ሚያዚያ';

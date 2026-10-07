@@ -9,6 +9,7 @@ const YouTubeEmbed = ({
   darkMode,
   height = 210,
   autoPlay = false,
+  mute = autoPlay,
   onUnavailable,
 }) => {
   const [isReady, setIsReady] = useState(false);
@@ -49,7 +50,7 @@ const YouTubeEmbed = ({
         height={height}
         videoId={videoId}
         play={isPlaying}
-        mute={autoPlay}
+        mute={mute}
         webViewProps={{
           allowsFullscreenVideo: true,
           allowsInlineMediaPlayback: true,
