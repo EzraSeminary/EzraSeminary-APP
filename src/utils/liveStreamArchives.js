@@ -1,4 +1,8 @@
 import {getYouTubeVideoId} from './mediaLinks';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const ARCHIVES_STORAGE_KEY = 'ezra:live-stream-archives';
+const ACTIVE_LIVE_STORAGE_KEY = 'ezra:active-live-stream';
 
 const ARCHIVE_LIST_KEYS = [
   'previousLiveStreams',
@@ -47,6 +51,11 @@ const getArchiveUrl = item =>
   item?.link ||
   item?.media?.videoUrl ||
   '';
+
+const getArchiveKey = item => {
+  const videoUrl = getArchiveUrl(item);
+  return getYouTubeVideoId(videoUrl) || videoUrl || item?._id || item?.id || '';
+};
 
 const compareByDateDesc = (a, b) => {
   const aTime = new Date(getArchiveDate(a)).getTime();
@@ -105,10 +114,12 @@ export const getLiveStreamArchiveVideoUrl = getArchiveUrl;
 
 export const getLiveStreamArchiveDate = getArchiveDate;
 
-export const normalizeLiveStreamArchives = liveStream => {
+export const mergeLiveStreamArchives = (...archiveLists) => {
   const seen = new Set();
 
-  return collectArchiveCandidates(liveStream)
+  return archiveLists
+    .flat()
+    .filter(Boolean)
     .map((item, index) =>
       typeof item === 'string' ? {youtubeUrl: item, index} : {...item, index},
     )
@@ -124,7 +135,9 @@ export const normalizeLiveStreamArchives = liveStream => {
 
       return {
         ...item,
-        _id: `live-stream:${stableId}`,
+        _id: String(stableId).startsWith('live-stream:')
+          ? stableId
+          : `live-stream:${stableId}`,
         title:
           item?.title ||
           item?.name ||
@@ -139,9 +152,7 @@ export const normalizeLiveStreamArchives = liveStream => {
       };
     })
     .filter(item => {
-      const videoUrl = getArchiveUrl(item);
-      const videoId = getYouTubeVideoId(videoUrl);
-      const dedupeKey = videoId || videoUrl;
+      const dedupeKey = getArchiveKey(item);
 
       if (!dedupeKey || seen.has(dedupeKey)) {
         return false;
@@ -150,4 +161,97 @@ export const normalizeLiveStreamArchives = liveStream => {
       return true;
     })
     .sort(compareByDateDesc);
+};
+
+export const normalizeLiveStreamArchives = liveStream => {
+  return mergeLiveStreamArchives(collectArchiveCandidates(liveStream));
+};
+
+export const loadStoredLiveStreamArchives = async () => {
+  try {
+    const stored = await AsyncStorage.getItem(ARCHIVES_STORAGE_KEY);
+    const parsed = stored ? JSON.parse(stored) : [];
+    return mergeLiveStreamArchives(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return [];
+  }
+};
+
+const persistLiveStreamArchives = async archives => {
+  const normalized = mergeLiveStreamArchives(archives);
+  await AsyncStorage.setItem(ARCHIVES_STORAGE_KEY, JSON.stringify(normalized));
+  return normalized;
+};
+
+const loadActiveLiveStream = async () => {
+  try {
+    const stored = await AsyncStorage.getItem(ACTIVE_LIVE_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+};
+
+const rememberActiveLiveStream = async liveStream => {
+  if (!getArchiveUrl(liveStream)) {
+    return;
+  }
+
+  await AsyncStorage.setItem(
+    ACTIVE_LIVE_STORAGE_KEY,
+    JSON.stringify({
+      ...liveStream,
+      streamedAt: getArchiveDate(liveStream) || new Date().toISOString(),
+    }),
+  );
+};
+
+const clearActiveLiveStream = () =>
+  AsyncStorage.removeItem(ACTIVE_LIVE_STORAGE_KEY);
+
+export const syncLiveStreamArchives = async liveStream => {
+  const serverArchives = normalizeLiveStreamArchives(liveStream);
+  const storedArchives = await loadStoredLiveStreamArchives();
+
+  if (!liveStream) {
+    return mergeLiveStreamArchives(serverArchives, storedArchives);
+  }
+
+  if (liveStream?.isLive && getArchiveUrl(liveStream)) {
+    await rememberActiveLiveStream(liveStream);
+    return mergeLiveStreamArchives(serverArchives, storedArchives);
+  }
+
+  const activeLiveStream = await loadActiveLiveStream();
+  const stoppedCandidate =
+    !liveStream.isLive && !liveStream.testMode && getArchiveUrl(liveStream)
+      ? liveStream
+      : activeLiveStream;
+
+  if (stoppedCandidate && getArchiveUrl(stoppedCandidate)) {
+    const existingArchives = mergeLiveStreamArchives(storedArchives, serverArchives);
+    const stoppedKey = getArchiveKey(stoppedCandidate);
+    const alreadyArchived = existingArchives.some(
+      archive => getArchiveKey(archive) === stoppedKey,
+    );
+
+    if (alreadyArchived) {
+      await clearActiveLiveStream();
+      return existingArchives;
+    }
+
+    const archived = {
+      ...stoppedCandidate,
+      endedAt: stoppedCandidate.endedAt || new Date().toISOString(),
+    };
+    const nextArchives = await persistLiveStreamArchives([
+      archived,
+      ...storedArchives,
+      ...serverArchives,
+    ]);
+    await clearActiveLiveStream();
+    return nextArchives;
+  }
+
+  return mergeLiveStreamArchives(serverArchives, storedArchives);
 };

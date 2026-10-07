@@ -37,6 +37,8 @@ import DevotionPlanSquareCard from '../components/DevotionPlanSquareCard';
 import StartDevotionPlanModal from '../components/StartDevotionPlanModal';
 import LiveStreamCard from '../components/LiveStreamCard';
 import HomeSermonsSection from '../components/HomeSermonsSection';
+import HomeLiveStreamsSection from '../components/HomeLiveStreamsSection';
+import useLiveStreamArchives from '../hooks/useLiveStreamArchives';
 import {setDevotions} from '../redux/devotionsSlice';
 import {setCourses} from '../redux/courseSlice';
 import {scheduleVerseOfTheDayNotification} from '../utils/notifications';
@@ -167,6 +169,7 @@ const Home = () => {
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
+  const {archives: liveStreamArchives} = useLiveStreamArchives(liveStream);
   const alternateMonthName = useMemo(() => {
     if (currentEthiopianMonth === 'ሚያዚያ') return 'ሚያዝያ';
     if (currentEthiopianMonth === 'ሚያዝያ') return 'ሚያዚያ';
@@ -1906,6 +1909,11 @@ const Home = () => {
             )}
 
             <HomeSermonsSection darkMode={darkMode} navigation={navigation} />
+            <HomeLiveStreamsSection
+              archives={liveStreamArchives}
+              darkMode={darkMode}
+              navigation={navigation}
+            />
 
             {/* Previous devotions removed for faster startup */}
           </Animated.View>
