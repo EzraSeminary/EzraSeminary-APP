@@ -43,6 +43,11 @@ import {setDevotions} from '../redux/devotionsSlice';
 import {setCourses} from '../redux/courseSlice';
 import {scheduleVerseOfTheDayNotification} from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  saveDevotionsForOffline,
+  getDevotionForOfflineDate,
+  migrateLegacyHomeDevotionsToOfflineCache,
+} from '../utils/contentCache';
 import {prefetchImages} from '../utils/imageCache';
 import {ensureOnlineOrNotify} from '../utils/refreshCacheManager';
 import {
@@ -68,6 +73,13 @@ import {getFloatingTabScenePadding} from '../navigation/floatingTabBarStyles';
 import useCurrentDate from '../hooks/useCurrentDate';
 
 const {width} = Dimensions.get('window');
+
+const asDevotionArray = value => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.devotions)) return value.devotions;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
+};
 
 const toEthDate = date => {
   const ethDateTime = EthDateTime.fromEuropeanDate(date);
@@ -134,7 +146,9 @@ const Home = () => {
   const dispatch = useDispatch();
   const darkMode = useSelector(state => state.ui.darkMode);
   const user = useSelector(state => state.auth.user);
-  const persistedDevotions = useSelector(state => state.devotions);
+  const persistedDevotions = asDevotionArray(
+    useSelector(state => state.devotions),
+  );
   const persistedCourses = useSelector(state => state.courses);
   const scrollContentStyle = useMemo(
     () => ({paddingBottom: getFloatingTabScenePadding(insets)}),
@@ -147,6 +161,21 @@ const Home = () => {
     year: currentEthiopianYear,
     monthName: currentEthiopianMonth,
   } = toEthDate(today);
+  const [datedCachedDevotion, setDatedCachedDevotion] = useState(null);
+  const loadDateMatchedDevotion = useCallback(async () => {
+    try {
+      await migrateLegacyHomeDevotionsToOfflineCache();
+      const cachedDevotion = await getDevotionForOfflineDate(today);
+      setDatedCachedDevotion(cachedDevotion);
+      return cachedDevotion;
+    } catch (error) {
+      console.warn('Could not load date matched offline Devotion:', error);
+      return null;
+    }
+  }, [today]);
+  useEffect(() => {
+    loadDateMatchedDevotion();
+  }, [loadDateMatchedDevotion]);
   // Always fetch current Ethiopian year data for Home screen
   const yearToFetch = currentEthiopianYear;
   const todayDateKey = useMemo(() => formatLocalDateKey(today), [today]);
@@ -189,6 +218,7 @@ const Home = () => {
     {year: yearToFetch, month: currentEthiopianMonth},
     {skip: !yearToFetch || !currentEthiopianMonth},
   );
+  const primaryMonthDevotionList = asDevotionArray(primaryMonthDevotions);
   const {
     data: alternateMonthDevotions = [],
     isFetching: isAlternateDevotionsFetching,
@@ -199,8 +229,9 @@ const Home = () => {
     {year: yearToFetch, month: alternateMonthName || ''},
     {skip: !yearToFetch || !alternateMonthName},
   );
+  const alternateMonthDevotionList = asDevotionArray(alternateMonthDevotions);
   const devotions = useMemo(() => {
-    const merged = [...primaryMonthDevotions, ...alternateMonthDevotions];
+    const merged = [...primaryMonthDevotionList, ...alternateMonthDevotionList];
     const keyFor = devotion =>
       devotion?._id ||
       `${devotion?.year || 'legacy'}-${devotion?.month || ''}-${devotion?.day || ''}-${devotion?.title || ''}`;
@@ -208,7 +239,7 @@ const Home = () => {
       (item, index, arr) =>
         index === arr.findIndex(other => keyFor(other) === keyFor(item)),
     );
-  }, [primaryMonthDevotions, alternateMonthDevotions]);
+  }, [primaryMonthDevotionList, alternateMonthDevotionList]);
   const isFetching =
     isPrimaryDevotionsFetching ||
     isAlternateDevotionsFetching ||
@@ -229,6 +260,14 @@ const Home = () => {
     limit: 1000,
     sort: 'desc',
   });
+  const yearDevotionList = asDevotionArray(yearDevotions);
+  useEffect(() => {
+    saveDevotionsForOffline([
+      ...primaryMonthDevotionList,
+      ...alternateMonthDevotionList,
+      ...yearDevotionList,
+    ]).catch(error => console.warn('Could not refresh offline Devotions:', error));
+  }, [primaryMonthDevotionList, alternateMonthDevotionList, yearDevotionList]);
   const refetchDevotions = useCallback(async () => {
     const calls = [
       refetchPrimaryDevotions(),
@@ -357,6 +396,9 @@ const Home = () => {
     const unsubscribe = networkManager.addListener(async networkState => {
       // Always sync isOffline with actual connectivity so UI doesn't stay stuck in "offline" after reconnect
       setIsOffline(!networkState.isOnline);
+      if (!networkState.isOnline) {
+        loadDateMatchedDevotion();
+      }
 
       // When network comes back online, refetch devotion plans and refresh home data
       if (networkState.isNowConnected) {
@@ -378,7 +420,7 @@ const Home = () => {
     return () => {
       unsubscribe();
     };
-  }, [refetchAllDevotionPlans, fetchData]);
+  }, [refetchAllDevotionPlans, fetchData, loadDateMatchedDevotion]);
 
   // Force refetch devotion plans on mount if online (fixes iOS stale cache issue)
   useEffect(() => {
@@ -475,93 +517,93 @@ const Home = () => {
   const CACHE_EXPIRY_HOURS = 24; // Cache expires after 24 hours
 
   const loadCachedData = useCallback(async ({allowExpired = true} = {}) => {
-    try {
-      let cachedString = await AsyncStorage.getItem(CACHE_KEY);
+      try {
+        let cachedString = await AsyncStorage.getItem(CACHE_KEY);
 
-      // Fallback to latest cached home payload if current month key is missing.
-      if (!cachedString) {
-        const keys = await AsyncStorage.getAllKeys();
+        // Fallback to latest cached home payload if current month key is missing.
+        if (!cachedString) {
+          const keys = await AsyncStorage.getAllKeys();
         const homeKeys = keys.filter(key => key.startsWith('home_data_cache_'));
-        if (homeKeys.length > 0) {
-          const keyValues = await AsyncStorage.multiGet(homeKeys);
-          let latest = null;
-          keyValues.forEach(([, raw]) => {
-            if (!raw) return;
-            try {
-              const parsed = JSON.parse(raw);
-              if (!parsed?.lastCacheTime) return;
-              if (
-                !latest ||
-                new Date(parsed.lastCacheTime).getTime() >
-                  new Date(latest.lastCacheTime || 0).getTime()
-              ) {
-                latest = parsed;
-              }
-            } catch {}
-          });
-          if (latest) {
-            cachedString = JSON.stringify(latest);
+          if (homeKeys.length > 0) {
+            const keyValues = await AsyncStorage.multiGet(homeKeys);
+            let latest = null;
+            keyValues.forEach(([, raw]) => {
+              if (!raw) return;
+              try {
+                const parsed = JSON.parse(raw);
+                if (!parsed?.lastCacheTime) return;
+                if (
+                  !latest ||
+                  new Date(parsed.lastCacheTime).getTime() >
+                    new Date(latest.lastCacheTime || 0).getTime()
+                ) {
+                  latest = parsed;
+                }
+              } catch {}
+            });
+            if (latest) {
+              cachedString = JSON.stringify(latest);
+            }
           }
         }
-      }
 
-      if (!cachedString) {
-        const homeScreenCache = await getCachedHomeScreen('Home');
-        if (
-          homeScreenCache &&
-          (homeScreenCache.devotions?.length > 0 ||
-            homeScreenCache.courses?.length > 0)
-        ) {
-          const fallback = {
-            devotions: homeScreenCache.devotions || [],
-            courses: homeScreenCache.courses || [],
-            lastCacheTime:
-              homeScreenCache.lastCacheTime || new Date().toISOString(),
-          };
-          setCachedData(fallback);
-          if (fallback.devotions?.length > 0) {
-            dispatch(setDevotions(fallback.devotions));
+        if (!cachedString) {
+          const homeScreenCache = await getCachedHomeScreen('Home');
+          if (
+            homeScreenCache &&
+            (homeScreenCache.devotions?.length > 0 ||
+              homeScreenCache.courses?.length > 0)
+          ) {
+            const fallback = {
+              devotions: homeScreenCache.devotions || [],
+              courses: homeScreenCache.courses || [],
+              lastCacheTime:
+                homeScreenCache.lastCacheTime || new Date().toISOString(),
+            };
+            setCachedData(fallback);
+            if (fallback.devotions?.length > 0) {
+              dispatch(setDevotions(fallback.devotions));
+            }
+            if (fallback.courses?.length > 0) {
+              dispatch(setCourses(fallback.courses));
+            }
+            return fallback;
           }
-          if (fallback.courses?.length > 0) {
-            dispatch(setCourses(fallback.courses));
-          }
-          return fallback;
+          return null;
         }
-        return null;
-      }
 
-      const cached = JSON.parse(cachedString);
-      const now = new Date().getTime();
-      const cacheTime = new Date(cached.lastCacheTime || 0).getTime();
-      const isExpired = now - cacheTime > CACHE_EXPIRY_HOURS * 60 * 60 * 1000;
+        const cached = JSON.parse(cachedString);
+        const now = new Date().getTime();
+        const cacheTime = new Date(cached.lastCacheTime || 0).getTime();
+        const isExpired = now - cacheTime > CACHE_EXPIRY_HOURS * 60 * 60 * 1000;
 
-      if (!allowExpired && isExpired) {
-        return null;
-      }
+        if (!allowExpired && isExpired) {
+          return null;
+        }
 
-      setCachedData(cached);
-      // Update Redux store with cached data
-      if (cached.devotions?.length > 0) {
-        dispatch(setDevotions(cached.devotions));
+        setCachedData(cached);
+        // Update Redux store with cached data
+        if (cached.devotions?.length > 0) {
+          dispatch(setDevotions(cached.devotions));
+        }
+        if (cached.courses?.length > 0) {
+          dispatch(setCourses(cached.courses));
+        }
+        console.log('[Home] Devotion - Loaded from cache:', {
+          count: cached.devotions?.length ?? 0,
+          lastCacheTime: cached.lastCacheTime,
+          isExpired,
+        });
+        console.log('[Home] Course - Loaded from cache:', {
+          count: cached.courses?.length ?? 0,
+          lastCacheTime: cached.lastCacheTime,
+          isExpired,
+        });
+        return cached;
+      } catch (error) {
+        console.error('Error loading cached data:', error);
       }
-      if (cached.courses?.length > 0) {
-        dispatch(setCourses(cached.courses));
-      }
-      console.log('[Home] Devotion - Loaded from cache:', {
-        count: cached.devotions?.length ?? 0,
-        lastCacheTime: cached.lastCacheTime,
-        isExpired,
-      });
-      console.log('[Home] Course - Loaded from cache:', {
-        count: cached.courses?.length ?? 0,
-        lastCacheTime: cached.lastCacheTime,
-        isExpired,
-      });
-      return cached;
-    } catch (error) {
-      console.error('Error loading cached data:', error);
-    }
-    return null;
+      return null;
   }, [dispatch, CACHE_KEY]);
 
   const saveCachedData = useCallback(
@@ -680,11 +722,41 @@ const Home = () => {
     }
 
     const yearDevotionsToUse =
-      Array.isArray(yearDevotions) && yearDevotions.length > 0
-        ? yearDevotions
+      yearDevotionList.length > 0
+        ? yearDevotionList
         : [];
     const selectedDevotionsSource =
       yearDevotionsToUse.length > 0 ? yearDevotionsToUse : devotionsToUse;
+
+    if (!networkManager.isOnline) {
+      const persistedDatedDevotion = findDevotionWithOffset(
+        [...asDevotionArray(cachedData.devotions), ...persistedDevotions],
+        0,
+        today,
+        yearToFetch,
+        month => normalizeEthiopianMonth(month),
+      );
+      const datedDevotions = [
+        ...primaryMonthDevotionList,
+        ...alternateMonthDevotionList,
+        ...yearDevotionList,
+        ...asDevotionArray(cachedData.devotions),
+        ...persistedDevotions,
+      ];
+      const apiDatedDevotion = findDevotionWithOffset(
+        datedDevotions,
+        0,
+        today,
+        yearToFetch,
+        month => normalizeEthiopianMonth(month),
+      );
+      const offlineDevotion =
+        datedCachedDevotion || apiDatedDevotion || persistedDatedDevotion;
+      if (offlineDevotion) {
+        setSelectedDevotion(offlineDevotion);
+        return;
+      }
+    }
 
     if (selectedDevotionsSource && selectedDevotionsSource.length > 0) {
       const normalizeMonth = month => normalizeEthiopianMonth(month);
@@ -776,12 +848,15 @@ const Home = () => {
     isOffline,
     persistedDevotions,
     cachedData.devotions,
-    yearDevotions,
+    yearDevotionList,
     previewDevotion,
     currentEthiopianMonth,
     today,
     todayDateKey,
     yearToFetch,
+    datedCachedDevotion,
+    primaryMonthDevotionList,
+    alternateMonthDevotionList,
   ]);
 
   const getDataToDisplay = () => {
@@ -1381,6 +1456,14 @@ const Home = () => {
 
   const isDevotionSectionLoading =
     !devotionToDisplay &&
+    !datedCachedDevotion &&
+    !findDevotionWithOffset(
+      [...asDevotionArray(cachedData.devotions), ...persistedDevotions],
+      0,
+      today,
+      yearToFetch,
+      month => normalizeEthiopianMonth(month),
+    ) &&
     (devotionsLoading ||
       isYearDevotionsLoading ||
       isYearDevotionsFetching ||
@@ -1448,6 +1531,36 @@ const Home = () => {
               navigation={navigation}
               isRefreshing={isBackgroundRefreshing}
             />
+
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Open the Holy Bible"
+              onPress={() => navigation.navigate('BibleHome')}
+              style={[
+                tw`rounded-3xl p-5 mb-4 overflow-hidden`,
+                {backgroundColor: darkMode ? '#21282E' : '#1A2024'},
+              ]}>
+              <View style={tw`flex-row items-center`}>
+                <View
+                  style={[
+                    tw`w-12 h-12 rounded-full items-center justify-center`,
+                    {backgroundColor: 'rgba(234,146,21,0.16)'},
+                  ]}>
+                  <BookOpen size={27} color="#EA9215" weight="fill" />
+                </View>
+                <View style={tw`flex-1 ml-4`}>
+                  <Text
+                    style={[tw`font-nokia-bold text-xl`, {color: '#FFFFFF'}]}>
+                    The Holy <Text style={{color: '#EA9215'}}>Bible</Text>
+                  </Text>
+                  <Text
+                    style={[tw`font-nokia text-sm mt-1`, {color: '#D7DCDF'}]}>
+                    መጽሐፍ ቅዱስ · Read, search, and study
+                  </Text>
+                </View>
+                <Text style={{color: '#EA9215', fontSize: 28}}>›</Text>
+              </View>
+            </TouchableOpacity>
 
             <LiveStreamCard
               liveStream={liveStream}
@@ -1849,9 +1962,7 @@ const Home = () => {
                         ? inProgressEntry.itemsCompleted.length
                         : 0;
                       const totalItems =
-                        inProgressEntry?.progress?.total ||
-                        plan?.numItems ||
-                        0;
+                        inProgressEntry?.progress?.total || plan?.numItems || 0;
                       const percentFromServer =
                         inProgressEntry?.progress?.percent || 0;
                       const derivedPercent =

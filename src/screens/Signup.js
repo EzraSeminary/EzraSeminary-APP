@@ -38,7 +38,7 @@ import {
   validatePassword,
 } from '../services/mobileAuth';
 
-const Signup = ({navigation}) => {
+const Signup = ({navigation, route}) => {
   const dispatch = useDispatch();
   const darkMode = useSelector(state => state.ui.darkMode);
   const {
@@ -113,10 +113,9 @@ const Signup = ({navigation}) => {
       dispatch,
       login,
     });
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'MainTab'}],
-    });
+    if (route?.params?.returnToBible && navigation.canGoBack())
+      navigation.pop(2);
+    else navigation.reset({index: 0, routes: [{name: 'MainTab'}]});
   };
 
   const handleProviderAuth = async () => {
@@ -243,10 +242,9 @@ const Signup = ({navigation}) => {
         dispatch,
         login,
       });
-      navigation.reset({
-        index: 0,
-        routes: [{name: 'MainTab'}],
-      });
+      if (route?.params?.returnToBible && navigation.canGoBack())
+        navigation.pop(2);
+      else navigation.reset({index: 0, routes: [{name: 'MainTab'}]});
       Toast.show({
         type: 'success',
         text1: 'Account ready',
@@ -319,349 +317,349 @@ const Signup = ({navigation}) => {
         style={tw`flex-1`}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}>
-      <ScrollView
-        ref={scrollViewRef}
-        contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-4`}
-        showsVerticalScrollIndicator={false}
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled">
-        <Animated.View
-          style={[
-            tw`w-full max-w-sm`,
-            {
-              opacity: fadeAnim,
-              transform: [{translateY: slideAnim}],
-            },
-          ]}>
-          <TouchableOpacity
-            style={[
-              tw`rounded-full px-4 py-3 items-center mb-3`,
-              {
-                backgroundColor: darkMode ? '#111827' : '#FFFFFF',
-                borderWidth: 1,
-                borderColor: darkMode ? '#374151' : '#E5E7EB',
-              },
-            ]}
-            onPress={() => navigation.navigate('MainTab')}>
-            <Text
-              style={[
-                tw`font-Lato-Bold text-sm`,
-                {color: darkMode ? '#F9FAFB' : '#111827'},
-              ]}>
-              Continue without account
-            </Text>
-          </TouchableOpacity>
-
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-4`}
+          showsVerticalScrollIndicator={false}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled">
           <Animated.View
-            style={[tw`mb-5 items-center`, {transform: [{scale: scaleAnim}]}]}>
-            <Animated.View
-              style={[
-                tw`mb-3`,
-                {
-                  transform: [
-                    {
-                      scale: sparkleAnim.interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: [1, 1.06, 1],
-                      }),
-                    },
-                  ],
-                },
-              ]}>
-              <Image
-                source={require('./../assets/ezra_logo.png')}
-                style={tw`w-16 h-16`}
-                resizeMode="contain"
-              />
-            </Animated.View>
-            <Text
-              style={[
-                tw`font-nokia-bold text-3xl text-center`,
-                {color: darkMode ? '#F9FAFB' : '#1F2937'},
-              ]}>
-              Create Account
-            </Text>
-            <Text
-              style={[
-                tw`font-Lato-Regular text-sm text-center mt-2`,
-                {color: darkMode ? '#D1D5DB' : '#6B7280'},
-              ]}>
-              Use Google or complete the form below.
-            </Text>
-          </Animated.View>
-
-          <View
             style={[
-              tw`rounded-3 p-5`,
+              tw`w-full max-w-sm`,
               {
-                backgroundColor: darkMode ? '#1F2937' : '#FFFDFC',
-                borderWidth: 1,
-                borderColor: darkMode ? '#374151' : '#F3E8D7',
+                opacity: fadeAnim,
+                transform: [{translateY: slideAnim}],
               },
             ]}>
             <TouchableOpacity
               style={[
-                tw`px-4 py-4 rounded-full mb-4 relative`,
+                tw`rounded-full px-4 py-3 items-center mb-3`,
                 {
-                  backgroundColor:
-                    Boolean(activeProvider) || isEmailSignupLoading
-                      ? darkMode
-                        ? '#6B7280'
-                        : '#D1D5DB'
-                      : '#EA9215',
+                  backgroundColor: darkMode ? '#111827' : '#FFFFFF',
+                  borderWidth: 1,
+                  borderColor: darkMode ? '#374151' : '#E5E7EB',
                 },
               ]}
-              disabled={Boolean(activeProvider) || isEmailSignupLoading}
-              onPress={handleProviderAuth}>
-              <View style={tw`flex-row items-center justify-center`}>
-                <View
-                  style={[
-                    tw`items-center justify-center rounded-full`,
-                    {backgroundColor: '#FFFFFF', width: 36, height: 36},
-                  ]}>
-                  <Image
-                    source={require('../assets/gmail_logo.webp')}
-                    style={tw`w-6 h-6`}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Text
-                  style={[
-                    tw`font-Lato-Bold text-lg ml-3`,
-                    {color: '#FFFFFF'},
-                  ]}>
-                  Continue with Google
-                </Text>
-              </View>
-              {activeProvider === 'google' ? (
-                <View style={[tw`absolute right-4`, {top: "50%", marginTop: -10}]}>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                </View>
-              ) : (
-                <View />
-              )}
-            </TouchableOpacity>
-
-            <View style={tw`mb-2`}>
+              onPress={() => navigation.navigate('MainTab')}>
               <Text
                 style={[
-                  tw`font-Lato-Bold text-xs uppercase tracking-widest mb-3`,
-                  {color: darkMode ? '#9CA3AF' : '#92400E'},
+                  tw`font-Lato-Bold text-sm`,
+                  {color: darkMode ? '#F9FAFB' : '#111827'},
                 ]}>
-                Sign up with email
+                Continue without account
               </Text>
-              <View
-                onLayout={event => {
-                  fieldLayouts.current.firstName = event.nativeEvent.layout.y;
-                }}>
-                <TextInput
-                  value={firstName}
-                  onChangeText={value => {
-                    setFirstName(value);
-                    updateFieldError('firstName', value);
-                  }}
-                  onFocus={() => handleFieldFocus('firstName')}
-                  onBlur={() => {
-                    setFocusedField('');
-                    updateFieldError('firstName', firstName);
-                  }}
-                  placeholder="First name"
-                  placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
-                  style={inputStyle(Boolean(errors.firstName))}
+            </TouchableOpacity>
+
+            <Animated.View
+            style={[tw`mb-5 items-center`, {transform: [{scale: scaleAnim}]}]}>
+              <Animated.View
+                style={[
+                  tw`mb-3`,
+                  {
+                    transform: [
+                      {
+                        scale: sparkleAnim.interpolate({
+                          inputRange: [0, 0.5, 1],
+                          outputRange: [1, 1.06, 1],
+                        }),
+                      },
+                    ],
+                  },
+                ]}>
+                <Image
+                  source={require('./../assets/ezra_logo.png')}
+                  style={tw`w-16 h-16`}
+                  resizeMode="contain"
                 />
-              </View>
-              {errors.firstName ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: '#DC2626'},
-                  ]}>
-                  {errors.firstName}
-                </Text>
-              ) : focusedField === 'firstName' ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: darkMode ? '#9CA3AF' : '#6B7280'},
-                  ]}>
-                  Use your real first name. Minimum 2 letters.
-                </Text>
-              ) : (
-                <View style={tw`mb-3`} />
-              )}
-              <View
-                onLayout={event => {
-                  fieldLayouts.current.lastName = event.nativeEvent.layout.y;
-                }}>
-                <TextInput
-                  value={lastName}
-                  onChangeText={value => {
-                    setLastName(value);
-                    updateFieldError('lastName', value);
-                  }}
-                  onFocus={() => handleFieldFocus('lastName')}
-                  onBlur={() => {
-                    setFocusedField('');
-                    updateFieldError('lastName', lastName);
-                  }}
-                  placeholder="Last name"
-                  placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
-                  style={inputStyle(Boolean(errors.lastName))}
-                />
-              </View>
-              {errors.lastName ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: '#DC2626'},
-                  ]}>
-                  {errors.lastName}
-                </Text>
-              ) : focusedField === 'lastName' ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: darkMode ? '#9CA3AF' : '#6B7280'},
-                  ]}>
-                  Use your family or last name.
-                </Text>
-              ) : (
-                <View style={tw`mb-3`} />
-              )}
-              <View
-                onLayout={event => {
-                  fieldLayouts.current.email = event.nativeEvent.layout.y;
-                }}>
-                <TextInput
-                  value={email}
-                  onChangeText={value => {
-                    setEmail(value);
-                    updateFieldError('email', value);
-                  }}
-                  onFocus={() => handleFieldFocus('email')}
-                  onBlur={() => {
-                    setFocusedField('');
-                    updateFieldError('email', email);
-                  }}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  placeholder="Email address"
-                  placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
-                  style={inputStyle(Boolean(errors.email))}
-                />
-              </View>
-              {errors.email ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: '#DC2626'},
-                  ]}>
-                  {errors.email}
-                </Text>
-              ) : focusedField === 'email' ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: darkMode ? '#9CA3AF' : '#6B7280'},
-                  ]}>
-                  Format: `name@example.com`
-                </Text>
-              ) : (
-                <View style={tw`mb-3`} />
-              )}
-              <View
-                onLayout={event => {
-                  fieldLayouts.current.password = event.nativeEvent.layout.y;
-                }}
-                style={tw`relative`}>
-                <TextInput
-                  value={password}
-                  onChangeText={value => {
-                    setPassword(value);
-                    updateFieldError('password', value);
-                  }}
-                  onFocus={() => handleFieldFocus('password')}
-                  onBlur={() => {
-                    setFocusedField('');
-                    updateFieldError('password', password);
-                  }}
-                  secureTextEntry={!showPassword}
-                  placeholder="Password"
-                  placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
-                  style={[inputStyle(Boolean(errors.password)), {paddingRight: 48}]}
-                />
-                <TouchableOpacity
-                  style={tw`absolute right-3 top-0 bottom-0 justify-center`}
-                  onPress={() => setShowPassword(prev => !prev)}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    showPassword ? 'Hide password' : 'Show password'
-                  }>
-                  {showPassword ? (
-                    <EyeSlash size={20} color={darkMode ? '#D1D5DB' : '#6B7280'} />
-                  ) : (
-                    <Eye size={20} color={darkMode ? '#D1D5DB' : '#6B7280'} />
-                  )}
-                </TouchableOpacity>
-              </View>
-              {errors.password ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: '#DC2626'},
-                  ]}>
-                  {errors.password}
-                </Text>
-              ) : focusedField === 'password' ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: darkMode ? '#9CA3AF' : '#6B7280'},
-                  ]}>
-                  Use at least 6 characters.
-                </Text>
-              ) : (
-                <View style={tw`mb-3`} />
-              )}
+              </Animated.View>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-3xl text-center`,
+                  {color: darkMode ? '#F9FAFB' : '#1F2937'},
+                ]}>
+                Create Account
+              </Text>
+              <Text
+                style={[
+                  tw`font-Lato-Regular text-sm text-center mt-2`,
+                  {color: darkMode ? '#D1D5DB' : '#6B7280'},
+                ]}>
+                Use Google or complete the form below.
+              </Text>
+            </Animated.View>
+
+            <View
+              style={[
+                tw`rounded-3 p-5`,
+                {
+                  backgroundColor: darkMode ? '#1F2937' : '#FFFDFC',
+                  borderWidth: 1,
+                  borderColor: darkMode ? '#374151' : '#F3E8D7',
+                },
+              ]}>
               <TouchableOpacity
                 style={[
-                  tw`rounded-full px-4 py-4 items-center`,
+                  tw`px-4 py-4 rounded-full mb-4 relative`,
                   {
                     backgroundColor:
-                      isEmailSignupLoading || activeProvider
+                      Boolean(activeProvider) || isEmailSignupLoading
                         ? darkMode
                           ? '#6B7280'
                           : '#D1D5DB'
                         : '#EA9215',
                   },
                 ]}
-                disabled={isEmailSignupLoading || Boolean(activeProvider)}
-                onPress={handleEmailSignup}>
-                <Text style={tw`font-Lato-Black text-white text-base`}>
-                  {isEmailSignupLoading
-                    ? 'Creating account...'
-                    : 'Create Account'}
+                disabled={Boolean(activeProvider) || isEmailSignupLoading}
+                onPress={handleProviderAuth}>
+                <View style={tw`flex-row items-center justify-center`}>
+                  <View
+                    style={[
+                      tw`items-center justify-center rounded-full`,
+                      {backgroundColor: '#FFFFFF', width: 36, height: 36},
+                    ]}>
+                    <Image
+                      source={require('../assets/gmail_logo.webp')}
+                      style={tw`w-6 h-6`}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      tw`font-Lato-Bold text-lg ml-3`,
+                      {color: '#FFFFFF'},
+                    ]}>
+                    Continue with Google
+                  </Text>
+                </View>
+                {activeProvider === 'google' ? (
+                <View style={[tw`absolute right-4`, {top: "50%", marginTop: -10}]}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  </View>
+                ) : (
+                  <View />
+                )}
+              </TouchableOpacity>
+
+              <View style={tw`mb-2`}>
+                <Text
+                  style={[
+                    tw`font-Lato-Bold text-xs uppercase tracking-widest mb-3`,
+                    {color: darkMode ? '#9CA3AF' : '#92400E'},
+                  ]}>
+                  Sign up with email
+                </Text>
+                <View
+                  onLayout={event => {
+                    fieldLayouts.current.firstName = event.nativeEvent.layout.y;
+                  }}>
+                  <TextInput
+                    value={firstName}
+                    onChangeText={value => {
+                      setFirstName(value);
+                      updateFieldError('firstName', value);
+                    }}
+                    onFocus={() => handleFieldFocus('firstName')}
+                    onBlur={() => {
+                      setFocusedField('');
+                      updateFieldError('firstName', firstName);
+                    }}
+                    placeholder="First name"
+                    placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                    style={inputStyle(Boolean(errors.firstName))}
+                  />
+                </View>
+                {errors.firstName ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: '#DC2626'},
+                    ]}>
+                    {errors.firstName}
+                  </Text>
+                ) : focusedField === 'firstName' ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: darkMode ? '#9CA3AF' : '#6B7280'},
+                    ]}>
+                    Use your real first name. Minimum 2 letters.
+                  </Text>
+                ) : (
+                  <View style={tw`mb-3`} />
+                )}
+                <View
+                  onLayout={event => {
+                    fieldLayouts.current.lastName = event.nativeEvent.layout.y;
+                  }}>
+                  <TextInput
+                    value={lastName}
+                    onChangeText={value => {
+                      setLastName(value);
+                      updateFieldError('lastName', value);
+                    }}
+                    onFocus={() => handleFieldFocus('lastName')}
+                    onBlur={() => {
+                      setFocusedField('');
+                      updateFieldError('lastName', lastName);
+                    }}
+                    placeholder="Last name"
+                    placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                    style={inputStyle(Boolean(errors.lastName))}
+                  />
+                </View>
+                {errors.lastName ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: '#DC2626'},
+                    ]}>
+                    {errors.lastName}
+                  </Text>
+                ) : focusedField === 'lastName' ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: darkMode ? '#9CA3AF' : '#6B7280'},
+                    ]}>
+                    Use your family or last name.
+                  </Text>
+                ) : (
+                  <View style={tw`mb-3`} />
+                )}
+                <View
+                  onLayout={event => {
+                    fieldLayouts.current.email = event.nativeEvent.layout.y;
+                  }}>
+                  <TextInput
+                    value={email}
+                    onChangeText={value => {
+                      setEmail(value);
+                      updateFieldError('email', value);
+                    }}
+                    onFocus={() => handleFieldFocus('email')}
+                    onBlur={() => {
+                      setFocusedField('');
+                      updateFieldError('email', email);
+                    }}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    placeholder="Email address"
+                    placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                    style={inputStyle(Boolean(errors.email))}
+                  />
+                </View>
+                {errors.email ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: '#DC2626'},
+                    ]}>
+                    {errors.email}
+                  </Text>
+                ) : focusedField === 'email' ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: darkMode ? '#9CA3AF' : '#6B7280'},
+                    ]}>
+                    Format: `name@example.com`
+                  </Text>
+                ) : (
+                  <View style={tw`mb-3`} />
+                )}
+                <View
+                  onLayout={event => {
+                    fieldLayouts.current.password = event.nativeEvent.layout.y;
+                  }}
+                  style={tw`relative`}>
+                  <TextInput
+                    value={password}
+                    onChangeText={value => {
+                      setPassword(value);
+                      updateFieldError('password', value);
+                    }}
+                    onFocus={() => handleFieldFocus('password')}
+                    onBlur={() => {
+                      setFocusedField('');
+                      updateFieldError('password', password);
+                    }}
+                    secureTextEntry={!showPassword}
+                    placeholder="Password"
+                    placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                  style={[inputStyle(Boolean(errors.password)), {paddingRight: 48}]}
+                  />
+                  <TouchableOpacity
+                    style={tw`absolute right-3 top-0 bottom-0 justify-center`}
+                    onPress={() => setShowPassword(prev => !prev)}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      showPassword ? 'Hide password' : 'Show password'
+                    }>
+                    {showPassword ? (
+                    <EyeSlash size={20} color={darkMode ? '#D1D5DB' : '#6B7280'} />
+                    ) : (
+                      <Eye size={20} color={darkMode ? '#D1D5DB' : '#6B7280'} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {errors.password ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: '#DC2626'},
+                    ]}>
+                    {errors.password}
+                  </Text>
+                ) : focusedField === 'password' ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: darkMode ? '#9CA3AF' : '#6B7280'},
+                    ]}>
+                    Use at least 6 characters.
+                  </Text>
+                ) : (
+                  <View style={tw`mb-3`} />
+                )}
+                <TouchableOpacity
+                  style={[
+                    tw`rounded-full px-4 py-4 items-center`,
+                    {
+                      backgroundColor:
+                        isEmailSignupLoading || activeProvider
+                          ? darkMode
+                            ? '#6B7280'
+                            : '#D1D5DB'
+                          : '#EA9215',
+                    },
+                  ]}
+                  disabled={isEmailSignupLoading || Boolean(activeProvider)}
+                  onPress={handleEmailSignup}>
+                  <Text style={tw`font-Lato-Black text-white text-base`}>
+                    {isEmailSignupLoading
+                      ? 'Creating account...'
+                      : 'Create Account'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={tw`flex-row justify-center my-5`}>
+              <Text
+                style={[
+                  tw`font-Lato-Bold text-secondary-6 text-base`,
+                  darkMode ? tw`text-primary-3` : null,
+                ]}>
+                Already have an account?{' '}
+              </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login', route?.params)}>
+                <Text style={tw`font-Lato-Bold text-accent-6 text-base`}>
+                  Sign In
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
-
-          <View style={tw`flex-row justify-center my-5`}>
-            <Text
-              style={[
-                tw`font-Lato-Bold text-secondary-6 text-base`,
-                darkMode ? tw`text-primary-3` : null,
-              ]}>
-              Already have an account?{' '}
-            </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={tw`font-Lato-Bold text-accent-6 text-base`}>
-                Sign In
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </ScrollView>
+          </Animated.View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

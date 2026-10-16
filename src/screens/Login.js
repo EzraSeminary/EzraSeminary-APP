@@ -37,7 +37,7 @@ import {
   validatePassword,
 } from '../services/mobileAuth';
 
-const Login = ({navigation}) => {
+const Login = ({navigation, route}) => {
   const dispatch = useDispatch();
   const darkMode = useSelector(state => state.ui.darkMode);
   const {
@@ -60,6 +60,16 @@ const Login = ({navigation}) => {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const sparkleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (route?.params?.reason) {
+      Toast.show({
+        type: 'info',
+        text1: 'Sign in required',
+        text2: route.params.reason,
+      });
+    }
+  }, [route?.params?.reason]);
 
   useEffect(() => {
     Animated.parallel([
@@ -110,10 +120,9 @@ const Login = ({navigation}) => {
       dispatch,
       login,
     });
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'MainTab'}],
-    });
+    if (route?.params?.returnToBible && navigation.canGoBack())
+      navigation.goBack();
+    else navigation.reset({index: 0, routes: [{name: 'MainTab'}]});
   };
 
   const handleProviderAuth = async () => {
@@ -239,10 +248,9 @@ const Login = ({navigation}) => {
         dispatch,
         login,
       });
-      navigation.reset({
-        index: 0,
-        routes: [{name: 'MainTab'}],
-      });
+      if (route?.params?.returnToBible && navigation.canGoBack())
+        navigation.goBack();
+      else navigation.reset({index: 0, routes: [{name: 'MainTab'}]});
       Toast.show({
         type: 'success',
         text1: 'Welcome back',
@@ -299,298 +307,298 @@ const Login = ({navigation}) => {
         style={tw`flex-1`}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}>
-      <ScrollView
-        ref={scrollViewRef}
-        contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-6`}
-        showsVerticalScrollIndicator={false}
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled">
-        <Animated.View
-          style={[
-            tw`w-full max-w-sm`,
-            {
-              opacity: fadeAnim,
-              transform: [{translateY: slideAnim}],
-            },
-          ]}>
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={tw`flex-grow justify-center items-center px-4 py-6`}
+          showsVerticalScrollIndicator={false}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled">
           <Animated.View
-            style={[tw`items-center mb-6`, {transform: [{scale: scaleAnim}]}]}>
-            <Animated.View
-              style={[
-                tw`mb-3`,
-                {
-                  transform: [
-                    {
-                      scale: sparkleAnim.interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: [1, 1.06, 1],
-                      }),
-                    },
-                  ],
-                },
-              ]}>
-              <Image
-                source={require('./../assets/ezra_logo.png')}
-                style={tw`w-14 h-14`}
-                resizeMode="contain"
-              />
-            </Animated.View>
-            <Text
-              style={[
-                tw`font-nokia-bold text-3xl text-center`,
-                {color: darkMode ? '#F9FAFB' : '#1F2937'},
-              ]}>
-              Welcome Back
-            </Text>
-            <Text
-              style={[
-                tw`font-Lato-Regular text-sm text-center mt-2`,
-                {color: darkMode ? '#D1D5DB' : '#6B7280'},
-              ]}>
-              Sign in fast, or continue without an account.
-            </Text>
-          </Animated.View>
-
-          <View
             style={[
-              tw`rounded-3 p-5`,
+              tw`w-full max-w-sm`,
               {
-                backgroundColor: darkMode ? '#1F2937' : '#FFFDFC',
-                borderWidth: 1,
-                borderColor: darkMode ? '#374151' : '#F3E8D7',
+                opacity: fadeAnim,
+                transform: [{translateY: slideAnim}],
               },
             ]}>
-            <TouchableOpacity
+            <Animated.View
+            style={[tw`items-center mb-6`, {transform: [{scale: scaleAnim}]}]}>
+              <Animated.View
+                style={[
+                  tw`mb-3`,
+                  {
+                    transform: [
+                      {
+                        scale: sparkleAnim.interpolate({
+                          inputRange: [0, 0.5, 1],
+                          outputRange: [1, 1.06, 1],
+                        }),
+                      },
+                    ],
+                  },
+                ]}>
+                <Image
+                  source={require('./../assets/ezra_logo.png')}
+                  style={tw`w-14 h-14`}
+                  resizeMode="contain"
+                />
+              </Animated.View>
+              <Text
+                style={[
+                  tw`font-nokia-bold text-3xl text-center`,
+                  {color: darkMode ? '#F9FAFB' : '#1F2937'},
+                ]}>
+                Welcome Back
+              </Text>
+              <Text
+                style={[
+                  tw`font-Lato-Regular text-sm text-center mt-2`,
+                  {color: darkMode ? '#D1D5DB' : '#6B7280'},
+                ]}>
+                Sign in fast, or continue without an account.
+              </Text>
+            </Animated.View>
+
+            <View
               style={[
-                tw`rounded-full px-4 py-3 items-center mb-3`,
+                tw`rounded-3 p-5`,
                 {
-                  backgroundColor: darkMode ? '#111827' : '#FFFFFF',
+                  backgroundColor: darkMode ? '#1F2937' : '#FFFDFC',
                   borderWidth: 1,
-                  borderColor: darkMode ? '#374151' : '#E5E7EB',
+                  borderColor: darkMode ? '#374151' : '#F3E8D7',
                 },
-              ]}
-              onPress={() => navigation.navigate('MainTab')}>
-              <Text
-                style={[
-                  tw`font-Lato-Bold text-xs`,
-                  {color: darkMode ? '#F9FAFB' : '#111827'},
-                ]}>
-                Continue without account
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                tw`px-4 py-4 rounded-full mb-4 relative`,
-                {
-                  backgroundColor:
-                    Boolean(activeProvider) || isEmailLoginLoading
-                      ? darkMode
-                        ? '#6B7280'
-                        : '#D1D5DB'
-                      : '#EA9215',
-                },
-              ]}
-              disabled={Boolean(activeProvider) || isEmailLoginLoading}
-              onPress={handleProviderAuth}>
-              <View style={tw`flex-row items-center justify-center`}>
-                <View
-                  style={[
-                    tw`items-center justify-center rounded-full`,
-                    {backgroundColor: '#FFFFFF', width: 36, height: 36},
-                  ]}>
-                  <Image
-                    source={require('../assets/gmail_logo.webp')}
-                    style={tw`w-6 h-6`}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Text
-                  style={[
-                    tw`font-Lato-Bold text-lg ml-3`,
-                    {color: '#FFFFFF'},
-                  ]}>
-                  Continue with Google
-                </Text>
-              </View>
-              {activeProvider === 'google' ? (
-                <View style={[tw`absolute right-4`, {top: "50%", marginTop: -10}]}>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                </View>
-              ) : (
-                <View />
-              )}
-            </TouchableOpacity>
-
-            <View style={tw`mb-2`}>
-              <Text
-                style={[
-                  tw`font-Lato-Bold text-xs uppercase tracking-widest mb-3`,
-                  {color: darkMode ? '#9CA3AF' : '#92400E'},
-                ]}>
-                Sign in with email
-              </Text>
-              <View
-                onLayout={event => {
-                  fieldLayouts.current.email = event.nativeEvent.layout.y;
-                }}>
-                <TextInput
-                  value={email}
-                  onChangeText={value => {
-                    setEmail(value);
-                    updateFieldError('email', value);
-                  }}
-                  onFocus={() => handleFieldFocus('email')}
-                  onBlur={() => {
-                    setFocusedField('');
-                    updateFieldError('email', email);
-                  }}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  placeholder="Email address"
-                  placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
-                  style={inputStyle(Boolean(errors.email))}
-                />
-              </View>
-              {errors.email ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: '#DC2626'},
-                  ]}>
-                  {errors.email}
-                </Text>
-              ) : focusedField === 'email' ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: darkMode ? '#9CA3AF' : '#6B7280'},
-                  ]}>
-                  Format: `name@example.com`
-                </Text>
-              ) : (
-                <View style={tw`mb-3`} />
-              )}
-              <View
-                onLayout={event => {
-                  fieldLayouts.current.password = event.nativeEvent.layout.y;
-                }}
-                style={tw`relative`}>
-                <TextInput
-                  value={password}
-                  onChangeText={value => {
-                    setPassword(value);
-                    updateFieldError('password', value);
-                  }}
-                  onFocus={() => handleFieldFocus('password')}
-                  onBlur={() => {
-                    setFocusedField('');
-                    updateFieldError('password', password);
-                  }}
-                  secureTextEntry={!showPassword}
-                  placeholder="Password"
-                  placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
-                  style={[inputStyle(Boolean(errors.password)), {paddingRight: 48}]}
-                />
-                <TouchableOpacity
-                  style={tw`absolute right-3 top-0 bottom-0 justify-center`}
-                  onPress={() => setShowPassword(prev => !prev)}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    showPassword ? 'Hide password' : 'Show password'
-                  }>
-                  {showPassword ? (
-                    <EyeSlash size={20} color={darkMode ? '#D1D5DB' : '#6B7280'} />
-                  ) : (
-                    <Eye size={20} color={darkMode ? '#D1D5DB' : '#6B7280'} />
-                  )}
-                </TouchableOpacity>
-              </View>
-              {errors.password ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: '#DC2626'},
-                  ]}>
-                  {errors.password}
-                </Text>
-              ) : focusedField === 'password' ? (
-                <Text
-                  style={[
-                    tw`font-Lato-Regular text-xs mt-2 mb-3`,
-                    {color: darkMode ? '#9CA3AF' : '#6B7280'},
-                  ]}>
-                  Use at least 6 characters.
-                </Text>
-              ) : (
-                <View style={tw`mb-3`} />
-              )}
+              ]}>
               <TouchableOpacity
                 style={[
-                  tw`rounded-full px-4 py-4 items-center`,
+                  tw`rounded-full px-4 py-3 items-center mb-3`,
+                  {
+                    backgroundColor: darkMode ? '#111827' : '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: darkMode ? '#374151' : '#E5E7EB',
+                  },
+                ]}
+                onPress={() => navigation.navigate('MainTab')}>
+                <Text
+                  style={[
+                    tw`font-Lato-Bold text-xs`,
+                    {color: darkMode ? '#F9FAFB' : '#111827'},
+                  ]}>
+                  Continue without account
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  tw`px-4 py-4 rounded-full mb-4 relative`,
                   {
                     backgroundColor:
-                      isEmailLoginLoading || activeProvider
+                      Boolean(activeProvider) || isEmailLoginLoading
                         ? darkMode
                           ? '#6B7280'
                           : '#D1D5DB'
                         : '#EA9215',
                   },
                 ]}
-                disabled={isEmailLoginLoading || Boolean(activeProvider)}
-                onPress={handleEmailLogin}>
-                <Text style={tw`font-Lato-Black text-white text-base`}>
-                  {isEmailLoginLoading ? 'Signing in...' : 'Sign In'}
+                disabled={Boolean(activeProvider) || isEmailLoginLoading}
+                onPress={handleProviderAuth}>
+                <View style={tw`flex-row items-center justify-center`}>
+                  <View
+                    style={[
+                      tw`items-center justify-center rounded-full`,
+                      {backgroundColor: '#FFFFFF', width: 36, height: 36},
+                    ]}>
+                    <Image
+                      source={require('../assets/gmail_logo.webp')}
+                      style={tw`w-6 h-6`}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      tw`font-Lato-Bold text-lg ml-3`,
+                      {color: '#FFFFFF'},
+                    ]}>
+                    Continue with Google
+                  </Text>
+                </View>
+                {activeProvider === 'google' ? (
+                <View style={[tw`absolute right-4`, {top: "50%", marginTop: -10}]}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  </View>
+                ) : (
+                  <View />
+                )}
+              </TouchableOpacity>
+
+              <View style={tw`mb-2`}>
+                <Text
+                  style={[
+                    tw`font-Lato-Bold text-xs uppercase tracking-widest mb-3`,
+                    {color: darkMode ? '#9CA3AF' : '#92400E'},
+                  ]}>
+                  Sign in with email
+                </Text>
+                <View
+                  onLayout={event => {
+                    fieldLayouts.current.email = event.nativeEvent.layout.y;
+                  }}>
+                  <TextInput
+                    value={email}
+                    onChangeText={value => {
+                      setEmail(value);
+                      updateFieldError('email', value);
+                    }}
+                    onFocus={() => handleFieldFocus('email')}
+                    onBlur={() => {
+                      setFocusedField('');
+                      updateFieldError('email', email);
+                    }}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    placeholder="Email address"
+                    placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                    style={inputStyle(Boolean(errors.email))}
+                  />
+                </View>
+                {errors.email ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: '#DC2626'},
+                    ]}>
+                    {errors.email}
+                  </Text>
+                ) : focusedField === 'email' ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: darkMode ? '#9CA3AF' : '#6B7280'},
+                    ]}>
+                    Format: `name@example.com`
+                  </Text>
+                ) : (
+                  <View style={tw`mb-3`} />
+                )}
+                <View
+                  onLayout={event => {
+                    fieldLayouts.current.password = event.nativeEvent.layout.y;
+                  }}
+                  style={tw`relative`}>
+                  <TextInput
+                    value={password}
+                    onChangeText={value => {
+                      setPassword(value);
+                      updateFieldError('password', value);
+                    }}
+                    onFocus={() => handleFieldFocus('password')}
+                    onBlur={() => {
+                      setFocusedField('');
+                      updateFieldError('password', password);
+                    }}
+                    secureTextEntry={!showPassword}
+                    placeholder="Password"
+                    placeholderTextColor={darkMode ? '#9CA3AF' : '#6B7280'}
+                  style={[inputStyle(Boolean(errors.password)), {paddingRight: 48}]}
+                  />
+                  <TouchableOpacity
+                    style={tw`absolute right-3 top-0 bottom-0 justify-center`}
+                    onPress={() => setShowPassword(prev => !prev)}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      showPassword ? 'Hide password' : 'Show password'
+                    }>
+                    {showPassword ? (
+                    <EyeSlash size={20} color={darkMode ? '#D1D5DB' : '#6B7280'} />
+                    ) : (
+                      <Eye size={20} color={darkMode ? '#D1D5DB' : '#6B7280'} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {errors.password ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: '#DC2626'},
+                    ]}>
+                    {errors.password}
+                  </Text>
+                ) : focusedField === 'password' ? (
+                  <Text
+                    style={[
+                      tw`font-Lato-Regular text-xs mt-2 mb-3`,
+                      {color: darkMode ? '#9CA3AF' : '#6B7280'},
+                    ]}>
+                    Use at least 6 characters.
+                  </Text>
+                ) : (
+                  <View style={tw`mb-3`} />
+                )}
+                <TouchableOpacity
+                  style={[
+                    tw`rounded-full px-4 py-4 items-center`,
+                    {
+                      backgroundColor:
+                        isEmailLoginLoading || activeProvider
+                          ? darkMode
+                            ? '#6B7280'
+                            : '#D1D5DB'
+                          : '#EA9215',
+                    },
+                  ]}
+                  disabled={isEmailLoginLoading || Boolean(activeProvider)}
+                  onPress={handleEmailLogin}>
+                  <Text style={tw`font-Lato-Black text-white text-base`}>
+                    {isEmailLoginLoading ? 'Signing in...' : 'Sign In'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={tw`flex-row justify-center my-5`}>
+              <Text
+                style={[
+                  tw`font-Lato-Bold text-secondary-6 text-base`,
+                  darkMode ? tw`text-primary-3` : null,
+                ]}>
+                Need an account?{' '}
+              </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Signup', route?.params)}>
+                <Text style={tw`font-Lato-Bold text-accent-6 text-base`}>
+                  Sign Up
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
-
-          <View style={tw`flex-row justify-center my-5`}>
-            <Text
-              style={[
-                tw`font-Lato-Bold text-secondary-6 text-base`,
-                darkMode ? tw`text-primary-3` : null,
-              ]}>
-              Need an account?{' '}
-            </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-              <Text style={tw`font-Lato-Bold text-accent-6 text-base`}>
-                Sign Up
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </ScrollView>
-      {activeProvider === 'google' ? (
-        <View
-          style={[
-            tw`absolute inset-0 items-center justify-center px-8`,
-            {backgroundColor: 'rgba(17, 24, 39, 0.72)'},
-          ]}>
+          </Animated.View>
+        </ScrollView>
+        {activeProvider === 'google' ? (
           <View
             style={[
-              tw`rounded-3 px-8 py-7 items-center`,
-              {backgroundColor: 'rgba(255, 255, 255, 0.95)'},
+              tw`absolute inset-0 items-center justify-center px-8`,
+              {backgroundColor: 'rgba(17, 24, 39, 0.72)'},
             ]}>
-            <ActivityIndicator size="large" color="#EA9215" />
-            <Text
+            <View
               style={[
-                tw`font-Lato-Black text-base mt-4 text-center`,
-                {color: '#111827'},
+                tw`rounded-3 px-8 py-7 items-center`,
+                {backgroundColor: 'rgba(255, 255, 255, 0.95)'},
               ]}>
-              Signing you in...
-            </Text>
-            <Text
-              style={[
-                tw`font-Lato-Regular text-sm mt-2 text-center`,
-                {color: '#4B5563'},
-              ]}>
-              Please wait while we connect your Google account.
-            </Text>
+              <ActivityIndicator size="large" color="#EA9215" />
+              <Text
+                style={[
+                  tw`font-Lato-Black text-base mt-4 text-center`,
+                  {color: '#111827'},
+                ]}>
+                Signing you in...
+              </Text>
+              <Text
+                style={[
+                  tw`font-Lato-Regular text-sm mt-2 text-center`,
+                  {color: '#4B5563'},
+                ]}>
+                Please wait while we connect your Google account.
+              </Text>
+            </View>
           </View>
-        </View>
-      ) : null}
+        ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

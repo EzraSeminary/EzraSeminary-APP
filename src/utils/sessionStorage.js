@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {clearSecureSession} from './secureSession';
 
 const SESSION_KEYS = [
   'token',
@@ -18,6 +19,7 @@ const SESSION_KEY_PREFIXES = [
 ];
 
 export const clearLocalUserSession = async () => {
+  await clearSecureSession();
   const keys = await AsyncStorage.getAllKeys();
   const keysToRemove = keys.filter(
     key =>

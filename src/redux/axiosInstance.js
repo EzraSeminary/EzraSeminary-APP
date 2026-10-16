@@ -1,28 +1,31 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  clearSecureSession,
+  getSecureSession,
+  saveSecureSession,
+} from '../utils/secureSession';
+import {getApiBaseUrlSync} from '../utils/apiBaseUrl';
 
 const persistAuthenticatedUser = async user => {
   if (!user) {
     return;
   }
 
-  await AsyncStorage.setItem('user', JSON.stringify(user));
-  await AsyncStorage.setItem('token', user?.token || '');
+  await saveSecureSession(user);
 };
 
 const getStoredUser = async () => {
   try {
-    const userString = await AsyncStorage.getItem('user');
-    return userString ? JSON.parse(userString) : null;
+    return await getSecureSession();
   } catch {
     return null;
   }
 };
 
 function createAxiosInstance(token) {
+  const baseURL = getApiBaseUrlSync();
   const instance = axios.create({
-    // baseURL: 'http://localhost:5100',
-    baseURL: 'https://ezrabackend.online/',
+    baseURL,
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'multipart/form-data',
@@ -54,13 +57,13 @@ function createAxiosInstance(token) {
       const refreshToken = storedUser?.refreshToken;
 
       if (!refreshToken) {
-        await AsyncStorage.multiRemove(['user', 'token']);
+        await clearSecureSession();
         return Promise.reject(error);
       }
 
       try {
         const refreshResponse = await axios.post(
-          'https://ezrabackend.online/users/refresh-token',
+          `${baseURL}users/refresh-token`,
           {refreshToken},
         );
 
@@ -68,7 +71,7 @@ function createAxiosInstance(token) {
         originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.token}`;
         return instance(originalRequest);
       } catch (refreshError) {
-        await AsyncStorage.multiRemove(['user', 'token']);
+        await clearSecureSession();
         return Promise.reject(refreshError);
       }
     },

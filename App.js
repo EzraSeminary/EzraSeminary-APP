@@ -1,6 +1,9 @@
 import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {ActivityIndicator, Platform, StatusBar} from 'react-native';
-import {NavigationContainer} from '@react-navigation/native';
+import {
+  getFocusedRouteNameFromRoute,
+  NavigationContainer,
+} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {Provider, useSelector, useDispatch} from 'react-redux';
@@ -46,9 +49,28 @@ import InVerseWeek from './src/screens/InVerseScreens/InVerseWeek';
 import NotificationService from './src/services/NotificationService';
 import notifee, {EventType} from '@notifee/react-native';
 import RemotePush from './src/services/RemotePush';
+import {getSecureSession} from './src/utils/secureSession';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+const linking = {
+  prefixes: ['ezraseminary://', 'https://ezraseminary.com'],
+  config: {
+    screens: {
+      MainTab: {
+        screens: {
+          Home: {
+            screens: {
+              BibleHome: 'bible',
+              BibleReader: 'bible/:passage',
+            },
+          },
+        },
+      },
+    },
+  },
+};
 
 const MainTabNavigator = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -96,7 +118,13 @@ const MainTabNavigator = () => {
         headerShown: false,
         tabBarActiveTintColor: '#EA9215',
         tabBarInactiveTintColor: getFloatingTabInactiveColor(darkMode),
-        tabBarStyle: getFloatingTabBarStyle(darkMode, insets),
+        tabBarStyle:
+          route.name === 'Home' &&
+          ['BibleReader', 'BibleSearch', 'MyBible'].includes(
+            getFocusedRouteNameFromRoute(route),
+          )
+            ? {display: 'none'}
+            : getFloatingTabBarStyle(darkMode, insets),
         tabBarItemStyle: floatingTabBarItemStyle,
         tabBarLabelStyle: floatingTabBarLabelStyle,
         tabBarIconStyle: floatingTabBarIconStyle,
@@ -197,7 +225,10 @@ const App = () => {
             `Storage was full. Cleared ${keysToRemove.length} cache keys for recovery.`,
           );
         } catch (cleanupError) {
-          console.warn('Failed to recover from low storage state:', cleanupError);
+          console.warn(
+            'Failed to recover from low storage state:',
+            cleanupError,
+          );
         }
       }
     };
@@ -205,9 +236,9 @@ const App = () => {
     const checkLoginStatus = async () => {
       try {
         await recoverStorageIfNeeded();
-        const storedUser = await AsyncStorage.getItem('user');
-        if (storedUser) {
-          store.dispatch(login(JSON.parse(storedUser)));
+        const storedUser = await getSecureSession();
+        if (storedUser?.token || storedUser?.accessToken) {
+          store.dispatch(login(storedUser));
           setInitialRoute('MainTab');
         }
       } catch (error) {
@@ -297,11 +328,13 @@ const App = () => {
       }
     };
 
-    const unsubscribeForeground = notifee.onForegroundEvent(({type, detail}) => {
-      if (type === EventType.PRESS) {
-        navigateFromNotification(detail.notification);
-      }
-    });
+    const unsubscribeForeground = notifee.onForegroundEvent(
+      ({type, detail}) => {
+        if (type === EventType.PRESS) {
+          navigateFromNotification(detail.notification);
+        }
+      },
+    );
 
     initializeNotifications();
 
@@ -339,7 +372,7 @@ const App = () => {
     <Provider store={store}>
       <SafeAreaProvider>
         <PersistGate loading={null} persistor={persistor}>
-          <NavigationContainer ref={navigationRef}>
+          <NavigationContainer ref={navigationRef} linking={linking}>
             <Stack.Navigator
               initialRouteName={initialRoute}
               screenOptions={{

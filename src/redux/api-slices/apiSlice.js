@@ -7,27 +7,24 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getApiBaseUrl} from '../../utils/apiBaseUrl';
 import {MOBILE_AUTH_PROVIDERS} from '../../config/authProviders';
 import {selectDevotionForPreviewDate} from '../../utils/devotionalSeries';
+import {
+  clearSecureSession,
+  getSecureSession,
+  saveSecureSession,
+} from '../../utils/secureSession';
 
-const getStoredUser = async () => {
-  try {
-    const userString = await AsyncStorage.getItem('user');
-    return userString ? JSON.parse(userString) : null;
-  } catch {
-    return null;
-  }
-};
+const getStoredUser = getSecureSession;
 
 const persistAuthenticatedUser = async user => {
   if (!user) {
     return;
   }
 
-  await AsyncStorage.setItem('user', JSON.stringify(user));
-  await AsyncStorage.setItem('token', user?.token || '');
+  await saveSecureSession(user);
 };
 
 const clearAuthenticatedUser = async () => {
-  await AsyncStorage.multiRemove(['user', 'token']);
+  await clearSecureSession();
 };
 
 const dynamicBaseQuery = async (args, api, extraOptions) => {
@@ -40,12 +37,6 @@ const dynamicBaseQuery = async (args, api, extraOptions) => {
       const storedUser = await getStoredUser();
       let token = storedUser?.token || api.getState()?.auth?.user?.token || '';
 
-      if (!token) {
-        try {
-          const storedToken = await AsyncStorage.getItem('token');
-          token = storedToken || '';
-        } catch {}
-      }
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }

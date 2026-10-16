@@ -1,5 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import {getApiBaseUrl} from './apiBaseUrl';
+import {
+  clearSecureSession,
+  getSecureSession,
+  saveSecureSession,
+} from './secureSession';
 
 const PENDING_COURSE_PROGRESS_KEY = 'pending_course_progress';
 
@@ -21,22 +27,20 @@ const getAuthErrorStatus = error => {
 };
 
 const refreshStoredAuth = async () => {
-  const rawUser = await AsyncStorage.getItem('user');
-  const parsedUser = rawUser ? JSON.parse(rawUser) : null;
+  const parsedUser = await getSecureSession();
   const refreshToken = parsedUser?.refreshToken;
 
   if (!refreshToken) {
-    await AsyncStorage.multiRemove(['user', 'token']);
+    await clearSecureSession();
     return null;
   }
 
-  const response = await axios.post(
-    'https://ezrabackend.online/users/refresh-token',
-    {refreshToken},
-  );
+  const baseUrl = await getApiBaseUrl();
+  const response = await axios.post(`${baseUrl}users/refresh-token`, {
+    refreshToken,
+  });
 
-  await AsyncStorage.setItem('user', JSON.stringify(response.data));
-  await AsyncStorage.setItem('token', response.data?.token || '');
+  await saveSecureSession(response.data);
   return response.data;
 };
 
@@ -183,9 +187,10 @@ export const syncPendingCourseProgressForCourse = async ({
       progress: mergeProgressEntry(parsedUser?.progress, pending),
     };
 
+    const baseUrl = await getApiBaseUrl();
     const syncProgress = authToken =>
       axios.put(
-        `https://ezrabackend.online/users/profile/${userId}`,
+        `${baseUrl}users/profile/${userId}`,
         {
           userId,
           progress: nextUser.progress,

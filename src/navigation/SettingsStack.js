@@ -13,6 +13,7 @@ import ExploreItemForm from '../screens/AdminScreens/ExploreItemForm';
 import DevotionAdmin from '../screens/AdminScreens/DevotionAdmin';
 import DevotionForm from '../screens/AdminScreens/DevotionForm';
 import Sermons from '../screens/Sermons';
+import BibleHighlightManager from '../screens/Settings/BibleHighlightManager';
 
 const Stack = createNativeStackNavigator();
 
@@ -47,6 +48,11 @@ const SettingsStack = () => {
       <Stack.Screen
         name="FavoriteDevotions"
         component={FavoriteDevotions}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="BibleHighlightManager"
+        component={BibleHighlightManager}
         options={{headerShown: false}}
       />
       <Stack.Screen

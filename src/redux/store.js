@@ -15,6 +15,8 @@ import {FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER} from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import {setupListeners} from '@reduxjs/toolkit/query';
+import bibleReducer from '../features/bible/bibleSlice';
+import {bibleApi} from '../features/bible/bibleApi';
 
 const rootReducer = combineReducers({
   ssl: sslReducer, // Add the ssl reducer
@@ -23,10 +25,12 @@ const rootReducer = combineReducers({
   devotions: devotionsReducer,
   auth: authReducer,
   language: languageReducer,
+  bible: bibleReducer,
   [SSLapi.reducerPath]: SSLapi.reducer,
   [InVerseapi.reducerPath]: InVerseapi.reducer, // Add the InVerseapi reducer
   [apiSlice.reducerPath]: apiSlice.reducer,
   [videoLinksApi.reducerPath]: videoLinksApi.reducer,
+  [bibleApi.reducerPath]: bibleApi.reducer,
 });
 
 const persistConfig = {
@@ -36,8 +40,8 @@ const persistConfig = {
   whitelist: [
     'ssl', // Persist the ssl state
     'ui',
-    'auth',
     'language',
+    'bible',
     // Avoid persisting RTK query caches - they can grow large and trigger SQLITE_FULL.
     // These caches are safely recreated from the network/custom AsyncStorage caches.
   ],
@@ -56,7 +60,8 @@ export const store = configureStore({
       .concat(apiSlice.middleware)
       .concat(SSLapi.middleware) // Use SSLapi instead of SabbathSchoolApi
       .concat(InVerseapi.middleware) // Add the InVerseapi middleware
-      .concat(videoLinksApi.middleware), // Add the videoLinksApi middleware
+      .concat(videoLinksApi.middleware)
+      .concat(bibleApi.middleware), // Add the Bible API middleware
 });
 
 export const persistor = persistStore(store, null, () => {

@@ -1,8 +1,8 @@
 import {createSlice} from '@reduxjs/toolkit';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {clearGoogleProviderSession} from '../services/socialAuth';
 import {clearLocalUserSession} from '../utils/sessionStorage';
 import {apiSlice} from './api-slices/apiSlice';
+import {persistPublicUser, saveSecureSession} from '../utils/secureSession';
 
 const initialState = {
   user: null,
@@ -16,7 +16,8 @@ const authSlice = createSlice({
     login: (state, action) => {
       const payload = action.payload || {};
       const token = payload.token || state.user?.token || '';
-      const refreshToken = payload.refreshToken || state.user?.refreshToken || '';
+      const refreshToken =
+        payload.refreshToken || state.user?.refreshToken || '';
       state.user = {
         ...(state.user || {}),
         ...payload,
@@ -24,20 +25,18 @@ const authSlice = createSlice({
         ...(refreshToken ? {refreshToken} : {}),
       };
 
-      // Store the token in AsyncStorage
-      AsyncStorage.setItem('token', token);
-      AsyncStorage.setItem('user', JSON.stringify(state.user));
+      persistPublicUser(state.user);
     },
     signup: (state, action) => {
       const payload = action.payload || {};
       state.user = payload;
-      AsyncStorage.setItem('token', payload.token || '');
-      AsyncStorage.setItem('user', JSON.stringify(payload));
+      persistPublicUser(payload);
     },
     updateUser: (state, action) => {
       const payload = action.payload || {};
       const token = payload.token || state.user?.token || '';
-      const refreshToken = payload.refreshToken || state.user?.refreshToken || '';
+      const refreshToken =
+        payload.refreshToken || state.user?.refreshToken || '';
       state.user = {
         ...(state.user || {}),
         ...payload,
@@ -45,11 +44,7 @@ const authSlice = createSlice({
         ...(refreshToken ? {refreshToken} : {}),
       };
 
-      // Assuming the token is part of the payload, update it in local storage as well
-      AsyncStorage.setItem('token', token);
-
-      // Update the user details in local storage
-      AsyncStorage.setItem('user', JSON.stringify(state.user));
+      persistPublicUser(state.user);
     },
     logout: state => {
       state.user = null;
@@ -127,14 +122,15 @@ const authSlice = createSlice({
       }
 
       if (state.user) {
-        AsyncStorage.setItem('user', JSON.stringify(state.user));
+        persistPublicUser(state.user);
       }
     },
 
     setUser: (state, action) => {
       const payload = action.payload || {};
       const token = payload.token || state.user?.token || '';
-      const refreshToken = payload.refreshToken || state.user?.refreshToken || '';
+      const refreshToken =
+        payload.refreshToken || state.user?.refreshToken || '';
       state.user = {
         ...(state.user || {}),
         ...payload,
@@ -142,9 +138,7 @@ const authSlice = createSlice({
         ...(refreshToken ? {refreshToken} : {}),
       };
 
-      // Store the token in AsyncStorage
-      AsyncStorage.setItem('token', token);
-      AsyncStorage.setItem('user', JSON.stringify(state.user));
+      persistPublicUser(state.user);
     },
     deactivateAccount: state => {
       state.user = null;
@@ -164,14 +158,12 @@ export const {
 } = authSlice.actions;
 
 export const loginUser = userData => async dispatch => {
-  await AsyncStorage.setItem('token', userData.token);
-  await AsyncStorage.setItem('user', JSON.stringify(userData));
+  await saveSecureSession(userData);
   dispatch(authSlice.actions.login(userData));
 };
 
 export const signupUser = userData => async dispatch => {
-  await AsyncStorage.setItem('token', userData.token);
-  await AsyncStorage.setItem('user', JSON.stringify(userData));
+  await saveSecureSession(userData);
   dispatch(authSlice.actions.signup(userData));
 };
 

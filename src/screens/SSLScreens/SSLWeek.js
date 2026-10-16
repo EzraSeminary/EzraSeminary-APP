@@ -31,6 +31,7 @@ import {
   clearSSLCache,
 } from '../../utils/sslCache';
 import networkManager from '../../utils/networkManager';
+import {getSabbathSchoolQuarterOffline, saveSabbathSchoolLessonOffline} from '../../utils/contentCache';
 import {
   ArrowSquareLeft,
   YoutubeLogo,
@@ -710,6 +711,10 @@ const SSLWeek = ({route}) => {
   const [notes, setNotes] = useState({});
   const [cachedSSLWeek, setCachedSSLWeek] = useState(null);
   const [cachedSSLQuarter, setCachedSSLQuarter] = useState(null);
+  useEffect(() => {
+    if (lessonData) setCachedSSLWeek(lessonData);
+    if (quarterData) setCachedSSLQuarter(quarterData);
+  }, [lessonData, quarterData]);
   const [isUsingCache, setIsUsingCache] = useState(false);
   const {
     data: SSLQuarter,
@@ -740,6 +745,17 @@ const SSLWeek = ({route}) => {
         weekId
       ) {
         try {
+          const offlineQuarter = await getSabbathSchoolQuarterOffline(ssl);
+          const quarterLesson = offlineQuarter?.lessons?.[weekId];
+          if (quarterLesson) {
+            const cachedDay = quarterLesson.days?.[check] || quarterLesson.lesson;
+            if (cachedDay) setCachedSSLWeek(cachedDay);
+            if (quarterLesson.lesson || offlineQuarter.quarter) {
+              setCachedSSLQuarter(offlineQuarter.quarter || quarterLesson.lesson);
+            }
+            setIsUsingCache(true);
+            return;
+          }
           const cached = await getCachedSSLLesson(ssl, weekId, language);
           if (cached) {
             const cachedDay = cached.days?.[check] || cached.lessonData;
@@ -767,6 +783,9 @@ const SSLWeek = ({route}) => {
   useEffect(() => {
     if (SSLWeek && SSLQuarter && ssl && weekId) {
       saveSSLLessonToCache(ssl, weekId, SSLWeek, SSLQuarter, language, check);
+      saveSabbathSchoolLessonOffline(ssl, weekId, SSLQuarter, check, SSLWeek).catch(error =>
+        console.warn('Could not cache Sabbath School reading:', error),
+      );
       // Clear cache flags when fresh data loads
       if (isUsingCache) {
         setIsUsingCache(false);

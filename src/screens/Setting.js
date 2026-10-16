@@ -33,6 +33,7 @@ import {
   TextT,
   BookOpenText,
   MicrophoneStage,
+  HighlighterCircle,
 } from 'phosphor-react-native';
 import {useGetSSLsQuery} from '../services/SabbathSchoolApi';
 import UserAvatar from '../components/UserAvatar';
@@ -349,6 +350,12 @@ const Setting = ({navigation}) => {
                 icon={<Heart size={16} weight="fill" color={'#FFFFFF'} />}
                 title="Favorite Devotions"
                 onPress={() => navigation.navigate('FavoriteDevotions')}
+              />
+
+              <SettingItem
+                icon={<HighlighterCircle size={16} weight="fill" color={'#FFFFFF'} />}
+                title="Highlight Manager"
+                onPress={() => navigation.navigate('BibleHighlightManager')}
               />
             </Animated.View>
           )}

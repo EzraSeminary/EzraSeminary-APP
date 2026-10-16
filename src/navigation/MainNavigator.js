@@ -2,7 +2,7 @@ import React, {useEffect} from 'react';
 import {useNavigation} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {useSelector} from 'react-redux';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {getSecureSession} from '../utils/secureSession';
 import MainTabNavigator from './MainTabNavigator';
 import {Login, Signup, Welcome} from '../screens';
 
@@ -15,7 +15,8 @@ const MainNavigator = () => {
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
+        const session = await getSecureSession();
+        const token = session?.token || session?.accessToken;
         if (token) {
           // Token found, navigate to MainTabNavigator
           navigation.navigate('Home'); // Navigate to a screen within the stack navigator
@@ -29,7 +30,7 @@ const MainNavigator = () => {
     };
 
     checkLoginStatus();
-  }, []);
+  }, [navigation]);
 
   return (
     <Stack.Navigator>

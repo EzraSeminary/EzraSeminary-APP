@@ -50,6 +50,10 @@ import {
   clearSSLRefreshCache,
   ensureOnlineOrNotify,
 } from '../../utils/refreshCacheManager';
+import {
+  getSabbathSchoolQuarterOffline,
+  saveSabbathSchoolQuarterOffline,
+} from '../../utils/contentCache';
 
 const SSL_PAGE_SIZE = 10;
 
@@ -79,12 +83,14 @@ const SSLHome = ({onReload}) => {
   const [reloadingLesson, setReloadingLesson] = useState(false);
   const [invalidateSSLCache] = useInvalidateSSLCacheMutation();
   const [cachedHomeData, setCachedHomeData] = useState(null);
+  const [offlineQuarterData, setOfflineQuarterData] = useState(null);
   const [isUsingCache, setIsUsingCache] = useState(false);
   const didMountLanguageRefresh = useRef(false);
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const scrollBottomPadding = tabBarHeight + insets.bottom + 64;
   const {data: ssl, error, isLoading, refetch} = useGetSSLsQuery();
+  const language = useSelector(state => state.language.language);
 
   const {
     data: lessonDetails,
@@ -99,6 +105,47 @@ const SSLHome = ({onReload}) => {
     isLoading: quarterIsLoading,
     refetch: quarterRefetch,
   } = useGetSSLOfQuarterQuery(quarter, {skip: !quarter});
+
+  useEffect(() => {
+    let cancelled = false;
+    getSabbathSchoolQuarterOffline(quarter).then(cached => {
+      if (!cancelled) setOfflineQuarterData(cached);
+    });
+    return () => { cancelled = true; };
+  }, [quarter]);
+
+  // Download and persist the complete current quarter (lesson indexes and all
+  // seven daily readings) whenever Sabbath School opens with connectivity.
+  useEffect(() => {
+    if (!networkManager.isOnline || !quarterDetails?.lessons?.length || !quarter) return;
+    let cancelled = false;
+    const downloadQuarter = async () => {
+      const baseUrl = `https://sabbath-school-stage.adventech.io/api/v2/${language || 'am'}`;
+      const cachedExisting = await getSabbathSchoolQuarterOffline(quarter);
+      const lessons = {...(cachedExisting?.lessons || {})};
+      for (const item of quarterDetails.lessons) {
+        if (!item?.id) continue;
+        const existingLesson = lessons[item.id];
+        if (existingLesson?.lesson && Object.keys(existingLesson.days || {}).length >= 7) continue;
+        const lessonIndexResponse = await fetch(`${baseUrl}/quarterlies/${quarter}/lessons/${item.id}/index.json`).catch(() => null);
+        const lessonIndex = lessonIndexResponse?.ok ? await lessonIndexResponse.json().catch(() => null) : null;
+        const days = {...(existingLesson?.days || {})};
+        for (let day = 1; day <= 7; day += 1) {
+          const dayId = String(day).padStart(2, '0');
+          if (days[dayId]) continue;
+          const response = await fetch(`${baseUrl}/quarterlies/${quarter}/lessons/${item.id}/days/${dayId}/read/index.json`).catch(() => null);
+          if (response?.ok) days[dayId] = await response.json().catch(() => null);
+        }
+        lessons[item.id] = {lesson: lessonIndex, days};
+        if (cancelled) return;
+        // Persist incrementally so interrupted downloads retain completed work.
+        await saveSabbathSchoolQuarterOffline(quarter, quarterDetails, lessons);
+      }
+      if (!cancelled) setOfflineQuarterData({quarter: quarterDetails, lessons, cachedAt: new Date().toISOString()});
+    };
+    downloadQuarter().catch(error => console.warn('Failed to cache Sabbath School quarter:', error));
+    return () => { cancelled = true; };
+  }, [quarter, quarterDetails, language]);
 
   const lastDigitQuarter = parseInt(quarter?.slice(-1), 10);
 
@@ -164,14 +211,17 @@ const SSLHome = ({onReload}) => {
   }, [error, ssl, isUsingCache]);
 
   // Use cached data if available
-  const displaySSL = useMemo(
-    () => (ssl && ssl.length > 0 ? ssl : cachedHomeData?.ssl || []),
-    [ssl, cachedHomeData?.ssl],
-  );
-  const displayLessonDetails =
-    lessonDetails || cachedHomeData?.lessonDetails || null;
+  const displaySSL = useMemo(() => {
+    if (ssl?.length) return ssl;
+    if (cachedHomeData?.ssl?.length) return cachedHomeData.ssl;
+    return offlineQuarterData?.quarter?.lessons || [];
+  }, [ssl, cachedHomeData?.ssl, offlineQuarterData?.quarter?.lessons]);
+  const displayQuarterLessonIndex = offlineQuarterData?.lessons?.[week]?.lesson;
+  const cachedCurrentLesson = offlineQuarterData?.lessons?.[week]?.lesson;
+  const displayLessonDetails = lessonDetails || cachedHomeData?.lessonDetails ||
+    (cachedCurrentLesson ? {lesson: cachedCurrentLesson.lesson || cachedCurrentLesson} : null);
   const displayQuarterDetails =
-    quarterDetails || cachedHomeData?.quarterDetails || null;
+    quarterDetails || cachedHomeData?.quarterDetails || offlineQuarterData?.quarter || null;
 
   const onRefresh = useCallback(async () => {
     try {
@@ -317,7 +367,6 @@ const SSLHome = ({onReload}) => {
   );
   const hasMoreLessons = visibleLessonCount < filteredData.length;
 
-  const language = useSelector(state => state.language.language);
   const prefetchWeeklyLessons = usePrefetch('getSSLOfDayLesson');
 
   // Refetch data when language changes
@@ -407,7 +456,7 @@ const SSLHome = ({onReload}) => {
     );
   }
 
-  if (isLoading && (!ssl || ssl.length === 0)) {
+  if (isLoading && (!ssl || ssl.length === 0) && displaySSL.length === 0 && !offlineQuarterData) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         {/* Compact Loading */}
@@ -449,17 +498,26 @@ const SSLHome = ({onReload}) => {
     }
   };
 
-  if (error && (!ssl || ssl.length === 0)) {
+  if (error && (!ssl || ssl.length === 0) && displaySSL.length === 0 && !offlineQuarterData) {
     return <ErrorScreen refetch={refetch} darkMode={darkMode} />;
   }
 
   const handleSSLOpen = sslId => {
-    navigation.navigate('SSLQuarter', {sslId});
+    navigation.navigate('SSLQuarter', {sslId, offlineQuarter: offlineQuarterData?.quarter, offlineLessons: offlineQuarterData?.lessons});
   };
 
   const gradientColor = '#222222';
 
   const handleOpenButtonPress = async () => {
+    if (!networkManager.isOnline && offlineQuarterData?.lessons?.[week]) {
+      navigation.push('SSLWeek', {
+        ssl: quarter,
+        weekId: week,
+        lessonData: offlineQuarterData.lessons[week].days?.['01'],
+        quarterData: offlineQuarterData.quarter,
+      });
+      return;
+    }
     // Prefetch all 7 days of lessons
     const prefetchPromises = [];
     for (let day = 1; day <= 7; day++) {
@@ -500,10 +558,12 @@ const SSLHome = ({onReload}) => {
     navigation.push('SSLWeek', {
       ssl: quarter,
       weekId: week,
+      lessonData: displayQuarterLessonIndex?.days?.['01'],
+      quarterData: displayQuarterDetails,
     });
   };
 
-  if (lessonIsLoading || quarterIsLoading || videoLoading) {
+  if ((lessonIsLoading || quarterIsLoading || videoLoading) && !offlineQuarterData) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         {/* Compact Loading */}
@@ -537,7 +597,7 @@ const SSLHome = ({onReload}) => {
     );
   }
 
-  if (lessonError) {
+  if (lessonError && !displayLessonDetails) {
     return (
       <SafeAreaView style={darkMode ? tw`bg-secondary-9 h-100%` : null}>
         {isUsingCache && (
@@ -703,11 +763,11 @@ const SSLHome = ({onReload}) => {
     );
   }
 
-  if (quarterError) {
+  if (quarterError && !displayQuarterDetails) {
     return <Text> Error: {quarterError}</Text>;
   }
 
-  if (!lessonDetails || !quarterDetails) {
+  if ((!lessonDetails || !quarterDetails) && !displayQuarterLessonIndex && !offlineQuarterData?.quarter) {
     console.error('Missing lesson or quarter details:', {
       lessonDetails,
       quarterDetails,
@@ -761,15 +821,15 @@ const SSLHome = ({onReload}) => {
                   <View style={tw`flex flex-row items-center`}>
                     {language === 'en' ? (
                       <Text style={tw`font-nokia-bold text-accent-6`}>
-                        {formatDateRange(
-                          lessonDetails.lesson.start_date,
-                          lessonDetails.lesson.end_date,
+                    {formatDateRange(
+                          (displayLessonDetails || {lesson: displayQuarterLessonIndex?.lesson || displayQuarterLessonIndex}).lesson.start_date,
+                          (displayLessonDetails || {lesson: displayQuarterLessonIndex?.lesson || displayQuarterLessonIndex}).lesson.end_date,
                         )}
                       </Text>
                     ) : (
                       <View style={tw`flex flex-row items-center`}>
                         <DateConverter
-                          gregorianDate={lessonDetails.lesson.start_date}
+                          gregorianDate={(displayLessonDetails || {lesson: displayQuarterLessonIndex?.lesson || displayQuarterLessonIndex}).lesson.start_date}
                           textStyle={tw`font-nokia-bold text-accent-6`}
                         />
                         <Text style={tw`font-nokia-bold text-accent-6`}>
@@ -777,7 +837,7 @@ const SSLHome = ({onReload}) => {
                           -{' '}
                         </Text>
                         <DateConverter
-                          gregorianDate={lessonDetails.lesson.end_date}
+                          gregorianDate={(displayLessonDetails || {lesson: displayQuarterLessonIndex?.lesson || displayQuarterLessonIndex}).lesson.end_date}
                           textStyle={tw`font-nokia-bold text-accent-6`}
                         />
                       </View>
@@ -790,17 +850,17 @@ const SSLHome = ({onReload}) => {
 
           <View style={tw`my-2`}>
             <Text style={tw`font-nokia-bold text-accent-6`}>
-              {quarterDetails.quarterly.title}
+                {displayQuarterDetails.quarterly.title}
             </Text>
             <Text
               style={[
                 tw`font-nokia-bold text-secondary-6 text-2xl`,
                 darkMode ? tw`text-primary-1` : null,
               ]}>
-              {lessonDetails.lesson.title}
+              {(displayLessonDetails || {lesson: displayQuarterLessonIndex?.lesson || displayQuarterLessonIndex}).lesson.title}
             </Text>
             <Text style={tw`font-nokia-bold text-accent-6`}>
-              {quarterDetails.quarterly.human_date}
+                {displayQuarterDetails.quarterly.human_date}
             </Text>
           </View>
           <View style={tw`border-b border-accent-6 mb-1`} />
@@ -810,7 +870,7 @@ const SSLHome = ({onReload}) => {
               darkMode ? tw`text-primary-1` : null,
             ]}>
             {'   '}
-            {quarterDetails.quarterly.description}
+                {displayQuarterDetails.quarterly.description}
           </Text>
           <View style={tw`flex flex-row mx-auto gap-2 items-center my-2`}>
             <TouchableOpacity

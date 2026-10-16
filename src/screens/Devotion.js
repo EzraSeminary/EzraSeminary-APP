@@ -81,6 +81,7 @@ import {normalizeDevotionForHighlighting} from '../utils/devotionCache';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {getFloatingTabScenePadding} from '../navigation/floatingTabBarStyles';
 import useCurrentDate from '../hooks/useCurrentDate';
+import {saveDevotionsForOffline, getDevotionsForOfflineWindow} from '../utils/contentCache';
 
 const toEthDate = date => {
   const ethDateTime = EthDateTime.fromEuropeanDate(date);
@@ -126,6 +127,13 @@ const getMainVerseText = devotion =>
   devotion?.memoryVerse ||
   devotion?.verse ||
   '';
+
+const asDevotionArray = value => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.devotions)) return value.devotions;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
+};
 
 const Devotion = () => {
   const darkMode = useSelector(state => state.ui.darkMode);
@@ -186,7 +194,10 @@ const Devotion = () => {
     {skip: !alternateMonthName},
   );
   const featuredMonthDevotions = useMemo(() => {
-    const merged = [...primaryMonthDevotions, ...alternateMonthDevotions];
+    const merged = [
+      ...asDevotionArray(primaryMonthDevotions),
+      ...asDevotionArray(alternateMonthDevotions),
+    ];
     const getDevotionKey = devotion =>
       devotion?._id ||
       `${devotion?.year || 'legacy'}-${devotion?.month || ''}-${
@@ -197,8 +208,13 @@ const Devotion = () => {
         index ===
         arr.findIndex(other => getDevotionKey(other) === getDevotionKey(item)),
     );
-    return unique.length > 0 ? unique : primaryMonthDevotions;
+    return unique.length > 0 ? unique : asDevotionArray(primaryMonthDevotions);
   }, [primaryMonthDevotions, alternateMonthDevotions]);
+  useEffect(() => {
+    saveDevotionsForOffline(featuredMonthDevotions).catch(error =>
+      console.warn('Could not cache Devotions for offline use:', error),
+    );
+  }, [featuredMonthDevotions]);
   const isFeaturedFetching =
     isPrimaryFeaturedFetching || isAlternateFeaturedFetching;
   const featuredError =
@@ -268,6 +284,10 @@ const Devotion = () => {
   const [commentsCount, setCommentsCount] = useState(0);
   const [activeTab, setActiveTab] = useState('devotional'); // 'devotional' or 'plan'
   const [cachedHomeData, setCachedHomeData] = useState(null);
+  const [cachedDatedDevotions, setCachedDatedDevotions] = useState([]);
+  useEffect(() => {
+    getDevotionsForOfflineWindow(today, 30).then(setCachedDatedDevotions);
+  }, [today]);
   const [isUsingCache, setIsUsingCache] = useState(false);
   const {
     scaleTextSize,
@@ -358,8 +378,10 @@ const Devotion = () => {
     () =>
       discoverDevotions.length > 0
         ? discoverDevotions
-        : cachedHomeData?.devotions || [],
-    [cachedHomeData?.devotions, discoverDevotions],
+        : cachedHomeData?.devotions?.length
+        ? cachedHomeData.devotions
+        : cachedDatedDevotions,
+    [cachedDatedDevotions, cachedHomeData?.devotions, discoverDevotions],
   );
   const displayFeaturedDevotions = useMemo(
     () =>

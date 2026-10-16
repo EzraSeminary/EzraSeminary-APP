@@ -16,9 +16,12 @@ const uiSlice = createSlice({
     toggleDarkMode(state) {
       state.darkMode = !state.darkMode;
     },
+    setDarkMode(state, action) {
+      state.darkMode = Boolean(action.payload);
+    },
   },
 });
 
-export const {toggleDarkMode} = uiSlice.actions;
+export const {toggleDarkMode, setDarkMode} = uiSlice.actions;
 
 export default uiSlice.reducer;

@@ -26,30 +26,9 @@ const LiveStreamCard = ({liveStream, isLoading, error, onRetry, darkMode}) => {
     );
   }
 
-  if (error) {
-    return (
-      <View
-        style={[
-          tw`rounded-2xl p-4 mb-5 border border-accent-6`,
-          darkMode ? tw`bg-secondary-8` : tw`bg-primary-5`,
-        ]}>
-        <Text
-          style={[
-            tw`font-nokia-bold text-base mb-2`,
-            darkMode ? tw`text-primary-1` : tw`text-secondary-8`,
-          ]}>
-          Live stream could not be loaded.
-        </Text>
-        <TouchableOpacity
-          onPress={onRetry}
-          style={tw`self-start px-4 py-2 rounded-full bg-accent-6`}>
-          <Text style={tw`font-nokia-bold text-primary-1 text-sm`}>
-            Try Again
-          </Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // A failed request is expected while offline. Since the stream is only
+  // relevant while live, keep the home screen quiet until data confirms it.
+  if (error && !liveStream) return null;
 
   const shouldShow = liveStream?.isLive || liveStream?.testMode;
   const youtubeUrl = getActiveLiveYouTubeUrl(liveStream);

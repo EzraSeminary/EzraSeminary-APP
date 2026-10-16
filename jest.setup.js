@@ -54,6 +54,13 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
+jest.mock('react-native-keychain', () => ({
+  ACCESSIBLE: {WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'WhenUnlockedThisDeviceOnly'},
+  setGenericPassword: jest.fn(() => Promise.resolve(true)),
+  getGenericPassword: jest.fn(() => Promise.resolve(false)),
+  resetGenericPassword: jest.fn(() => Promise.resolve(true)),
+}));
+
 jest.mock('react-native-toast-message', () => ({
   __esModule: true,
   default: {
@@ -99,6 +106,10 @@ jest.mock('react-native-fs', () => ({
   CachesDirectoryPath: '/tmp',
   exists: jest.fn(() => Promise.resolve(false)),
   mkdir: jest.fn(() => Promise.resolve()),
+  readDir: jest.fn(() => Promise.resolve([])),
+  readFile: jest.fn(() => Promise.resolve('{}')),
+  writeFile: jest.fn(() => Promise.resolve()),
+  moveFile: jest.fn(() => Promise.resolve()),
   downloadFile: jest.fn(() => ({promise: Promise.resolve({statusCode: 200})})),
   unlink: jest.fn(() => Promise.resolve()),
 }));

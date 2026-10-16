@@ -14,6 +14,10 @@
       "sha1": "074a1855377736253dfbcf3dc5f9dfd7b21fb134"
     },
     {
+      "path": "assets/fonts/Inter-Variable.ttf",
+      "sha1": "97d4f3722d62c6cc5340bf6220ada3d64ca367b1"
+    },
+    {
       "path": "assets/fonts/Lato-Black.ttf",
       "sha1": "a001eb827743636e04f8efa7d4aeedf0541c46ac"
     },
@@ -32,6 +36,14 @@
     {
       "path": "assets/fonts/Lato-Thin.ttf",
       "sha1": "07290446bee3f81ce501a3c3dbfde6097c70ca15"
+    },
+    {
+      "path": "assets/fonts/Lexend-Variable.ttf",
+      "sha1": "2dce6e8f7f6bbe0d481e89995b7db53a8dc8d77a"
+    },
+    {
+      "path": "assets/fonts/Montserrat-Variable.ttf",
+      "sha1": "071f7ef85781d3df3e9611d8a25fb677e08b9c76"
     },
     {
       "path": "assets/fonts/Nokia Pure Headline Bold.ttf",

@@ -1,9 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getApiBaseUrl} from '../utils/apiBaseUrl';
+import {saveSecureSession} from '../utils/secureSession';
 
 export const persistAuthenticatedUser = async ({result, dispatch, login}) => {
-  await AsyncStorage.setItem('user', JSON.stringify(result));
-  await AsyncStorage.setItem('token', result?.token || '');
+  await saveSecureSession(result);
+  const AsyncStorage =
+    require('@react-native-async-storage/async-storage').default;
   await AsyncStorage.setItem(
     'authProvider',
     String(result?.authProvider || 'email'),

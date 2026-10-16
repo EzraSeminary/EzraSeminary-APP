@@ -33,7 +33,7 @@ import {formatSslDateRange} from '../../utils/sslDateFormatter';
 import networkManager from '../../utils/networkManager';
 
 const SSLQuarter = ({route}) => {
-  const {sslId} = route.params;
+  const {sslId, offlineQuarter, offlineLessons} = route.params;
   const language = useSelector(state => state.language.language);
   const {
     data: sslQuarter,
@@ -48,9 +48,14 @@ const SSLQuarter = ({route}) => {
   const [showModal, setShowModal] = useState(false);
   const [fullDescription, setFullDescription] = useState('');
   const [cachedQuarter, setCachedQuarter] = useState(null);
-  const [cachedLessonIds, setCachedLessonIds] = useState([]);
+  const [cachedLessonIds, setCachedLessonIds] = useState(Object.keys(offlineLessons || {}));
   const [isUsingCache, setIsUsingCache] = useState(false);
   const [isCachingQuarter, setIsCachingQuarter] = useState(false);
+  useEffect(() => {
+    if (offlineQuarter) setCachedQuarter(offlineQuarter);
+    if (offlineLessons) setCachedLessonIds(Object.keys(offlineLessons));
+    if (!networkManager.isOnline && offlineQuarter) setIsUsingCache(true);
+  }, [offlineQuarter, offlineLessons]);
 
   useEffect(() => {
     let isActive = true;
@@ -134,7 +139,7 @@ const SSLQuarter = ({route}) => {
     };
   }, [sslQuarter, sslId, language]);
 
-  const displaySSLQuarter = sslQuarter || cachedQuarter;
+  const displaySSLQuarter = sslQuarter || cachedQuarter || offlineQuarter;
   const visibleLessons = useMemo(() => {
     const lessons = displaySSLQuarter?.lessons || [];
 
@@ -351,7 +356,13 @@ const SSLQuarter = ({route}) => {
         console.error('Error caching SSL quarter data:', error);
       }
     }
-    navigation.push('SSLWeek', {ssl, weekId});
+    const savedLesson = offlineLessons?.[weekId];
+    navigation.push('SSLWeek', {
+      ssl,
+      weekId,
+      lessonData: savedLesson?.days?.['01'],
+      quarterData: offlineQuarter || displaySSLQuarter,
+    });
   };
 
   const gradientColor = darkMode
